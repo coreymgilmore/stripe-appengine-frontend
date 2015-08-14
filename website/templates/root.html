@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{{template "html_head"}}
+	</head>
+	<body>
+
+		<div class="container">
+			<!-- APP TITLE -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
+					<center>
+						<h2 class="app-title">Charge Credit Cards</h2>
+						<hr>
+					</center>
+				</div>
+			</div>
+
+			<!-- LOGIN FORM -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
+					<div class="panel panel-default login">
+						<div class="panel-heading">
+							<h3 class="panel-title">Please Log In</h3>
+						</div>
+						<div class="panel-body">
+							<form method="post" action="/login/">
+								<div class="form-group">
+									<label class="control-label">Username: </label>
+									<input class="form-control" id="username" name="username" type="email" required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Password: </label>
+									<input class="form-control" id="password" name="password" type="password" required>
+								</div>
+								<div class="form-group">
+									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Continue" required>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{{template "footer"}}
+		{{template "html_scripts"}}
+	<body>
+</body>

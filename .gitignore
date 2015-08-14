@@ -1,0 +1,3 @@
+secrets/session-auth-key.txt
+secrets/session-encrypt-key.txt
+secrets/stripe-private-key.txt

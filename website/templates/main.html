@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{{template "html_head"}}
+	</head>
+	<body>
+
+		<div class="container">
+			<!-- APP TITLE & NAV BAR -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
+					<center>
+						<h2 class="app-title">Charge Credit Cards</h2>
+						<hr>
+						<div class="btn-group" id="nav-buttons" data-toggle="buttons">
+							<label class="btn btn-default action-btn" data-action="panel-add-card">
+								<input type="radio">Add
+							</label>
+							<label class="btn btn-default action-btn" data-action="panel-remove-card">
+								<input type="radio">Remove
+							</label>
+							<label class="btn btn-default action-btn active" data-action="panel-charge-card">
+								<input type="radio" checked>Charge
+							</label>
+							<label class="btn btn-default action-btn" data-action="panel-reports">
+								<input type="radio">Reports
+							</label>
+							<label class="btn btn-default action-btn" data-action="panel-settings">
+								<input type="radio">Settings
+							</label>
+						</div>
+					</center>
+				</div>
+			</div>
+
+			<!-- ADD, REMOVE, CHARGE PANELS -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
+					
+					<!-- ADD NEW CUSTOMER/CARD -->
+					<div class="panel panel-default action-panels" id="panel-add-card">
+						<div class="panel-heading">
+							<h3 class="panel-title">Add a New Card</h3>
+						</div>
+						<div class="panel-body">
+							<!-- takes up too much room -->
+							<!--
+							<div class="info">
+								<p>Please provide the information below to add a new card. The "Customer ID" is used to uniquely identify this customer for automating some functionality. You can leave this field if needed. In many cases the "Customer Name" will be the same as the "Cardholder".</p>
+							</div>
+							-->
+
+							<form id="add-card">
+								<div class="form-group">
+									<label class="control-label">Customer ID: </label>
+									<input class="form-control" id="customer-id" name="customer-id" type="text" placeholder="A unique identifier (can be left blank).">
+								</div>
+								<div class="form-group">
+									<label class="control-label">Customer Name: </label>
+									<input class="form-control" id="customer-name" name="customer-name" type="text" placeholder="ABC Corp., John Smith" required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Cardholder: </label>
+									<input class="form-control" id="cardholder-name" name="cardholder-name" type="text" placeholder="The name on the card." required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Card Number: </label>
+									<input class="form-control disable-spinner" id="card-number" name="card-number" type="number" min="0" step="1" placeholder="The credit card number." required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Expiration Month: </label>
+									<select class="form-control" id="card-exp-month" name="card-exp-month">
+										<option value="0">Please choose.</option>
+										<option value="01">01 - January</option>
+										<option value="02">02 - February</option>
+										<option value="03">03 - March</option>
+										<option value="04">04 - April</option>
+										<option value="05">05 - May</option>
+										<option value="06">06 - June</option>
+										<option value="07">07 - July</option>
+										<option value="08">08 - August</option>
+										<option value="09">09 - September</option>
+										<option value="10">10 - October</option>
+										<option value="11">11 - November</option>
+										<option value="12">12 - Decemeber</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Expiration Year: </label>
+									<select class="form-control" id="card-exp-year" name="card-exp-year">
+										<option value="0">Loading...</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Security Code: </label>
+									<input class="form-control disable-spinner" id="card-cvc" name="card-cvc" type="number" min="0" max="9999" step="1" placeholder="3, or 4 digits on the card's back." required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Billing Postal Code: </label>
+									<input class="form-control disable-spinner" id="card-postal-code" name="card-postal-code" type="text" maxlength="6" required>
+								</div>
+								<div id="error-msg"></div>
+								<div class="form-group">
+									<button class="btn btn-primary" id="submit" name="submit" type="submit">Add Card</button>
+								</div>
+							</form>
+						</div>
+					</div>
+
+					<!-- REMOVE CUSTOMER/CARD -->
+					<div class="panel panel-default action-panels" id="panel-remove-card" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Remove a Card</h3>
+						</div>
+						<div class="panel-body">
+							<div class="info">
+								<p>Please provide the "Customer Name" of the card you want to remove.</p>
+							</div>
+
+							<form id="remove-card">
+								<div class="form-group">
+									<label class="control-label">Customer Name: </label>
+									<datalist id="customer-names">
+										<option value="None">None</option>
+									</datalist>
+									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-names" required>
+								</div>
+								
+								<div class="form-group">
+									<input class="btn btn-danger" id="submit" name="submit" type="submit" value="Remove Card" required>
+								</div>
+							</form>
+						</div>
+					</div>
+
+					<!-- CHARGE A CARD -->
+					<div class="panel panel-default action-panels show" id="panel-charge-card" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Charge a Card</h3>
+						</div>
+						<div class="panel-body">
+							<!-- takes up too much space -->
+							<!--
+							<div class="info">
+								<p>Choose a customer by name to charge. Then provide the amount to charge and some other details.</p>
+							</div>
+							-->
+
+							<form id="charge-card">
+								<div class="form-group">
+									<label class="control-label">Customer Name: </label>
+									<datalist id="customer-names">
+										<option value="None">None</option>
+									</datalist>
+									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-names" required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Cardholder: </label>
+									<input class="form-control" id="customer-cardholder" name="customer-cardholder" readonly tabindex="-1">
+								</div>
+								<div class="form-group">
+									<label class="control-label">Last Four: </label>
+									<input class="form-control" id="customer-last-four" name="customer-last-four" readonly tabindex="-1">
+								</div>
+								<div class="form-group">
+									<label class="control-label">Expiration: </label>
+									<input class="form-control" id="customer-expiration" name="customer-expiration" readonly tabindex="-1">
+								</div>
+								<hr class="hr-panel">
+								
+								<div class="form-group">
+									<label class="control-label">Amount: </label>
+									<input class="form-control" id="charge-amount" name="charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
+									<input class="form-control" id="charge-invoice" name="charge-invoice" type="text" disabled>
+								</div>
+								<div class="form-group">
+									<label class="control-label">PO Number <small>(optional)</small>: </label>
+									<input class="form-control" id="charge-po" name="charge-po" type="text" disabled>
+								</div>
+
+								<div class="form-group">
+									<input id="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
+									<input id="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
+									<input id="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
+									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Charge Card" required>
+								</div>
+							</form>
+						</div>
+					</div>
+
+					<!-- CARD CHARGED SUCCESSFULLY -->
+					<div class="panel panel-success action-panels" id="panel-charge-card-success" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Charge Successful</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
+							<p>Please see details below and email a receipt if necessary.</p>
+						</div>
+					</div>
+
+					<!-- CARD CHARGED ERROR -->
+					<div class="panel panel-danger action-panels" id="panel-charge-card-error" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Charge Unsuccessful</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
+							<p>Please see details below.</p>
+						</div>
+					</div>
+
+					<!-- REPORTS -->
+					<div class="panel panel-default action-panels" id="panel-reports" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Get Reports</h3>
+						</div>
+						<div class="panel-body">
+							<form id="report-by-customer">
+								<div class="form-group">
+									<label class="control-label">Customer Name: </label>
+									<datalist id="customer-ids">
+										<option value="None">None</option>
+									</datalist>
+									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-ids" required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Start Date: </label>
+									<input class="form-control" id="start-date" name="start-date" type="date" required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">End Date: </label>
+									<input class="form-control" id="start-date" name="start-date" type="date" required>
+								</div>
+								<div class="form-group">
+									<input id="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
+									<input id="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
+									<input id="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
+									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Go" required>
+								</div>
+							</form>
+
+							
+						</div>
+					</div>
+
+					<!-- SETTINGS -->
+					<div class="panel panel-default action-panels" id="panel-settings" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Settings</h3>
+						</div>
+						<div class="panel-body">
+							<h5>Add a New User</h5>
+							<button class="btn btn-primary pull-center" id="open-modal-new-user" data-toggle="modal" data-target="#modal-new-user">Go</button>
+							<hr class="hr-panel">
+
+							<h5>Change a User's Password</h5>
+							<button class="btn btn-primary pull-center" id="open-modal-change-pwd" data-toggle="modal" data-target="#modal-change-pwd">Go</button>
+							<hr class="hr-panel">
+
+							<h5>Update User's Access Rights</h5>
+							<button class="btn btn-primary pull-center" id="open-modal-update-user" data-toggle="modal" data-target="#modal-update-user">Go</button>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+		<!-- MODALS -->
+		<!-- NEW USER -->
+		<div class="modal fade" id="modal-new-user">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Add a New User</h4>
+					</div>
+					<div class="modal-body">
+						<form class="form-horizontal" id="form-new-user" method="POST" action="">
+							<div class="form-group">
+								<label class="control-label col-sm-3">Username:</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="username" name="username" type="email" placeholder="Email address." required>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Password:</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Password (again):</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="password2" name="password2" type="password" required>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Add Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-add-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-add-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-add-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Remove Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-remove-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-remove-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-remove-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Charge Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-charge-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-charge-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-charge-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">View Reports?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-view-reports" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-view-reports" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-view-reports" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Administrator?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="is-admin" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="is-admin" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="is-admin" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<div class="btn-group">
+							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							<button class="btn btn-primary" id="submit" type="submit" form="form-new-user">Add User</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- CHANGE A USER'S PASSWORD -->
+		<div class="modal fade" id="modal-change-pwd">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Change Password</h4>
+					</div>
+					<div class="modal-body">
+						<form class="form-horizontal" id="form-change-pwd" method="POST" action="">
+							<div class="form-group">
+								<label class="control-label col-sm-3">Username:</label>
+								<div class="col-sm-8">
+									<select class="form-control" id="users" name="users">
+										<option value="0">Please choose...</option>
+									</select>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Password:</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Password (again):</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="password2" name="password2" type="password" required>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<div class="btn-group">
+							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							<button class="btn btn-primary" id="submit" type="submit" form="form-change-pwd">Save</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- UPDATE A USER'S ACCESS RIGHTS -->
+		<div class="modal fade" id="modal-update-user">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Update a User</h4>
+					</div>
+					<div class="modal-body">
+						<form class="form-horizontal" id="form-update-user" method="POST" action="">
+							<div class="form-group">
+								<label class="control-label col-sm-3">Username:</label>
+								<div class="col-sm-8">
+									<select class="form-control" id="users" name="users">
+										<option value="0">Please choose...</option>
+									</select>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Add Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-add-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-add-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-add-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Remove Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-remove-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-remove-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-remove-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Charge Cards?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-charge-cards" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-charge-cards" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-charge-cards" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">View Reports?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="can-view-reports" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="can-view-reports" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="can-view-reports" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Administrator?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="is-admin" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="is-admin" value="yes">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="is-admin" value="no" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<div class="btn-group">
+							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							<button class="btn btn-primary" id="submit" type="submit" form="form-update-user">Save</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{{template "footer"}}
+		{{template "html_scripts"}}
+	<body>
+</body>

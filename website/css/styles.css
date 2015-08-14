@@ -1,0 +1,195 @@
+/*BUTTONS*/
+/*GET RID OF BUTTON ANIMATIONS WHEN CLICKED*/
+.btn-primary:active,
+.btn-default:active,
+.btn-info:active,
+.btn-success:active,
+.btn-warning:active,
+.btn-danger:active {
+	background-image: 		none;
+	box-shadow: 			0px 2px 2px rgba(0, 0, 0, 0.3);
+	-webkit-box-shadow: 	0px 2px 2px rgba(0, 0, 0, 0.3);
+	-moz-box-shadow: 		0px 2px 2px rgba(0, 0, 0, 0.3);
+}
+
+/*REMOVE BTN SHADOWS*/
+/*makes awkward overlaps in input groups*/
+/*looks a bit cleaner*/
+.btn {
+	box-shadow: 		none;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: 	none;
+}
+
+/*BTN DEFAULT NEEDS BORDERS*/
+/*since we removed the shadows*/
+.btn-default {
+	border: 				1px solid #DDD;
+}
+.btn-group .btn.btn-default:not(:first-child) {
+	border-left: 			0;
+}
+
+/*ADD 1PX BORDER TO MAKE ALL BUTTONS THE SAME HEIGHT
+/*only btn-default usually has borders, other btn- are just colored*/
+.btn-primary {
+	border-bottom: 			1px solid #2196F3;
+}
+
+/*MAKE FORM CONTROLS HAVE FULL BORDERS*/
+/*makes them stand out better and easier to use*/
+/*removes the Material Design underline only on inputs*/
+select.form-control,
+input.form-control,
+input[type=text].form-control,
+input[type=email].form-control,
+input[type=password].form-control {
+	border: 				1px solid #ddd;
+	border-radius:  		3px; 				/*same as btns*/
+	padding-left: 			5px;
+	padding-right: 			5px;
+	border-bottom-width: 	1px;
+	box-shadow:  			none !important;
+}
+select.form-control:focus,
+input.form-control:focus,
+input[type=text].form-control:focus,
+input[type=email].form-control:focus,
+input[type=password].form-control:focus {
+	border-color: 			#66afe9;
+	box-shadow:  			none !important;
+	-webkit-box-shadow:		none !important;
+	-moz-box-shadown: 		none !important;
+}
+.form-control[readonly],
+.form-control[readonly]:focus {
+	border: 				1px dotted #ddd !important;
+}
+.form-control[disabled] {
+	border: 				1px solid #ddd !important;
+}
+
+/*MADE DEFAULT FONT COLOR A BIT DARKER*/
+body {
+	color: 				#333;
+}
+
+/*HEADER AND FOOTER*/
+header,
+footer {
+	background-color: 	#F5F5F5; 
+	border-color: 		#2196F3;
+	border-style: 		solid;
+	border-width: 		0;
+}
+
+header {
+	border-bottom-width: 1px;
+	margin-bottom:  	10px;
+}
+
+/*STICKY FOOTER*/
+footer.sticky {
+	border-top-width: 	1px;
+	position: 			absolute;
+	bottom: 			0;
+	width: 				100%;
+	height: 			80px;
+	margin-top: 		20px;
+	padding-top: 		10px;
+}
+html {
+	position: relative;
+	min-height: 100%;
+}
+body {
+	margin-bottom: 		100px;	/*footer height + footer margin-top*/
+}
+
+/*PANELS*/
+/*MAKE PANEL-TITLE LARGER*/
+.panel-title {
+	font-size: 			20px;
+}
+/*ADD PANEL BORDER TO DEFAULT PANEL*/
+.panel-default {
+	border: 			1px solid #DDD;
+}
+
+/*MISC*/
+/*MAKE HR DARKER*/
+hr {
+	border-color: 		#DDD;
+}
+/*divider lines for use in panels*/
+.hr-panel {
+	margin-left: 		-15px;
+	margin-right: 		-15px;
+}
+
+/*TURN OFF UP/DOWN ARROWS ON NUMERIC INPUTS*/
+.disable-spinner::-webkit-inner-spin-button,
+.disalbe-spinner::-webkit-outer-spin-button {
+	-webkit-appearance: 		none;
+	margin: 					0;
+}
+
+/*SPECIFIC ELEMENTS*/
+.app-title {
+	font-weight: 				300;
+}
+#nav-buttons {
+	margin-top: 				-23px;
+	margin-bottom: 				23px;
+}
+#nav-buttons .btn {
+	border-top: 				0;
+}
+#nav-buttons .btn:first-child {
+	border-top-left-radius: 	0;
+}
+#nav-buttons .btn:last-child {
+	border-top-right-radius: 	0;
+}
+
+/*TEXT IN MODALS AS SEPARATE BLOCKS*/
+/*shows a border under the text to separate it from the rest of the panel*/
+.panel-body .info {
+	border-bottom: 				1px solid #ddd;
+	margin-left: 				-15px;
+	margin-right: 				-15px;
+	margin-bottom: 				10px;
+	padding-left: 				15px;
+	padding-right: 				15px;
+}
+.panel-body .info.info-no-border {
+	border-bottom: 				0;
+}
+
+/*HIDE ALL PANELS ON PAGE LOAD*/
+.action-panels {
+	display: 					none;
+}
+/*except charge panel which is shown by default*/
+.action-panels#panel-charge-card {
+	display: 					block;
+}
+
+/*MODAL STYLING*/
+/*add back in borders to separate header and footer*/
+/*make header/footer a bit smaller by removing padding*/
+.modal-header {
+	border-bottom: 				1px solid #DDD;
+	padding-top: 				10px;
+	padding-bottom: 			10px;
+}
+.modal-footer {
+	border-top:  				1px solid #DDD;
+	padding-top: 				10px;
+	padding-bottom: 			10px;
+}
+.modal-title {
+	font-size:  				28px;
+	font-weight:  				300;
+	text-align:  				center;
+}

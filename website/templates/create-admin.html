@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{{template "html_head"}}
+	</head>
+	<body>
+
+		<div class="container">
+			<!-- APP TITLE -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
+					<center>
+						<h2 class="app-title">Charge Credit Cards</h2>
+						<hr>
+					</center>
+				</div>
+			</div>
+
+			<!-- LOGIN FORM -->
+			<div class="row">
+				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
+					<div class="panel panel-default login">
+						<div class="panel-heading">
+							<h3 class="panel-title">Create the Initial User</h3>
+						</div>
+						<div class="panel-body">
+							<div class="info">
+								<p>Please choose a password for the initial administrator.  You cannot choose a different username for this user.  You will use this username and password to log in and create other users.</p>
+							</div>
+
+							<form id="create-init-admin" method="post" action="/create-admin/">
+								<div class="form-group">
+									<label class="control-label">Username:</label>
+									<input class="form-control" id="username" name="username" type="email" value="admin@example.com" readonly required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Password:</label>
+									<input class="form-control" id="password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Password (again):</label>
+									<input class="form-control" id="password2" name="password2" type="password" required>
+								</div>
+								<div id="error-msg"></div>
+								<div class="form-group">
+									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Save" required>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		{{template "footer"}}
+		{{template "html_scripts"}}
+	<body>
+</body>

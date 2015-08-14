@@ -1,0 +1,2 @@
+goapp serve
+pause
