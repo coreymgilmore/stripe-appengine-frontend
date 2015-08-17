@@ -85,7 +85,6 @@ footer {
 
 header {
 	border-bottom-width: 1px;
-	margin-bottom:  	10px;
 }
 
 /*STICKY FOOTER*/
@@ -139,7 +138,6 @@ hr {
 	font-weight: 				300;
 }
 #nav-buttons {
-	margin-top: 				-23px;
 	margin-bottom: 				23px;
 }
 #nav-buttons .btn {

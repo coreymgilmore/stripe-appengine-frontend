@@ -80,6 +80,12 @@ function showFormErrorMsg (title, message, parentElem) {
 	return;
 }
 
+//SHOW MESSAGES IN MODALS
+function showModalMessage (msg, type, elem) {
+	elem.html('<div class="alert alert-' + type + '">' + msg + '</div>');
+	return
+}
+
 //*******************************************************************************
 //FUNCS
 
@@ -367,3 +373,81 @@ $('#add-card').submit(function (e) {
 	e.preventDefault();
 	return false;
 });
+
+//ADD A NEW USER
+$('#form-new-user').submit(function (e) {
+	//gather inputs
+	var username = 		$('#form-new-user .username').val();
+	var password1 = 	$('#form-new-user .password1').val();
+	var password2 = 	$('#form-new-user .password2').val();
+	var addCards = 		$('#form-new-user .can-add-cards input:checked').val();
+	var removeCards = 	$('#form-new-user .can-remove-cards input:checked').val();
+	var chargeCards = 	$('#form-new-user .can-charge-cards input:checked').val();
+	var reports = 		$('#form-new-user .can-view-reports input:checked').val();
+	var admin = 		$('#form-new-user .is-admin input:checked').val();
+	var active = 		$('#form-new-user .is-active input:checked').val();
+	var msgElem = 		$('#form-new-user .msg');
+
+	//validate password
+	//check if passwords match
+	if (doWordsMatch(password1, password2) === false) {
+		e.preventDefault();
+		showModalMessage("The passwords do not match.", "danger", msgElem);
+		return false;
+	}
+
+	//make sure the password is long enough
+	if (isLongPassword(password1) === false) {
+		e.preventDefault();
+		showModalMessage("Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", "danger", msgElem);
+		return false;
+	}
+
+	//make sure the passwords are not very easy to guess
+	if (isSimplePassword(password1) === true) {
+		e.preventDefault();
+		showModalMessage("Your password too simple. Choose a more complex password.", "danger", msgElem);
+		return false;
+	}
+
+	//clear any alerts
+	msgElem.html('');
+
+	//add user via ajax call
+	e.preventDefault();
+	$.ajax({
+		type: 	"POST",
+		url: 	"/users/add/",
+		data: {
+			username: 		username,
+			password1: 		password1,
+			password2: 		password2,
+			addCards: 		addCards,
+			removeCards: 	removeCards,
+			chargeCards: 	chargeCards,
+			reports: 		reports,
+			admin: 			admin,
+			active: 		active
+		},
+		beforeSend: function() {
+			showModalMessage("Saving user...", "info", msgElem);
+			return;
+		},
+		success: function (r) {
+			showModalMessage("New user was saved sucessfully!", "success", msgElem);
+
+			//reset inputs
+			$('#form-new-user .username').val('');
+			$('#form-new-user .password1').val('');
+			$('#form-new-user .password2').val('');
+			$('#form-new-user .default').attr("checked", true).parent('label').addClass('active').siblings('label').removeClass('active')
+
+			//hide success message
+			setTimeout(function() {
+				msgElem.html('');
+			}, 3000);
+		}
+	});
+	return false;
+});
+

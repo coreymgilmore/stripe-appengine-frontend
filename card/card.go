@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"io/ioutil"
+	"errors"
 
 	"appengine"
 	"appengine/urlfetch"
@@ -13,13 +14,23 @@ import (
 )
 
 const (
+	//PATH TO STRIPE PRIVATE KEY FILE STORED IN TEXT
+	//key is stored in file instead of code so it is easily changed
 	STRIPE_PRIVATE_KEY_PATH = "secrets/stripe-private-key.txt"
 )
 
 var (
-	STRIPE_PRIVATE_KEY string
+	//global store for the stripe key used for transactions
+	stripePrivateKey = ""
+
+	//save errors from Init() for use when checking if private key was read correctly
+	initError error
+
+	//error when checking if stripe private key file was empty
+	ErrStripeKeyTooShort = errors.New("The Stripe private key ('stripe-private-key.txt') file was empty. Please provide your Stripe private key.")
 )
 
+//CONSISTANT OBJECT FOR RETURNING DATA TO CLIENT
 type returnObj struct {
 	Ok 		bool
 	Title 	string
@@ -33,11 +44,12 @@ type returnObj struct {
 func Init() error {
 	apikey, err := ioutil.ReadFile(STRIPE_PRIVATE_KEY_PATH)
 	if err != nil {
+		initError = err
 		return err
 	}
 
 	//save key to session
-	STRIPE_PRIVATE_KEY = string(apikey)
+	stripePrivateKey = string(apikey)
 
 	return nil
 }
@@ -82,7 +94,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//create the stripe customer
-	stripe.Key = STRIPE_PRIVATE_KEY
+	stripe.Key = stripePrivateKey
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 
 	custParams := &stripe.CustomerParams{
@@ -130,4 +142,20 @@ func returnResults (ok bool, title, msg string, data map[string]interface{}, w h
 	//send back json
 	w.Write(j)
 	return
+}
+
+//CHECK IF STRIPE KEY WAS READ CORRECTLY
+func CheckStripe() error {
+	//check if reading key from file returned an error
+	if initError != nil {
+		return initError
+	}
+
+	//check if there was actually some text read
+	if len(stripePrivateKey) == 0 {
+		return ErrStripeKeyTooShort
+	}
+
+	//private key read correctly
+	return nil
 }

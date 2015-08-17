@@ -15,6 +15,19 @@ const P = "website/templates/"
 //VAR FOR STORING BUILT TEMPLATES
 var htmlTemplates *template.Template
 
+//STRUCT FOR HOLDING NOTIFICATION TEMPLATE DATA
+type NotificationPage struct {
+	PanelColor 		string
+	Title 			string
+	Message 		interface{}
+	BtnColor 		string
+	LinkHref 		string
+	BtnText 		string
+}
+
+//**********************************************************************
+//FUNCS
+
 //GET LIST OF FILES FROM DIRECTORY TO BUILD INTO TEMPLATES
 //do this instead of having to list every file in ParseFiles() manually
 func Build() {

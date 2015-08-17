@@ -2,21 +2,14 @@ package stripeappenginefrontent
 
 import (
 	"net/http"
-	"fmt"
-
 	"github.com/gorilla/mux"
-	//"github.com/justinas/alice"
-
-
+	"github.com/justinas/alice"
 	"templates"
 	"sessionutils"
 	"pages"
 	"card"
-)
-
-var (
-	sessionError error
-	stripeKeyError error
+	"users"
+	"middleware"
 )
 
 func init() {
@@ -27,13 +20,14 @@ func init() {
 	templates.Build()
 
 	//INIT SESSIONS
-	sessionError = sessionutils.Init()
+	sessionutils.Init()
 
 	//INIT STRIPE
-	stripeKeyError = card.Init()
+	card.Init()
 
 	//**********************************************************************
 	//MIDDLEWARE
+	auth := alice.New(middleware.Auth)
 
 
 	//**********************************************************************
@@ -41,16 +35,30 @@ func init() {
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	
-	//general pages
+	//root & setup
 	r.HandleFunc("/", 				pages.Root)
-	r.HandleFunc("/init-errors/", 	checkInitErrors)
 	r.HandleFunc("/setup/", 		pages.CreateAdminShow)
-	r.HandleFunc("/create-admin/", 	pages.CreateAdminDo).Methods("POST")
+	r.HandleFunc("/create-admin/", 	users.CreateAdmin).Methods("POST")
+	r.HandleFunc("/login/",			users.Login)
+	r.HandleFunc("/logout/", 		users.Logout)
 
-
-	//logged in pages
-	r.HandleFunc("/main/", 	pages.Main)
+	//logged in
+	main := http.HandlerFunc(pages.Main)
+	r.Handle("/main/", auth.Then(main))
 	
+
+
+	
+
+
+
+
+
+
+
+
+
+
 	c := r.PathPrefix("/card").Subrouter()
 	c.HandleFunc("/add/", 				card.Add)
 
@@ -60,16 +68,4 @@ func init() {
 
 	//LISTEN
 	http.Handle("/", r)
-}
-
-//SHOW ERRORS READING NECESSARY SECRET FILES
-//displays <nil> if the files were found and read into the app
-//if the files cannot be found, an error is provided
-func checkInitErrors(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Session Init Errors\n")
-	fmt.Fprint(w, sessionError)
-	fmt.Fprint(w, "\n\n")
-	fmt.Fprint(w, "Stripe Key Error\n")
-	fmt.Fprint(w, stripeKeyError)
-	return
 }

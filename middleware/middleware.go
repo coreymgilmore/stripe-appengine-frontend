@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"net/http"
-
+	"fmt"
 	"sessionutils"
+	"appengine"
+	"users"
 )
 
 //MIDDLEWARE TO CHECK IF A USER IS LOGGED IN
@@ -21,15 +23,27 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		//get values from session
+		//session is not new
+		//session data may exist
+		userId := 	session.Values["user_id"].(int64)
 
-		//look up user data
-		//user username, userId, and token as criteria since all have to match one user
+		//look up user in memcache and/or datastore
+		c := appengine.NewContext(r)
+		userData, err := users.Find(c, userId)
+		if err != nil {
+			fmt.Fprint(w, err)
+			return
+		}
 
-		//does a user with this data exist
+		//check if user is allowed access
+		if users.AllowedAccess(userData) == false {
+			sessionutils.Destroy(w, r)
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 
-		//everything is ok
-		//extend expiration of session cookie
+		//okay
+		//extend expirtation of session cookie
 		sessionutils.ExtendExpiration(session, w, r)
 		
 		//move to next middleware or handler

@@ -4,14 +4,13 @@
 		{{template "html_head"}}
 	</head>
 	<body>
+		{{template "header"}}
 
 		<div class="container">
 			<!-- APP TITLE & NAV BAR -->
 			<div class="row">
 				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
 					<center>
-						<h2 class="app-title">Charge Credit Cards</h2>
-						<hr>
 						<div class="btn-group" id="nav-buttons" data-toggle="buttons">
 							<label class="btn btn-default action-btn" data-action="panel-add-card">
 								<input type="radio">Add
@@ -280,34 +279,34 @@
 						<h4 class="modal-title">Add a New User</h4>
 					</div>
 					<div class="modal-body">
-						<form class="form-horizontal" id="form-new-user" method="POST" action="">
+						<form class="form-horizontal" id="form-new-user">
 							<div class="form-group">
 								<label class="control-label col-sm-3">Username:</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="username" name="username" type="email" placeholder="Email address." required>
+									<input class="form-control username" name="username" type="email" placeholder="Email address." required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password:</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+									<input class="form-control password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password (again):</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="password2" name="password2" type="password" required>
+									<input class="form-control password2" name="password2" type="password" required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Add Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-add-cards" data-toggle="buttons">
+									<div class="btn-group can-add-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-add-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-add-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-add-cards" value="no" checked>No
+											<input class="radio-no default" type="radio" name="can-add-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -315,12 +314,12 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Remove Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-remove-cards" data-toggle="buttons">
+									<div class="btn-group can-remove-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-remove-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-remove-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-remove-cards" value="no" checked>No
+											<input class="radio-no default" type="radio" name="can-remove-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -328,12 +327,12 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Charge Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-charge-cards" data-toggle="buttons">
+									<div class="btn-group can-charge-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-charge-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-charge-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-charge-cards" value="no" checked>No
+											<input class="radio-no default" type="radio" name="can-charge-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -341,12 +340,12 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">View Reports?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-view-reports" data-toggle="buttons">
+									<div class="btn-group can-view-reports" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-view-reports" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-view-reports" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-view-reports" value="no" checked>No
+											<input class="radio-no default" type="radio" name="can-view-reports" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -354,16 +353,30 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Administrator?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="is-admin" data-toggle="buttons">
+									<div class="btn-group is-admin" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="is-admin" value="yes">Yes
+											<input class="radio-yes" type="radio" name="is-admin" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="is-admin" value="no" checked>No
+											<input class="radio-no default" type="radio" name="is-admin" value="false" checked>No
 										</label>
 									</div>
 								</div>
 							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Allowed Access?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group is-active" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="is-active" value="true">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no default" type="radio" name="is-active" value="false" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="msg"></div>
 						</form>
 					</div>
 					<div class="modal-footer">
@@ -441,10 +454,10 @@
 								<div class="col-sm-8">
 									<div class="btn-group" id="can-add-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-add-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-add-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-add-cards" value="no" checked>No
+											<input class="radio-no" type="radio" name="can-add-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -454,10 +467,10 @@
 								<div class="col-sm-8">
 									<div class="btn-group" id="can-remove-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-remove-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-remove-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-remove-cards" value="no" checked>No
+											<input class="radio-no" type="radio" name="can-remove-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -467,10 +480,10 @@
 								<div class="col-sm-8">
 									<div class="btn-group" id="can-charge-cards" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-charge-cards" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-charge-cards" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-charge-cards" value="no" checked>No
+											<input class="radio-no" type="radio" name="can-charge-cards" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -480,10 +493,10 @@
 								<div class="col-sm-8">
 									<div class="btn-group" id="can-view-reports" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-view-reports" value="yes">Yes
+											<input class="radio-yes" type="radio" name="can-view-reports" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-view-reports" value="no" checked>No
+											<input class="radio-no" type="radio" name="can-view-reports" value="false" checked>No
 										</label>
 									</div>
 								</div>
@@ -493,10 +506,23 @@
 								<div class="col-sm-8">
 									<div class="btn-group" id="is-admin" data-toggle="buttons">
 										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="is-admin" value="yes">Yes
+											<input class="radio-yes" type="radio" name="is-admin" value="true">Yes
 										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="is-admin" value="no" checked>No
+											<input class="radio-no" type="radio" name="is-admin" value="false" checked>No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Allowed Access?:</label>
+								<div class="col-sm-8">
+									<div class="btn-group" id="is-active" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="is-active" value="true">Yes
+										</label>
+										<label class="btn btn-default active">
+											<input class="radio-no" type="radio" name="is-active" value="false" checked>No
 										</label>
 									</div>
 								</div>

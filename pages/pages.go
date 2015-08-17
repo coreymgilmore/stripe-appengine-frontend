@@ -2,22 +2,41 @@ package pages
 
 import (
 	"net/http"
+	"fmt"
 
 	"templates"
+	"sessionutils"
+	"card"
+	"users"
 )
-
-//STRUCT FOR HOLDING TEMPLATE DATA
-type tempData struct {
-	PanelColor 		string
-	Title 			string
-	Message 		string
-	BtnColor 		string
-	LinkHref 		string
-	BtnText 		string
-}
 
 //MAIN ROOT PAGES
 func Root(w http.ResponseWriter, r *http.Request) {
+	//check that session store was initialized correctly
+	if err := sessionutils.CheckSession(); err != nil {
+		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Session Init Error", err, "btn-default", "/", "Try Again"})
+		return
+	}
+
+	//check if stripe private key is read correctly
+	if err := card.CheckStripe(); err != nil {
+		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Stripe Key Error", err, "btn-default", "/", "Try Again"})
+		return
+	}
+
+	//check if the admin user exists
+	//redirect user to create admin if it does not exist
+	err := users.DoesAdminExist(r)
+	if err == users.ErrAdminDoesNotExist {
+		http.Redirect(w, r, "/setup/", http.StatusFound)
+		return
+	} else if err != nil {
+		fmt.Fprint(w, "An error occured while checking if the admin user exists.\n")
+		fmt.Fprint(w, err)
+		return
+	}
+
+	//load the login page
 	templates.Load(w, "root", nil)
 	return
 }
@@ -36,30 +55,15 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 //LOAD THE PAGE TO CREATE THE INITIAL ADMIN USER
 func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
+	//check if the admin user already exists
+	//no need to show this page if it does exist
+	err := users.DoesAdminExist(r)
+	if err == nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+
 	templates.Load(w, "create-admin", nil)
 	return
-}
-
-//SAVE THE INITIAL ADMIN USER
-func CreateAdminDo(w http.ResponseWriter, r *http.Request) {
-	//get form values
-	pass1 := r.FormValue("password1")
-	pass2 := r.FormValue("password2")
-
-	//make sure they match
-	if pass1 != pass2 {
-		templates.Load(w, "create-admin-notifications", tempData{"panel-danger", "Error", "The passwords you provided did not match.", "btn-default", "/setup/", "Try Again"})
-		return
-	}
-
-	//make sure the password is long enough
-	if len(pass1) < 8 {
-		templates.Load(w, "create-admin-notifications", tempData{"panel-danger", "Error", "The password you provided is not long enough.", "btn-default", "/setup/", "Try Again"})
-		return
-	}
-
-	//save the user
-	_ = "admin@example.com"
-	return
-
 }
