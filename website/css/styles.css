@@ -191,3 +191,9 @@ hr {
 	font-weight:  				300;
 	text-align:  				center;
 }
+
+/*ALERTS IN MODALS*/
+/*reduce margin to make the modal smaller*/
+.modal .msg>.alert {
+	margin-bottom:  			0;
+}

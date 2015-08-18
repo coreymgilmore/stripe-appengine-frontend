@@ -12,28 +12,40 @@ import (
 	"github.com/coreymgilmore/timestamps"
 	"strconv"
 	"sessionutils"
+	"output"
 )
 
 const (
-	ADMIN_USERNAME = "admin@example.com"
-	DATASTORE_KIND = "users"
+	ADMIN_USERNAME = 		"admin@example.com"
+	DATASTORE_KIND = 		"users"
+	MIN_PASSWORD_LENGTH = 	8
+	LIST_OF_USERS_KEYNAME = "list-of-users"
 )
 
 var (
-	ErrAdminDoesNotExist = 	errors.New("Administrator user does not exist.")
-	ErrUserDoesNotExist = 	errors.New("User does not exist")
+	ErrAdminDoesNotExist = 		errors.New("adminUserDoesNotExist")
+	ErrUserDoesNotExist = 		errors.New("userDoesNotExist")
+	ErrUserAlreadyExists = 		errors.New("userAlreadyExists")
+	ErrPasswordsDoNotMatch = 	errors.New("passwordsDoNotMatch")
+	ErrPasswordTooShort = 		errors.New("passwordTooShort")
+	ErrNotAdmin = 				errors.New("userIsNotAnAdmin")
 )
 
 type User struct{
-	Username 		string
-	Password 		string
-	AddCards 		bool
-	RemoveCards 	bool
-	ChargeCards 	bool
-	ViewReports 	bool
-	Administrator 	bool
-	Active 			bool
-	Created 		string
+	Username 		string 		`json:"username"`
+	Password 		string 		`json:"-"`
+	AddCards 		bool 		`json:"add_cards"`
+	RemoveCards 	bool 		`json:"remove_cards"`
+	ChargeCards 	bool 		`json:"charge_cards"`
+	ViewReports 	bool 		`json:"view_reports"`
+	Administrator 	bool 		`json:"is_admin"`
+	Active 			bool 		`json:"is_active"`
+	Created 		string 		`json:"datetime_created"`
+}
+
+type userList struct {
+	Username 		string 		`json:"username"`
+	Id 				int64 		`json:"id"`
 }
 
 //**********************************************************************
@@ -53,13 +65,13 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	pass2 := r.FormValue("password2")
 
 	//make sure they match
-	if pass1 != pass2 {
+	if doStringsMatch(pass1, pass2) == false {
 		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "The passwords you provided did not match.", "btn-default", "/setup/", "Try Again"})
 		return
 	}
 
 	//make sure the password is long enough
-	if len(pass1) < 8 {
+	if len(pass1) < MIN_PASSWORD_LENGTH {
 		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "The password you provided is not long enough.", "btn-default", "/setup/", "Try Again"})
 		return
 	}
@@ -160,6 +172,217 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//ADD A NEW USER
+//gathers data from ajax call
+//does some validation
+//creates and saved the user to datastore and saves user to memcache by IntID
+func Add(w http.ResponseWriter, r *http.Request) {
+	//get form values
+	username := 		r.FormValue("username")
+	password1 := 		r.FormValue("password1")
+	password2 := 		r.FormValue("password2")
+	addCards, _ := 		strconv.ParseBool(r.FormValue("addCards"))
+	removeCards, _ := 	strconv.ParseBool(r.FormValue("removeCards"))
+	chargeCards, _ := 	strconv.ParseBool(r.FormValue("chargeCards"))
+	viewReports, _ := 	strconv.ParseBool(r.FormValue("reports"))
+	isAdmin, _ := 		strconv.ParseBool(r.FormValue("admin"))
+	isActive, _ := 		strconv.ParseBool(r.FormValue("active"))
+
+	//check if this user already exists
+	c := appengine.NewContext(r)
+	_, _, err := exists(c, username)
+	if err == nil {
+		//user already exists
+		//notify client
+		output.Error(ErrUserAlreadyExists, "You cannot create a user with this username because this user already exists.", w)
+		return
+	}
+
+	//make sure passwords match
+	if doStringsMatch(password1, password2) == false {
+		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w)
+		return
+	}
+
+	//make sure password is long enough
+	if len(password1) < MIN_PASSWORD_LENGTH {
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters long.", w)
+		return
+	}
+
+	//hash the password
+	hashedPwd := pwds.Create(password1)
+
+	//create the user
+	u := User{
+		Username: 		username,
+		Password: 		hashedPwd,
+		AddCards: 		addCards,
+		RemoveCards: 	removeCards,
+		ChargeCards: 	chargeCards,
+		ViewReports: 	viewReports,
+		Administrator: 	isAdmin,
+		Active: 		isActive,
+		Created: 		timestamps.ISO8601(),	
+	}
+
+	//save to datastore
+	incompleteKey := 	createNewUserKey(c)
+	_, err = 			saveNewUser(c, incompleteKey, u)
+	if err != nil {
+		fmt.Fprint(w, err)
+		return
+	}
+
+	//respond to client with success message
+	output.Success("addNewUser", nil, w)
+	return
+}
+
+//GET LIST OF ALL USERS
+//return object of IntID: username to be used in building select options
+func GetAll(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	//check if current logged in user is an admin
+	//only admins can get the list of users
+	session := 			sessionutils.Get(r)
+	userId := 			session.Values["user_id"].(int64)
+	userData, err := 	Find(c, userId)
+	if err != nil {
+		output.Error(err, "Error verifying if you are an administrator while getting list of users.", w)
+		return
+	}
+	if userData.Administrator == false {
+		//user is not an admin
+		//cannot access list of users
+		output.Error(ErrNotAdmin, "You are not an administrator therefore you cannot access the list of users.", w)
+		return
+	}
+
+	//check if list of users is saved in memcache
+	result := 	make([]userList, 0, 5)
+	_, err = 	memcache.Gob.Get(c, LIST_OF_USERS_KEYNAME, &result)
+	if err == nil {
+		//return results
+		output.Success("userList-cached", result, w)
+		return
+	}
+	
+	//list of users not found in memcache
+	//look up users in datastore
+	if err == memcache.ErrCacheMiss {
+		q := 			datastore.NewQuery(DATASTORE_KIND).Order("Username").Project("Username")
+		users := 		make([]User, 0, 5)
+		keys, err := 	q.GetAll(c, &users)
+		if err != nil {
+			output.Error(err, "Error retrieving list of users from datastore.", w)
+			return
+		}
+
+		//build result
+		idsAndNames := make([]userList, 0, 5)
+		for i, r := range users {
+			x := userList{
+				Username: 	r.Username,
+				Id: 		keys[i].IntID(),
+			}
+
+			idsAndNames = append(idsAndNames, x)
+		}
+
+		//save the list of users to memcache
+		//ignore errors since we still retrieved the data
+		memcacheSave(c, LIST_OF_USERS_KEYNAME, idsAndNames)
+
+		//return data to user
+		output.Success("userList", idsAndNames, w)
+		return
+	
+	} else if err != nil {
+		output.Error(err, "Unknown error retreiving list of users.", w)
+		return
+	}
+
+	return;
+}
+
+//CHANGE A USER'S PASSWORD
+func ChangePwd(w http.ResponseWriter, r *http.Request) {
+	//gather inputs
+	userId := 		r.FormValue("userId")
+	userIdInt, _ := strconv.ParseInt(userId, 10, 64)
+	password1 := 	r.FormValue("pass1")
+	password2 := 	r.FormValue("pass2")
+
+	//make sure passwords match
+	if doStringsMatch(password1, password2) == false {
+		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w)
+		return
+	}
+
+	//make sure password is long enough
+	if len(password1) < MIN_PASSWORD_LENGTH {
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters long.", w)
+		return
+	}
+
+	//hash the password
+	hashedPwd := pwds.Create(password1)
+
+	//get user data
+	c := appengine.NewContext(r)
+	userData, err := Find(c, userIdInt)
+	if err != nil {
+		output.Error(err, "Error while retreiving user data to update user's password.", w)
+		return
+	}
+
+	//set new password
+	userData.Password = hashedPwd
+
+	//clear memcache for this userID & username
+	err = 	memcacheDelete(c, userId)
+	err1 := memcacheDelete(c, userData.Username)
+	if err != nil {
+		output.Error(err, "Error clearing cache for user id.", w)
+		return
+	} else if err1 != nil {
+		output.Error(err1, "Error clearing cache for username.", w)
+		return
+	}
+
+	//generate full datastore key for user
+	fullKey := getUserKeyFromId(c, userIdInt)
+
+	//save user
+	_, err = saveNewUser(c, fullKey, userData)
+	if err != nil {
+		output.Error(err, "Error saving user to database after password change.", w)
+		return
+	}
+
+	//done
+	output.Success("userUpdate", nil, w)
+	return
+
+}
+
+//**********************************************************************
+//DATASTORE KEYS
+
+//CREATE INCOMPLETE KEY TO SAVE NEW USER
+func createNewUserKey(c appengine.Context) *datastore.Key {
+	return datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
+}
+
+//CREATE COMPLETE KEY FOR USER
+//get the full complete key from just the ID of a key
+func getUserKeyFromId(c appengine.Context, id int64) *datastore.Key {
+	key := datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
+	return key
+}
+
 //**********************************************************************
 //FUNCS
 
@@ -187,11 +410,6 @@ func DoesAdminExist(r *http.Request) error {
 	return nil
 }
 
-//CREATE KEY FOR NEW USER
-func createNewUserKey(c appengine.Context) *datastore.Key {
-	return datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
-}
-
 //SAVE A USER TO THE DATASTORE
 //input key is an incomplete key
 //returned key is a complete key...use this to save session data
@@ -213,6 +431,23 @@ func saveNewUser(c appengine.Context, key *datastore.Key, user User) (*datastore
 	return completeKey, nil
 }
 
+//IS USER ALLOWED ACCESS TO THIS APP
+func AllowedAccess(data User) bool {
+	return data.Active
+}
+
+//CHECK IF TWO STRINGS MATCH
+func doStringsMatch(string1, string2 string) bool {
+	if string1 == string2 {
+		return true
+	}
+
+	return false
+}
+
+//**********************************************************************
+//MEMCACHE
+
 //SAVE TO MEMCACHE
 //key is actually an int as a string (the intID of a key)
 func memcacheSave(c appengine.Context, key string, value interface{}) error {
@@ -232,7 +467,25 @@ func memcacheSave(c appengine.Context, key string, value interface{}) error {
 	return nil
 }
 
+//DELETE FROM MEMCACHE
+func memcacheDelete(c appengine.Context, key string) error {
+	err := memcache.Delete(c, key)
+	if err == memcache.ErrCacheMiss {
+		//key does not exist
+		//this is not an error
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	//delete successful
+	return nil
+}
+
+//**********************************************************************
 //GET USER DATA
+
+//GET DATA BY DATASTORE ID
 //check for data in memcache first, then datastore
 //add to memcache if data does not exist
 //userId is the IntID of an entity key
@@ -270,19 +523,10 @@ func Find(c appengine.Context, userId int64) (User, error) {
 	}
 }
 
-//CREATE USER KEY FROM ID
-//get the full complete key from just the ID of a key
-func getUserKeyFromId(c appengine.Context, id int64) *datastore.Key {
-	key := datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
-	return key
-}
-
-//IS USER ALLOWED ACCESS TO THIS APP
-func AllowedAccess(data User) bool {
-	return data.Active
-}
-
-//CHECK IF A USER EXISTS BY USERNAME
+//CHECK IF A USER EXISTS
+//also, get user data by username
+//returns error if a user by the username 'username' does not exist
+//error returned when a user cannot be found
 func exists(c appengine.Context, username string) (int64, User, error) {
 	q := 		datastore.NewQuery(DATASTORE_KIND).Filter("Username = ", username).Limit(1)
 	result := 	make([]User, 0, 1)

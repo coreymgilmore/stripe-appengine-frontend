@@ -42,13 +42,6 @@
 							<h3 class="panel-title">Add a New Card</h3>
 						</div>
 						<div class="panel-body">
-							<!-- takes up too much room -->
-							<!--
-							<div class="info">
-								<p>Please provide the information below to add a new card. The "Customer ID" is used to uniquely identify this customer for automating some functionality. You can leave this field if needed. In many cases the "Customer Name" will be the same as the "Cardholder".</p>
-							</div>
-							-->
-
 							<form id="add-card">
 								<div class="form-group">
 									<label class="control-label">Customer ID: </label>
@@ -122,7 +115,7 @@
 									<datalist id="customer-names">
 										<option value="None">None</option>
 									</datalist>
-									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-names" required>
+									<input class="form-control customer-name" type="list" list="customer-names" required>
 								</div>
 								
 								<div class="form-group">
@@ -138,53 +131,46 @@
 							<h3 class="panel-title">Charge a Card</h3>
 						</div>
 						<div class="panel-body">
-							<!-- takes up too much space -->
-							<!--
-							<div class="info">
-								<p>Choose a customer by name to charge. Then provide the amount to charge and some other details.</p>
-							</div>
-							-->
-
 							<form id="charge-card">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<datalist id="customer-names">
 										<option value="None">None</option>
 									</datalist>
-									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-names" required>
+									<input class="form-control customer-name" name="customer-name" type="list" list="customer-names" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control" id="customer-cardholder" name="customer-cardholder" readonly tabindex="-1">
+									<input class="form-control customer-cardholder" name="customer-cardholder" readonly tabindex="-1">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Last Four: </label>
-									<input class="form-control" id="customer-last-four" name="customer-last-four" readonly tabindex="-1">
+									<input class="form-control customer-last-four" name="customer-last-four" readonly tabindex="-1">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration: </label>
-									<input class="form-control" id="customer-expiration" name="customer-expiration" readonly tabindex="-1">
+									<input class="form-control customer-expiration" name="customer-expiration" readonly tabindex="-1">
 								</div>
 								<hr class="hr-panel">
 								
 								<div class="form-group">
 									<label class="control-label">Amount: </label>
-									<input class="form-control" id="charge-amount" name="charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
+									<input class="form-control charge-amount" name="charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control" id="charge-invoice" name="charge-invoice" type="text" disabled>
+									<input class="form-control charge-invoice" name="charge-invoice" type="text" disabled>
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control" id="charge-po" name="charge-po" type="text" disabled>
+									<input class="form-control charge-po" name="charge-po" type="text" disabled>
 								</div>
 
 								<div class="form-group">
-									<input id="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
-									<input id="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
-									<input id="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
-									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Charge Card" required>
+									<input class="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
+									<input class="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
+									<input class="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
+									<input class="btn btn-primary" id="charge-card-submit" name="submit" type="submit" value="Charge Card" required>
 								</div>
 							</form>
 						</div>
@@ -224,25 +210,23 @@
 									<datalist id="customer-ids">
 										<option value="None">None</option>
 									</datalist>
-									<input class="form-control" id="customer-name" name="customer-name" type="list" list="customer-ids" required>
+									<input class="form-control customer-name" name="customer-name" type="list" list="customer-ids" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Start Date: </label>
-									<input class="form-control" id="start-date" name="start-date" type="date" required>
+									<input class="form-control start-date" name="start-date" type="date" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">End Date: </label>
-									<input class="form-control" id="start-date" name="start-date" type="date" required>
+									<input class="form-control start-date" name="start-date" type="date" required>
 								</div>
 								<div class="form-group">
 									<input id="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
 									<input id="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
 									<input id="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
-									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Go" required>
+									<input class="btn btn-primary" id="reports-submit" name="submit" type="submit" value="Go" required>
 								</div>
 							</form>
-
-							
 						</div>
 					</div>
 
@@ -283,19 +267,19 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Username:</label>
 								<div class="col-sm-8">
-									<input class="form-control username" name="username" type="email" placeholder="Email address." required>
+									<input class="form-control username" type="email" placeholder="Email address." required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password:</label>
 								<div class="col-sm-8">
-									<input class="form-control password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+									<input class="form-control password1" type="password" placeholder="Min. 8 Characters." required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password (again):</label>
 								<div class="col-sm-8">
-									<input class="form-control password2" name="password2" type="password" required>
+									<input class="form-control password2" type="password" required>
 								</div>
 							</div>
 							<div class="form-group">
@@ -367,11 +351,11 @@
 								<label class="control-label col-sm-3">Allowed Access?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group is-active" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="is-active" value="true">Yes
-										</label>
 										<label class="btn btn-default active">
-											<input class="radio-no default" type="radio" name="is-active" value="false" checked>No
+											<input class="radio-yes default" type="radio" name="is-active" value="true" checked>Yes
+										</label>
+										<label class="btn btn-default">
+											<input class="radio-no" type="radio" name="is-active" value="false">No
 										</label>
 									</div>
 								</div>
@@ -382,7 +366,7 @@
 					<div class="modal-footer">
 						<div class="btn-group">
 							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
-							<button class="btn btn-primary" id="submit" type="submit" form="form-new-user">Add User</button>
+							<button class="btn btn-primary" id="form-new-user-submit" type="submit" form="form-new-user">Add User</button>
 						</div>
 					</div>
 				</div>
@@ -402,7 +386,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Username:</label>
 								<div class="col-sm-8">
-									<select class="form-control" id="users" name="users">
+									<select class="form-control user-list">
 										<option value="0">Please choose...</option>
 									</select>
 								</div>
@@ -410,21 +394,23 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password:</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="password1" name="password1" type="password" placeholder="Min. 8 Characters." required>
+									<input class="form-control password1" type="password" placeholder="Min. 8 Characters." required>
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password (again):</label>
 								<div class="col-sm-8">
-									<input class="form-control" id="password2" name="password2" type="password" required>
+									<input class="form-control password2" type="password" required>
 								</div>
 							</div>
+							<div class="msg"></div>
 						</form>
 					</div>
+					<div class="msg"></div>
 					<div class="modal-footer">
 						<div class="btn-group">
 							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
-							<button class="btn btn-primary" id="submit" type="submit" form="form-change-pwd">Save</button>
+							<button class="btn btn-primary" id="change-password-submit" type="submit" form="form-change-pwd">Save</button>
 						</div>
 					</div>
 				</div>
@@ -444,7 +430,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Username:</label>
 								<div class="col-sm-8">
-									<select class="form-control" id="users" name="users">
+									<select class="form-control user-list">
 										<option value="0">Please choose...</option>
 									</select>
 								</div>
@@ -452,7 +438,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Add Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-add-cards" data-toggle="buttons">
+									<div class="btn-group can-add-cards" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="can-add-cards" value="true">Yes
 										</label>
@@ -465,7 +451,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Remove Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-remove-cards" data-toggle="buttons">
+									<div class="btn-group can-remove-cards" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="can-remove-cards" value="true">Yes
 										</label>
@@ -478,7 +464,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Charge Cards?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-charge-cards" data-toggle="buttons">
+									<div class="btn-group can-charge-cards" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="can-charge-cards" value="true">Yes
 										</label>
@@ -491,7 +477,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">View Reports?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="can-view-reports" data-toggle="buttons">
+									<div class="btn-group can-view-reports" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="can-view-reports" value="true">Yes
 										</label>
@@ -504,7 +490,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Administrator?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="is-admin" data-toggle="buttons">
+									<div class="btn-group is-admin" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="is-admin" value="true">Yes
 										</label>
@@ -517,7 +503,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Allowed Access?:</label>
 								<div class="col-sm-8">
-									<div class="btn-group" id="is-active" data-toggle="buttons">
+									<div class="btn-group is-active" data-toggle="buttons">
 										<label class="btn btn-default">
 											<input class="radio-yes" type="radio" name="is-active" value="true">Yes
 										</label>
@@ -532,7 +518,7 @@
 					<div class="modal-footer">
 						<div class="btn-group">
 							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
-							<button class="btn btn-primary" id="submit" type="submit" form="form-update-user">Save</button>
+							<button class="btn btn-primary" id="submit" type="update-user-submit" form="form-update-user">Save</button>
 						</div>
 					</div>
 				</div>

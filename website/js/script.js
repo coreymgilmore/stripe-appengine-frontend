@@ -211,7 +211,8 @@ $('#add-card').on('change', '#card-exp-month', function() {
 	return;
 });
 
-//VALIDATE ADD NEW CARD FORM
+//ADD A NEW CREDIT CARD
+//validate the card data and save the card via ajax call
 $('#add-card').submit(function (e) {
 	var form = 			$('#add-card');
 	var customerId = 	$('#customer-id').val().trim();
@@ -375,6 +376,7 @@ $('#add-card').submit(function (e) {
 });
 
 //ADD A NEW USER
+//validate user data and save user via ajax call
 $('#form-new-user').submit(function (e) {
 	//gather inputs
 	var username = 		$('#form-new-user .username').val();
@@ -387,6 +389,7 @@ $('#form-new-user').submit(function (e) {
 	var admin = 		$('#form-new-user .is-admin input:checked').val();
 	var active = 		$('#form-new-user .is-active input:checked').val();
 	var msgElem = 		$('#form-new-user .msg');
+	var submit = 		$('#form-new-user-submit');
 
 	//validate password
 	//check if passwords match
@@ -430,24 +433,164 @@ $('#form-new-user').submit(function (e) {
 			active: 		active
 		},
 		beforeSend: function() {
+			//disable add user btn and show working message
+			submit.attr("disabled", true);
 			showModalMessage("Saving user...", "info", msgElem);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage(j['data']['error_msg'], 'danger', msgElem);
+				console.log(j);
+				return;
+			}
+
+			submit.attr("disabled", true);
 			return;
 		},
 		success: function (r) {
 			showModalMessage("New user was saved sucessfully!", "success", msgElem);
 
 			//reset inputs
-			$('#form-new-user .username').val('');
-			$('#form-new-user .password1').val('');
-			$('#form-new-user .password2').val('');
-			$('#form-new-user .default').attr("checked", true).parent('label').addClass('active').siblings('label').removeClass('active')
-
 			//hide success message
 			setTimeout(function() {
-				msgElem.html('');
+				submit.attr("disabled", false);
+				resetAddUserModal();
 			}, 3000);
 		}
 	});
 	return false;
 });
 
+//RESET ADD NEW USER MODAL INPUTS TO DEFAULTS
+function resetAddUserModal() {
+	$('#form-new-user .username').val('');
+	$('#form-new-user .password1').val('');
+	$('#form-new-user .password2').val('');
+	$('#form-new-user .default').attr("checked", true).parent('label').addClass('active').siblings('label').removeClass('active')
+	$('.msg').html('');
+	return;
+}
+
+//RESET ADD NEW USER MODAL IF THE MODAL CLOSES
+$('#modal-new-user').on('hidden.bs.modal', function() {
+	resetAddUserModal();
+	return;
+});
+
+//GET LIST OF USERNAMES AND IDS
+//fill in the drop downs for editing users and changing passwords
+function getUsers() {
+	//there are two of these selects (change pwd & update user)
+	var userList = $('.user-list');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/users/get/all/",
+		dataType: "json",
+		beforeSend: function() {
+			userList.html('<option value="0">Loading...</option>');
+			return;
+		},
+		error: function (r) {
+			userList.html('<option value="0">Error (please see dev tools)</option>');
+			console.log(r);
+			return;
+		},
+		success: function (r) {
+			//clear options
+			userList.html('');
+
+			//display list of users in selects
+			var users = r['data'];
+			users.forEach(function (u, index) {
+				userList.append('<option value="' + u['id'] + '">' + u['username'] + '</option>');
+				return;
+			});
+
+			return;
+		}
+	});
+}
+
+//GET LIST OF USERS WHEN MODALS OPEN
+$('#modal-change-pwd, #modal-update-user').on('show.bs.modal', function() {
+	getUsers()
+	return;
+});
+
+//CHANGE A USERS PASSWORD
+//validate before submitting ajax
+$('#form-change-pwd').submit(function (e) {
+	//get values
+	var id = 		$('#form-change-pwd .user-list').val();
+	var pass1 = 	$('#form-change-pwd .password1').val();
+	var pass2 = 	$('#form-change-pwd .password2').val();
+	var msgElem = 	$('#form-change-pwd .msg');
+	var submit = 	$('#change-password-submit');
+
+	//validate password
+	//check if passwords match
+	if (doWordsMatch(pass1, pass2) === false) {
+		e.preventDefault();
+		showModalMessage("The passwords do not match.", "danger", msgElem);
+		return false;
+	}
+
+	//make sure the password is long enough
+	if (isLongPassword(pass1) === false) {
+		e.preventDefault();
+		showModalMessage("Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", "danger", msgElem);
+		return false;
+	}
+
+	//make sure the passwords are not very easy to guess
+	if (isSimplePassword(pass1) === true) {
+		e.preventDefault();
+		showModalMessage("Your password too simple. Choose a more complex password.", "danger", msgElem);
+		return false;
+	}
+
+	//ajax to update db
+	$.ajax({
+		type: 	"POST",
+		url: 	"/users/change-pwd/",
+		data: {
+			userId: id,
+			pass1: 	pass1,
+			pass2: 	pass2
+		},
+		beforeSend: function () {
+			submit.attr("disabled", true);
+			return;
+		},
+		error: function (r) {
+			showModalMessage("An error occured while trying to update this user's password.", "danger", msgElem);
+			console.log(r);
+			return;
+		},
+		success: function (r) {
+			showModalMessage("This user's password has been updated.", "success", msgElem);
+
+			//reset inputs
+			//hide success message
+			setTimeout(function() {
+				submit.attr("disabled", false);
+				resetChangePwdModal();
+			}, 3000);
+		}
+	});
+
+	e.preventDefault();
+	return false;
+});
+
+//RESET CHANGE PASSWORD MODAL TO DEFAULT VALUES
+function resetChangePwdModal() {
+	$('.user-list').val('0');
+	$('#form-change-pwd .password1').val('');
+	$('#form-change-pwd .password2').val('');
+	$('.msg').html('');
+	return;
+}

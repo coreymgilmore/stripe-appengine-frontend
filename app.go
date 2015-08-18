@@ -45,7 +45,16 @@ func init() {
 	//logged in
 	main := http.HandlerFunc(pages.Main)
 	r.Handle("/main/", auth.Then(main))
-	
+
+	//users
+	u := r.PathPrefix("/users").Subrouter()
+	usersAdd := 		http.HandlerFunc(users.Add)
+	usersGetAll := 		http.HandlerFunc(users.GetAll)
+	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
+
+	u.Handle("/add/", 			auth.Then(usersAdd))
+	u.Handle("/get/all/", 		auth.Then(usersGetAll))
+	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd))
 
 
 	
