@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	ADMIN_USERNAME = 		"admin@example.com"
+	ADMIN_USERNAME = 		"administrator"
 	DATASTORE_KIND = 		"users"
 	MIN_PASSWORD_LENGTH = 	8
 	LIST_OF_USERS_KEYNAME = "list-of-users"
@@ -234,6 +234,9 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//clear list of users saved in memcache since a new user was added
+	memcacheDelete(c, LIST_OF_USERS_KEYNAME)
+
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
 	return
@@ -365,8 +368,27 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//done
 	output.Success("userUpdate", nil, w)
 	return
-
 }
+
+//GET ONE USER'S DATA
+func GetOne(w http.ResponseWriter, r *http.Request) {
+	//get user id from form value
+	userId := 		r.FormValue("userId")
+	userIdInt, _ :=	strconv.ParseInt(userId, 10, 64)
+
+	//get user data
+	//looks in memcache and in datastore
+	data, err := 	Find(c, userIdInt)
+	if err != nil {
+		output.Error(err, "Cannot look up user data.", w)
+		return
+	}
+
+	//return user data
+	output.Success("findUser", data, w)
+	return
+}
+
 
 //**********************************************************************
 //DATASTORE KEYS

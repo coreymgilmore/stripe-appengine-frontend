@@ -35,6 +35,7 @@ function escapeHTML(string) {
 }
 
 //REGEX MATCH EMAIL
+//true if input is a valid email
 function validateEmail(email) {
 	var regex = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 	return regex.test(email);
@@ -375,6 +376,9 @@ $('#add-card').submit(function (e) {
 	return false;
 });
 
+//*******************************************************************************
+//ADD USER
+
 //ADD A NEW USER
 //validate user data and save user via ajax call
 $('#form-new-user').submit(function (e) {
@@ -390,6 +394,13 @@ $('#form-new-user').submit(function (e) {
 	var active = 		$('#form-new-user .is-active input:checked').val();
 	var msgElem = 		$('#form-new-user .msg');
 	var submit = 		$('#form-new-user-submit');
+
+	//check if username is an email
+	if (validateEmail(username) === false) {
+		e.preventDefault();
+		showModalMessage("You must provide an email address as a username.", "danger", msgElem);
+		return false;
+	}
 
 	//validate password
 	//check if passwords match
@@ -463,7 +474,7 @@ $('#form-new-user').submit(function (e) {
 	return false;
 });
 
-//RESET ADD NEW USER MODAL INPUTS TO DEFAULTS
+//RESET NEW USER MODAL TO DEFAULT VALUES
 function resetAddUserModal() {
 	$('#form-new-user .username').val('');
 	$('#form-new-user .password1').val('');
@@ -479,6 +490,15 @@ $('#modal-new-user').on('hidden.bs.modal', function() {
 	return;
 });
 
+//*******************************************************************************
+//CHANGE USER PASSWORD
+
+//GET LIST OF USERS WHEN MODALS OPEN
+$('#modal-change-pwd, #modal-update-user').on('show.bs.modal', function() {
+	getUsers()
+	return;
+});
+
 //GET LIST OF USERNAMES AND IDS
 //fill in the drop downs for editing users and changing passwords
 function getUsers() {
@@ -490,7 +510,7 @@ function getUsers() {
 		url: 	"/users/get/all/",
 		dataType: "json",
 		beforeSend: function() {
-			userList.html('<option value="0">Loading...</option>');
+			userList.html('<option value="0">Loading...</option>').attr('disabled', true);
 			return;
 		},
 		error: function (r) {
@@ -501,6 +521,7 @@ function getUsers() {
 		success: function (r) {
 			//clear options
 			userList.html('');
+			userList.append("<option value='0'>Please choose...</option>").attr('disabled', false);
 
 			//display list of users in selects
 			var users = r['data'];
@@ -513,12 +534,6 @@ function getUsers() {
 		}
 	});
 }
-
-//GET LIST OF USERS WHEN MODALS OPEN
-$('#modal-change-pwd, #modal-update-user').on('show.bs.modal', function() {
-	getUsers()
-	return;
-});
 
 //CHANGE A USERS PASSWORD
 //validate before submitting ajax
@@ -594,3 +609,132 @@ function resetChangePwdModal() {
 	$('.msg').html('');
 	return;
 }
+
+//RESET CHANGE USER MODAL IF THE MODAL CLOSES
+$('#modal-change-pwd').on('hidden.bs.modal', function() {
+	resetAddUserModal();
+	return;
+});
+
+//*******************************************************************************
+//CHANGE USER PERMISSIONS
+
+//RESET UPDATE USER MODAL TO DEFAULT VALUES
+function resetUpdateUserModal() {
+	$('#form-update-user label.btn').attr('disabled', true).removeClass('active');
+	$('#form-update-user input[type=radio]').attr('disabled', true).attr('checked', false);
+	$('.msg').html('');
+	$('#update-user-submit').attr('disabled', true);
+	return;
+}
+
+//RESET UPDATE USER MODAL IF THE MODAL CLOSES
+$('#modal-update-user').on('hidden.bs.modal', function() {
+	resetUpdateUserModal();
+	return;
+});
+
+//GET USER DATA ON SELECTION
+//set access control toggles to user's current permissions
+//if default user is chosen, 
+$('#form-update-user').on('change', '.user-list', function() {
+	//get user id from select value
+	var userId = 	$(this).val();
+	var msgElem = 	$('#form-update-user .msg');
+
+	//if user choosed default option, disable everything
+	if (userId === 0) {
+		resetUpdateUserModal();
+		return;
+	}
+
+	//get user data from ajax
+	$.ajax({
+		type: 	"GET",
+		url: 	"/users/get/",
+		data: 	{
+			userId: userId
+		},
+		beforeSend: function() {
+			resetUpdateUserModal();
+			showModalMessage("Retrieving user's permissions...", "info", msgElem);
+			return;
+		},
+		error: function(r) {
+			showModalMessage("An error occured while trying to retrieve this users data. Please try again.", "danger", msgElem);
+			console.log(r);
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			//hide the alert msg
+			msgElem.html('');
+
+			//enable access control toggles
+			//enable save btn
+			//select the right option again since the entire form was reset in beforeSend
+			$('#form-update-user label.btn').attr('disabled', false);
+			$('#form-update-user input[type=radio]').attr('disabled', false);
+			$('#update-user-submit').attr('disabled', false);
+
+			//make the toggles reflect the user's permissions
+			var data = j['data']
+			if (data['add_cards']) {
+				$('#form-update-user .can-add-cards input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .can-add-cards input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			if (data['remove_cards']) {
+				$('#form-update-user .can-remove-cards input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .can-remove-cards input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			if (data['charge_cards']) {
+				$('#form-update-user .can-charge-cards input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .can-charge-cards input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			if (data['view_reports']) {
+				$('#form-update-user .can-view-reports input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .can-view-reports input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			if (data['is_admin']) {
+				$('#form-update-user .is-admin input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .is-admin input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			if (data['is_active']) {
+				$('#form-update-user .is-active input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-update-user .is-active input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+
+
+
+
+
+
+			console.log(j);
+
+
+
+		}
+	});
+
+
+
+	return;
+});

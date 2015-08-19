@@ -49,10 +49,12 @@ func init() {
 	//users
 	u := r.PathPrefix("/users").Subrouter()
 	usersAdd := 		http.HandlerFunc(users.Add)
+	usersGetOne := 		http.HandlerFunc(users.GetOne)
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
 	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
 
 	u.Handle("/add/", 			auth.Then(usersAdd))
+	u.Handle("/get/", 			auth.Then(usersGetOne))
 	u.Handle("/get/all/", 		auth.Then(usersGetAll))
 	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd))
 
