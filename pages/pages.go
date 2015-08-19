@@ -3,11 +3,11 @@ package pages
 import (
 	"net/http"
 	"fmt"
-
 	"templates"
 	"sessionutils"
 	"card"
 	"users"
+	"appengine"
 )
 
 //MAIN ROOT PAGES
@@ -43,13 +43,25 @@ func Root(w http.ResponseWriter, r *http.Request) {
 
 //PAGES THAT DO NOT EXIST
 func NotFound(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This page does not exist and cannot be found. :("))
+	w.Write([]byte("This page cannot be found."))
 	return
 }
 
 //MAIN LOGGED IN PAGE
+//load the page and only show buttons/panels a user can access
 func Main(w http.ResponseWriter, r *http.Request) {
-	templates.Load(w, "main", nil)
+	//get logged in user data
+	session := 		sessionutils.Get(r)
+	userId := 		session.Values["user_id"].(int64)
+	c := 			appengine.NewContext(r)
+	user, err := 	users.Find(c, userId)
+	if err != nil {
+		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again"})
+		return;
+	}
+
+	//display template using stuct to display certain html elements
+	templates.Load(w, "main", user)
 	return
 }
 
