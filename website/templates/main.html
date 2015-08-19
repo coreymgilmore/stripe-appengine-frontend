@@ -4,7 +4,7 @@
 		{{template "html_head"}}
 	</head>
 	<body>
-		{{template "header"}}
+		{{template "header" . }}
 
 		<div class="container">
 			<!-- APP TITLE & NAV BAR -->
@@ -12,21 +12,33 @@
 				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
 					<center>
 						<div class="btn-group" id="nav-buttons" data-toggle="buttons">
+							{{/*ONLY USERS WITH CORRECT ACCESS RIGHTS CAN VIEW CERTAIN ACTION PANELS*/}}
+							{{/*hide the buttons to panels the user does not have access to*/}}
+							{{if .AddCards}}
 							<label class="btn btn-default action-btn" data-action="panel-add-card">
 								<input type="radio">Add
 							</label>
+							{{end}}
+							{{if .RemoveCards}}
 							<label class="btn btn-default action-btn" data-action="panel-remove-card">
 								<input type="radio">Remove
 							</label>
+							{{end}}
+							{{if .ChargeCards}}
 							<label class="btn btn-default action-btn active" data-action="panel-charge-card">
 								<input type="radio" checked>Charge
 							</label>
+							{{end}}
+							{{if .ViewReports}}
 							<label class="btn btn-default action-btn" data-action="panel-reports">
 								<input type="radio">Reports
 							</label>
+							{{end}}
+							{{if .Administrator}}
 							<label class="btn btn-default action-btn" data-action="panel-settings">
 								<input type="radio">Settings
 							</label>
+							{{end}}
 						</div>
 					</center>
 				</div>
@@ -35,7 +47,10 @@
 			<!-- ADD, REMOVE, CHARGE PANELS -->
 			<div class="row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
-					
+					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
+					{{/*same as hiding buttons in nav, but hide the panels so the user cannot see the panels in the code*/}}
+
+					{{if .AddCards}}
 					<!-- ADD NEW CUSTOMER/CARD -->
 					<div class="panel panel-default action-panels" id="panel-add-card">
 						<div class="panel-heading">
@@ -98,9 +113,11 @@
 							</form>
 						</div>
 					</div>
+					{{end}}
 
+					{{if .RemoveCards}}
 					<!-- REMOVE CUSTOMER/CARD -->
-					<div class="panel panel-default action-panels" id="panel-remove-card" >
+					<div class="panel panel-default action-panels" id="panel-remove-card">
 						<div class="panel-heading">
 							<h3 class="panel-title">Remove a Card</h3>
 						</div>
@@ -124,9 +141,11 @@
 							</form>
 						</div>
 					</div>
+					{{end}}
 
+					{{if .RemoveCards}}
 					<!-- CHARGE A CARD -->
-					<div class="panel panel-default action-panels show" id="panel-charge-card" >
+					<div class="panel panel-default action-panels show" id="panel-charge-card">
 						<div class="panel-heading">
 							<h3 class="panel-title">Charge a Card</h3>
 						</div>
@@ -175,29 +194,19 @@
 							</form>
 						</div>
 					</div>
-
-					<!-- CARD CHARGED SUCCESSFULLY -->
-					<div class="panel panel-success action-panels" id="panel-charge-card-success" >
+					{{else}}
+					{{/*need this panel as an "else" because this is the default panel*/}}
+					<div class="panel panel-default action-panels show charge-card-no-access" id="panel-charge-card">
 						<div class="panel-heading">
-							<h3 class="panel-title">Charge Successful</h3>
+							<h3 class="panel-title">Task Selector</h3>
 						</div>
 						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
-							<p>Please see details below and email a receipt if necessary.</p>
+							<h4>Please choose a task you would like to perform by selection one of the buttons above.</h4>
 						</div>
 					</div>
+					{{end}}
 
-					<!-- CARD CHARGED ERROR -->
-					<div class="panel panel-danger action-panels" id="panel-charge-card-error" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Charge Unsuccessful</h3>
-						</div>
-						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
-							<p>Please see details below.</p>
-						</div>
-					</div>
-
+					{{if .ViewReports}}
 					<!-- REPORTS -->
 					<div class="panel panel-default action-panels" id="panel-reports" >
 						<div class="panel-heading">
@@ -229,7 +238,9 @@
 							</form>
 						</div>
 					</div>
+					{{end}}
 
+					{{if .Administrator}}
 					<!-- SETTINGS -->
 					<div class="panel panel-default action-panels" id="panel-settings" >
 						<div class="panel-heading">
@@ -248,10 +259,36 @@
 							<button class="btn btn-primary pull-center" id="open-modal-update-user" data-toggle="modal" data-target="#modal-update-user">Go</button>
 						</div>
 					</div>
+					{{end}}
+
+					<!-- SUCCESSFUL ACTION PANEL -->
+					<div class="panel panel-success action-panels" id="panel-success" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Success!</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
+							<p>Please see details below and email a receipt if necessary.</p>
+						</div>
+					</div>
+
+					<!-- CARD CHARGED ERROR -->
+					<div class="panel panel-danger action-panels" id="panel-error" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Error!</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
+							<p>Please see details below.</p>
+						</div>
+					</div>
 
 				</div>
 			</div>
 		</div>
+
+		{{/*ONLY ADMINS CAN SEE MODALS SINCE THESE ARE FOR THE "SETTINGS" NAV BUTTON/PANEL*/}}
+		{{if .Administrator}}
 
 		<!-- MODALS -->
 		<!-- NEW USER -->
@@ -267,19 +304,19 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Username:</label>
 								<div class="col-sm-8">
-									<input class="form-control username" type="email" placeholder="Email address." required>
+									<input class="form-control username" type="text" placeholder="Email address." required autocomplete="off">
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password:</label>
 								<div class="col-sm-8">
-									<input class="form-control password1" type="password" placeholder="Min. 8 Characters." required>
+									<input class="form-control password1" type="password" placeholder="Min. 8 Characters." required autocomplete="off">
 								</div>
 							</div>
 							<div class="form-group">
 								<label class="control-label col-sm-3">Password (again):</label>
 								<div class="col-sm-8">
-									<input class="form-control password2" type="password" required>
+									<input class="form-control password2" type="password" required autocomplete="off">
 								</div>
 							</div>
 							<div class="form-group">
@@ -439,11 +476,11 @@
 								<label class="control-label col-sm-3">Add Cards?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group can-add-cards" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-add-cards" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="can-add-cards" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-add-cards" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="can-add-cards" value="false" disabled>No
 										</label>
 									</div>
 								</div>
@@ -452,11 +489,11 @@
 								<label class="control-label col-sm-3">Remove Cards?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group can-remove-cards" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-remove-cards" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="can-remove-cards" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-remove-cards" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="can-remove-cards" value="false" disabled>No
 										</label>
 									</div>
 								</div>
@@ -465,11 +502,11 @@
 								<label class="control-label col-sm-3">Charge Cards?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group can-charge-cards" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-charge-cards" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="can-charge-cards" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-charge-cards" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="can-charge-cards" value="false" disabled>No
 										</label>
 									</div>
 								</div>
@@ -478,11 +515,11 @@
 								<label class="control-label col-sm-3">View Reports?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group can-view-reports" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="can-view-reports" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="can-view-reports" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="can-view-reports" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="can-view-reports" value="false" disabled>No
 										</label>
 									</div>
 								</div>
@@ -491,11 +528,11 @@
 								<label class="control-label col-sm-3">Administrator?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group is-admin" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="is-admin" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="is-admin" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="is-admin" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="is-admin" value="false" disabled>No
 										</label>
 									</div>
 								</div>
@@ -504,28 +541,32 @@
 								<label class="control-label col-sm-3">Allowed Access?:</label>
 								<div class="col-sm-8">
 									<div class="btn-group is-active" data-toggle="buttons">
-										<label class="btn btn-default">
-											<input class="radio-yes" type="radio" name="is-active" value="true">Yes
+										<label class="btn btn-default" disabled>
+											<input class="radio-yes" type="radio" name="is-active" value="true" disabled>Yes
 										</label>
-										<label class="btn btn-default active">
-											<input class="radio-no" type="radio" name="is-active" value="false" checked>No
+										<label class="btn btn-default" disabled>
+											<input class="radio-no" type="radio" name="is-active" value="false" disabled>No
 										</label>
 									</div>
 								</div>
 							</div>
+							<div class="msg"></div>
 						</form>
 					</div>
 					<div class="modal-footer">
 						<div class="btn-group">
 							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
-							<button class="btn btn-primary" id="submit" type="update-user-submit" form="form-update-user">Save</button>
+							<button class="btn btn-primary" id="update-user-submit" type="submit" form="form-update-user" disabled>Save</button>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 
+		{{end}}
+
 		{{template "footer"}}
+		{{template "stripe-js"}}
 		{{template "html_scripts"}}
 	<body>
 </body>
