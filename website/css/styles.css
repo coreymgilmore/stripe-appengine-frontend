@@ -87,6 +87,20 @@ header {
 	border-bottom-width: 1px;
 }
 
+/*SET LOGOUT BUTTON AND USERNAME MARGINS*/
+/*reduce overall height of header*/
+#username {
+	margin-top: 		15px;
+	margin-bottom: 		10px;
+	margin-right: 		5px;
+}
+#btn-logout {
+	margin-top: 		8px;
+	margin-bottom:  	8px;
+}
+
+
+
 /*STICKY FOOTER*/
 footer.sticky {
 	border-top-width: 	1px;
