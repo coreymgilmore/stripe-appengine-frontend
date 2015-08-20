@@ -6,6 +6,12 @@
 	<body>
 		{{template "header" . }}
 
+		<!-- ELEMENT FOR HOLDING LIST OF CUSTOMER NAMES -->
+		<!-- placed here since it is used in a few places for a few inputs and some inputs are removed based on user permissions -->
+		<datalist id="customer-list">
+			<option value="None">None</option>
+		</datalist>
+
 		<div class="container">
 			<!-- APP TITLE & NAV BAR -->
 			<div class="row">
@@ -60,23 +66,23 @@
 							<form id="add-card">
 								<div class="form-group">
 									<label class="control-label">Customer ID: </label>
-									<input class="form-control" id="customer-id" name="customer-id" type="text" placeholder="A unique identifier (can be left blank).">
+									<input class="form-control" id="customer-id" type="text" placeholder="A unique identifier (can be left blank).">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
-									<input class="form-control" id="customer-name" name="customer-name" type="text" placeholder="ABC Corp., John Smith" required>
+									<input class="form-control" id="customer-name" type="text" placeholder="ABC Corp., John Smith" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control" id="cardholder-name" name="cardholder-name" type="text" placeholder="The name on the card." required>
+									<input class="form-control" id="cardholder-name" type="text" placeholder="The name on the card." required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Card Number: </label>
-									<input class="form-control disable-spinner" id="card-number" name="card-number" type="number" min="0" step="1" placeholder="The credit card number." required>
+									<input class="form-control disable-spinner" id="card-number" type="number" min="0" step="1" placeholder="The credit card number." required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration Month: </label>
-									<select class="form-control" id="card-exp-month" name="card-exp-month">
+									<select class="form-control" id="card-exp-month">
 										<option value="0">Please choose.</option>
 										<option value="01">01 - January</option>
 										<option value="02">02 - February</option>
@@ -94,23 +100,34 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration Year: </label>
-									<select class="form-control" id="card-exp-year" name="card-exp-year">
+									<select class="form-control" id="card-exp-year">
 										<option value="0">Loading...</option>
 									</select>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Security Code: </label>
-									<input class="form-control disable-spinner" id="card-cvc" name="card-cvc" type="number" min="0" max="9999" step="1" placeholder="3, or 4 digits on the card's back." required>
+									<input class="form-control disable-spinner" id="card-cvc" type="number" min="0" max="9999" step="1" placeholder="3, or 4 digits on the card's back." required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Billing Postal Code: </label>
-									<input class="form-control disable-spinner" id="card-postal-code" name="card-postal-code" type="text" maxlength="6" required>
+									<input class="form-control disable-spinner" id="card-postal-code" type="text" maxlength="6" required>
 								</div>
-								<div id="error-msg"></div>
+								<div class="error-msg"></div>
 								<div class="form-group">
 									<button class="btn btn-primary" id="submit" name="submit" type="submit">Add Card</button>
 								</div>
 							</form>
+						</div>
+					</div>
+
+					<!-- SUCCESS ADDING CARD PANEL -->
+					<div class="panel panel-success action-panels" id="panel-add-card-success" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Success!</h3>
+						</div>
+						<div class="panel-body">
+							<h5>The customer and credit card was added succcessfully!.</h5>
+							<p></p>
 						</div>
 					</div>
 					{{end}}
@@ -129,10 +146,7 @@
 							<form id="remove-card">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
-									<datalist id="customer-names">
-										<option value="None">None</option>
-									</datalist>
-									<input class="form-control customer-name" type="list" list="customer-names" required>
+									<input class="form-control customer-name" type="list" list="customer-list" required>
 								</div>
 								
 								<div class="form-group">
@@ -143,7 +157,7 @@
 					</div>
 					{{end}}
 
-					{{if .RemoveCards}}
+					{{if .ChargeCards}}
 					<!-- CHARGE A CARD -->
 					<div class="panel panel-default action-panels show" id="panel-charge-card">
 						<div class="panel-heading">
@@ -153,36 +167,33 @@
 							<form id="charge-card">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
-									<datalist id="customer-names">
-										<option value="None">None</option>
-									</datalist>
-									<input class="form-control customer-name" name="customer-name" type="list" list="customer-names" required>
+									<input class="form-control customer-name" type="list" list="customer-list" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control customer-cardholder" name="customer-cardholder" readonly tabindex="-1">
+									<input class="form-control customer-cardholder" readonly tabindex="-1">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Last Four: </label>
-									<input class="form-control customer-last-four" name="customer-last-four" readonly tabindex="-1">
+									<input class="form-control customer-last-four" readonly tabindex="-1">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration: </label>
-									<input class="form-control customer-expiration" name="customer-expiration" readonly tabindex="-1">
+									<input class="form-control customer-expiration" readonly tabindex="-1">
 								</div>
 								<hr class="hr-panel">
 								
 								<div class="form-group">
 									<label class="control-label">Amount: </label>
-									<input class="form-control charge-amount" name="charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
+									<input class="form-control charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control charge-invoice" name="charge-invoice" type="text" disabled>
+									<input class="form-control charge-invoice" type="text" disabled>
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control charge-po" name="charge-po" type="text" disabled>
+									<input class="form-control charge-po" type="text" disabled>
 								</div>
 
 								<div class="form-group">
@@ -194,6 +205,31 @@
 							</form>
 						</div>
 					</div>
+
+					<!-- SUCCESS CHARGING CARD PANEL -->
+					<div class="panel panel-success action-panels" id="panel-charge-card-success" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Success!</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
+							<p>Please see details below and email a receipt if necessary.</p>
+							<div class="details"></div>
+						</div>
+					</div>
+
+					<!-- ERROR CHARGING CARD -->
+					<div class="panel panel-danger action-panels" id="panel-charge-card-error" >
+						<div class="panel-heading">
+							<h3 class="panel-title">Error!</h3>
+						</div>
+						<div class="panel-body">
+							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
+							<p>Please see details below.</p>
+							<div class="details"></div>
+						</div>
+					</div>
+
 					{{else}}
 					{{/*need this panel as an "else" because this is the default panel*/}}
 					<div class="panel panel-default action-panels show charge-card-no-access" id="panel-charge-card">
@@ -260,28 +296,6 @@
 						</div>
 					</div>
 					{{end}}
-
-					<!-- SUCCESSFUL ACTION PANEL -->
-					<div class="panel panel-success action-panels" id="panel-success" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Success!</h3>
-						</div>
-						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
-							<p>Please see details below and email a receipt if necessary.</p>
-						</div>
-					</div>
-
-					<!-- CARD CHARGED ERROR -->
-					<div class="panel panel-danger action-panels" id="panel-error" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Error!</h3>
-						</div>
-						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
-							<p>Please see details below.</p>
-						</div>
-					</div>
 
 				</div>
 			</div>
