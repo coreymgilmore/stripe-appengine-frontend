@@ -17,7 +17,9 @@ const BAD_PASSWORDS = [
 
 //*******************************************************************************
 //STRIPE PUBLIC KEY
-Stripe.setPublishableKey('pk_test_pKzD1QYPWJNrwuGTZ2k0HEkn');
+if (window.location.pathname !== "/") {
+	Stripe.setPublishableKey('pk_test_pKzD1QYPWJNrwuGTZ2k0HEkn');
+}
 
 //*******************************************************************************
 //COMMON FUNCS
@@ -524,8 +526,13 @@ function getUsers() {
 			userList.append("<option value='0'>Please choose...</option>").attr('disabled', false);
 
 			//display list of users in selects
+			//do not show 'administrator' user in list so it cannot be updates
 			var users = r['data'];
 			users.forEach(function (u, index) {
+				if (u['username'] === "administrator") {
+					return;
+				}
+
 				userList.append('<option value="' + u['id'] + '">' + u['username'] + '</option>');
 				return;
 			});
@@ -578,6 +585,7 @@ $('#form-change-pwd').submit(function (e) {
 		},
 		beforeSend: function () {
 			submit.attr("disabled", true);
+			showModalMessage("Saving new password...", "info", msgElem);
 			return;
 		},
 		error: function (r) {
@@ -721,20 +729,78 @@ $('#form-update-user').on('change', '.user-list', function() {
 				$('#form-update-user .is-active input[value=false]').attr('checked', true).parent().addClass('active');
 			}
 
-
-
-
-
-
-
-			console.log(j);
-
-
-
+			return;
 		}
 	});
 
-
-
 	return;
+});
+
+//SAVE UPDATED USER PERMISSIONS
+$('#form-update-user').submit(function (e) {
+	var userId = 		$('#form-update-user .user-list').val();
+	var addCards = 		$('#form-update-user .can-add-cards label.active input').val();
+	var removeCards = 	$('#form-update-user .can-remove-cards label.active input').val();
+	var chargeCards = 	$('#form-update-user .can-charge-cards label.active input').val();
+	var reports = 		$('#form-update-user .can-view-reports label.active input').val();
+	var admin = 		$('#form-update-user .is-admin label.active input').val();
+	var active = 		$('#form-update-user .is-active label.active input').val();
+	var msgElem = 		$('#form-update-user .msg');
+	var submit = 		$('#update-user-submit');
+
+	//quick validation
+	if (userId.length === 0) {
+		e.preventDefault();
+		showModalMessage("A user must be chosen first.", "danger", msgElem);
+		return;
+	}
+
+	//stop form submission
+	e.preventDefault();
+
+	//update user via ajax
+	$.ajax({
+		type: 	"POST",
+		url: 	"/users/update/",
+		data: {
+			userId: 		userId,
+			addCards: 		addCards,
+			removeCards: 	removeCards,
+			chargeCards: 	chargeCards,
+			reports: 		reports,
+			admin: 			admin,
+			active: 		active
+		},
+		beforeSend: function() {
+			//disable save button
+			//show message
+			submit.attr('disabled', true);
+			showModalMessage("Saving updated permissions...", "info", msgElem);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage(j['data']['error_msg'], 'danger', msgElem);
+				console.log(j);
+				return;
+			}
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			//user updated successfully
+			//show success message
+			//re-enable save btn
+			showModalMessage("User updated successfully!", "success", msgElem);
+			setTimeout(function() {
+				submit.attr('disabled', false);
+				msgElem.html('');
+			}, 3000);
+
+			return;
+		}
+	});
+
+	return false;
 });

@@ -52,11 +52,13 @@ func init() {
 	usersGetOne := 		http.HandlerFunc(users.GetOne)
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
 	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
+	usersUpdate := 		http.HandlerFunc(users.UpdatePermissions)
 
 	u.Handle("/add/", 			auth.Then(usersAdd))
 	u.Handle("/get/", 			auth.Then(usersGetOne))
 	u.Handle("/get/all/", 		auth.Then(usersGetAll))
 	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd))
+	u.Handle("/update/", 		auth.Then(usersUpdate))
 
 
 	

@@ -29,6 +29,9 @@ var (
 	ErrPasswordsDoNotMatch = 	errors.New("passwordsDoNotMatch")
 	ErrPasswordTooShort = 		errors.New("passwordTooShort")
 	ErrNotAdmin = 				errors.New("userIsNotAnAdmin")
+	ErrSessionMismatch = 		errors.New("sessionMismatch")
+	ErrCannotUpdateSelf = 		errors.New("cannotUpdateYourself")
+	ErrCannotUpdateSuperAdmin = errors.New("cannotUpdateSuperAdmin")
 )
 
 type User struct{
@@ -95,7 +98,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//save to datastore
 	c := 				appengine.NewContext(r)
 	incompleteKey := 	createNewUserKey(c)
-	completeKey, err := saveNewUser(c, incompleteKey, u)
+	completeKey, err := saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
 		return
@@ -228,7 +231,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//save to datastore
 	incompleteKey := 	createNewUserKey(c)
-	_, err = 			saveNewUser(c, incompleteKey, u)
+	_, err = 			saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
 		return
@@ -359,14 +362,14 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	fullKey := getUserKeyFromId(c, userIdInt)
 
 	//save user
-	_, err = saveNewUser(c, fullKey, userData)
+	_, err = saveUser(c, fullKey, userData)
 	if err != nil {
 		output.Error(err, "Error saving user to database after password change.", w)
 		return
 	}
 
 	//done
-	output.Success("userUpdate", nil, w)
+	output.Success("userChangePassword", nil, w)
 	return
 }
 
@@ -378,6 +381,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 
 	//get user data
 	//looks in memcache and in datastore
+	c := 			appengine.NewContext(r)
 	data, err := 	Find(c, userIdInt)
 	if err != nil {
 		output.Error(err, "Cannot look up user data.", w)
@@ -389,6 +393,97 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//UPDATE A USER'S PERMISSIONS
+//requires reading and resaving all data in datastore
+//wipe use from memcache by id and username
+func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
+	//gather form values
+	userId := 			r.FormValue("userId")
+	userIdInt, _ := 	strconv.ParseInt(userId, 10, 64)
+	addCards, _ := 		strconv.ParseBool(r.FormValue("addCards"))
+	removeCards, _ := 	strconv.ParseBool(r.FormValue("removeCards"))
+	chargeCards, _ := 	strconv.ParseBool(r.FormValue("chargeCards"))
+	viewReports, _ := 	strconv.ParseBool(r.FormValue("reports"))
+	isAdmin, _ := 		strconv.ParseBool(r.FormValue("admin"))
+	isActive, _ := 		strconv.ParseBool(r.FormValue("active"))
+
+	//check if the logged in user is an admin
+	//user updating another user's permission must be an admin
+	//failsafe/second check since non-admins would not see the settings panel anyway
+	session := sessionutils.Get(r)
+	if session.IsNew {
+		output.Error(ErrSessionMismatch, "An error occured. Please log out and log back in.", w)
+		return
+	}
+
+	//look up user's data to check if they are an admin
+	sessionUserId := 	session.Values["user_id"].(int64)
+	c := 				appengine.NewContext(r)
+	sessionUser, err := Find(c, sessionUserId)
+	if err != nil {
+		output.Error(err, "We could not verify that you are an administrator. You cannot change setting.", w)
+		return
+	}
+	if sessionUser.Administrator == false {
+		output.Error(ErrNotAdmin, "Only administrators can change settings.", w)
+		return
+	}
+
+	//get user data to update
+	userData, err := Find(c, userIdInt)
+	if err != nil {
+		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w)
+		return
+	}
+
+	//check if the logged in user is trying to update their own permissions
+	//you cannot edit your own permissions no matter what
+	if session.Values["username"].(string) == userData.Username {
+		output.Error(ErrCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w)
+		return
+	}
+
+	//check is user is editing the super admin user
+	if userData.Username == ADMIN_USERNAME {
+		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user as this is the super-admin and is locked.", w)
+		return
+	}
+
+	//update the user
+	userData.AddCards = 		addCards
+	userData.RemoveCards = 		removeCards
+	userData.ChargeCards = 		chargeCards
+	userData.ViewReports = 		viewReports
+	userData.Administrator = 	isAdmin
+	userData.Active = 			isActive
+
+	//clear memcache
+	err = 	memcacheDelete(c, userId)
+	err1 := memcacheDelete(c, userData.Username)
+	if err != nil {
+		output.Error(err, "Error clearing cache for user id.", w)
+		return
+	} else if err1 != nil {
+		output.Error(err1, "Error clearing cache for username.", w)
+		return
+	}
+	
+	//generate complete key for user
+	completeKey := getUserKeyFromId(c, userIdInt)
+
+	//resave user
+	//saves to datastore and memcache
+	//save user
+	_, err = saveUser(c, completeKey, userData)
+	if err != nil {
+		output.Error(err, "Error saving user to database after updating permission.", w)
+		return
+	}
+
+	//done
+	output.Success("userUpdatePermissins", nil, w)
+	return
+}
 
 //**********************************************************************
 //DATASTORE KEYS
@@ -435,7 +530,7 @@ func DoesAdminExist(r *http.Request) error {
 //SAVE A USER TO THE DATASTORE
 //input key is an incomplete key
 //returned key is a complete key...use this to save session data
-func saveNewUser(c appengine.Context, key *datastore.Key, user User) (*datastore.Key, error) {
+func saveUser(c appengine.Context, key *datastore.Key, user User) (*datastore.Key, error) {
 	//save user
 	completeKey, err := datastore.Put(c, key, &user)
 	if err != nil {
