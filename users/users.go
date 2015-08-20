@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sessionutils"
 	"output"
+	"memcacheutils"
 )
 
 const (
@@ -238,7 +239,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//clear list of users saved in memcache since a new user was added
-	memcacheDelete(c, LIST_OF_USERS_KEYNAME)
+	memcacheutils.Delete(c, LIST_OF_USERS_KEYNAME)
 
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
@@ -299,9 +300,9 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 		//save the list of users to memcache
 		//ignore errors since we still retrieved the data
-		memcacheSave(c, LIST_OF_USERS_KEYNAME, idsAndNames)
+		memcacheutils.Save(c, LIST_OF_USERS_KEYNAME, idsAndNames)
 
-		//return data to user
+		//return data to clinet
 		output.Success("userList", idsAndNames, w)
 		return
 	
@@ -310,7 +311,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	return;
+	return
 }
 
 //CHANGE A USER'S PASSWORD
@@ -348,8 +349,8 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	userData.Password = hashedPwd
 
 	//clear memcache for this userID & username
-	err = 	memcacheDelete(c, userId)
-	err1 := memcacheDelete(c, userData.Username)
+	err = 	memcacheutils.Delete(c, userId)
+	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
 		output.Error(err, "Error clearing cache for user id.", w)
 		return
@@ -458,8 +459,8 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	userData.Active = 			isActive
 
 	//clear memcache
-	err = 	memcacheDelete(c, userId)
-	err1 := memcacheDelete(c, userData.Username)
+	err = 	memcacheutils.Delete(c, userId)
+	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
 		output.Error(err, "Error clearing cache for user id.", w)
 		return
@@ -539,7 +540,7 @@ func saveUser(c appengine.Context, key *datastore.Key, user User) (*datastore.Ke
 
 	//save user to memcache
 	memcacheKey := strconv.FormatInt(completeKey.IntID(), 10)
-	err = memcacheSave(c, memcacheKey, user)
+	err = memcacheutils.Save(c, memcacheKey, user)
 	if err != nil {
 		return completeKey, err
 	}
@@ -560,43 +561,6 @@ func doStringsMatch(string1, string2 string) bool {
 	}
 
 	return false
-}
-
-//**********************************************************************
-//MEMCACHE
-
-//SAVE TO MEMCACHE
-//key is actually an int as a string (the intID of a key)
-func memcacheSave(c appengine.Context, key string, value interface{}) error {
-	//build memcache item to store
-	item := &memcache.Item{
-		Key: 	key,
-		Object: value,
-	}
-
-	//save
-	err := memcache.Gob.Set(c, item)
-	if err != nil {
-		return err
-	}
-
-	//done
-	return nil
-}
-
-//DELETE FROM MEMCACHE
-func memcacheDelete(c appengine.Context, key string) error {
-	err := memcache.Delete(c, key)
-	if err == memcache.ErrCacheMiss {
-		//key does not exist
-		//this is not an error
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	//delete successful
-	return nil
 }
 
 //**********************************************************************
@@ -631,7 +595,7 @@ func Find(c appengine.Context, userId int64) (User, error) {
 		//data found
 		//save to memcache
 		//ignore errors since we still found the data
-		memcacheSave(c, userIdStr, userData)
+		memcacheutils.Save(c, userIdStr, userData)
 
 		//done
 		return userData, nil
