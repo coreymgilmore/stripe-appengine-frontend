@@ -73,13 +73,13 @@ function isSimplePassword (password) {
 //SHOW AN ERROR MESSAGE IN A FORM
 //title is usually "error" or "warning"
 //message is something descriptive about the error so the user can fix the problem
-//parentElem is the parent html element where the <div #error-msg> is located
+//parentElem is the parent html element where the <div .error-msg> is located
 function showFormErrorMsg (title, message, parentElem) {
 	var alert = "" + 
 		"<div class='alert alert-danger'>" + 
 			"<b>" + title + "</b> " + message + 
 		"</div>";
-	parentElem.find('#error-msg').html(alert);
+	parentElem.find('.error-msg').html(alert);
 	return;
 }
 
@@ -167,215 +167,6 @@ $('#create-init-admin').submit(function (e) {
 	//form will submit and save admin user
 	//user will see a success/error page
 	//then user can log in on main login page
-});
-
-//GENERATE LIST OF YEARS FOR CARD EXPIRATION
-//done on page load
-//fills in a <select> with <options>
-$(function() {
-	var elem = $('#card-exp-year');
-	elem.html("");
-
-	//get current year
-	var d = 	new Date()
-	var year = 	d.getFullYear();
-
-	//default first value
-	elem.append("<option value='0'>Please choose.</option>");
-
-	//options for years
-	for (var i = year; i < year + 11; i ++) {
-		elem.append("<option value='" + i + "'>" + i + "</option>");
-	}
-
-	console.log("Loaded list of expiration years.");
-});
-
-//HIDE "THIS YEAR" IF USER CHOOSES AN EXPIRATION MONTH IN THE PAST
-//user cannot choose an expiration in a past month for this year
-$('#add-card').on('change', '#card-exp-month', function() {
-	//get value from month chosen
-	var expMonth = 		$(this).val();
-
-	//get current month
-	var d = 			new Date();
-	var currentMonth = 	d.getMonth() + 1;
-	var currentYear = 	d.getFullYear();
-
-	//check if expiration month is in the past
-	//hide the option for this year if month is in the past
-	if (expMonth < currentMonth) {
-		$('#card-exp-year option[value=' + currentYear + ']').css({"display": "none"});
-	}
-	else {
-		$('#card-exp-year option[value=' + currentYear + ']').css({"display": "block"});
-	}
-
-	return;
-});
-
-//ADD A NEW CREDIT CARD
-//validate the card data and save the card via ajax call
-$('#add-card').submit(function (e) {
-	var form = 			$('#add-card');
-	var customerId = 	$('#customer-id').val().trim();
-	var customerName = 	$('#customer-name').val().trim();
-	var cardholder = 	$('#cardholder-name').val().trim();
-	var cardNum = 		$('#card-number').val().trim().replace(' ', '').replace('-', '');
-	var expYear = 		parseInt($('#card-exp-year').val());
-	var expMonth = 		parseInt($('#card-exp-month').val());
-	var cvc = 			$('#card-cvc').val().trim();
-	var postal = 		$('#card-postal-code').val().trim();
-	var cardType = 		Stripe.card.cardType(cardNum);
-
-	//disable the submit button
-	//so the user cannot add the same card twice by mistake
-	$('#add-card #submit').prop("disabled", true).text("Adding Card...");
-
-	//hide any existing warnings
-	$('#error-msg').html('');
-
-	//make sure each input is valid
-	//customer name
-	if (customerName.length < 2) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'You must provide a customer name.  This can be the same as the cardholder or the name of a company.  This is used to lookup cards when you want to create a charge.', form);
-		return false;
-	}
-
-	//cardholder name
-	if (cardholder.length < 2) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please provide the name of the cardholder as it is given on the card.', form);
-		return false;
-	}
-
-	//card number
-	var cardNumLength = cardNum.length;
-	if (cardNumLength < 15 || cardNumLength > 16) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card number you provided is ' + cardNumLength + ' digits long, however, it must be exactly 15 or 16 digits.', form);
-		return false;
-	}
-	if (Stripe.card.validateCardNumber(cardNum) === false) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card number you provided is not valid.', form);
-		return false;
-	}
-
-	//expiration
-	var d = 		new Date();
-	var nowMonth = 	d.getMonth() + 1;
-	var nowYear = 	d.getFullYear();
-	//month
-	if (expMonth === 0 || expMonth === '0') {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please choose the card\'s expiration month.', form);
-		return false;
-	}
-	//year
-	if (expYear === 0 || expYear === '0') {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please choose the card\'s expiration year.', form);
-		return false;
-	}
-	//both
-	if (expYear === nowYear && expMonth < nowMonth) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
-		return false;
-	}
-	if (Stripe.card.validateExpiry(expMonth, expYear) === false) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
-		return false;
-	}
-
-	//cvc
-	if (Stripe.card.validateCVC(cvc) === false) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The security code you provided is invalid.', form);
-		return false;
-	}
-	if (cardType === "American Express" && cvc.length !== 4) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'You provided an American Express card but your security code is invalid. The security code must be exactly 4 numbers long.', form);
-		return false;
-	}
-	if (cardType !== "American Express" && cvc.length !== 3) {
-		e.preventDefault();
-		console.log("asd");
-
-		showFormErrorMsg('Error!', 'You provided an ' + Stripe.card.cardType(cardNum) + ' card but your security code is invalid. The security code must be exactly 3 numbers long.', form);
-		return false;
-	}
-
-	//postal code
-	if (postal.length < 5 || postal.length > 6) {
-		e.preventDefault();
-		showFormErrorMsg('Error!', 'The postal code must be exactly 5 numeric or 6 alphanumeric characters.', form);
-		return false;
-	}
-
-	//create card token
-	Stripe.card.createToken({
-		name: 			cardholder,
-		number: 		cardNum,
-		cvc: 			cvc,
-		exp_month: 		expMonth,
-		exp_year: 		expYear,
-		address_zip: 	postal
-	}, createTokenCallback)
-
-	function createTokenCallback (status, response) {
-		if (response.error) {
-			showFormErrorMsg('Error!', 'The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', form);
-			return;
-		}
-
-		//perform ajax call
-		//save data to db
-		//create stripe customer using card token
-		$.ajax({
-			type: 	"POST",
-			url: 	"/card/add/",
-			data: {
-				customerId: 	customerId,
-				customerName: 	customerName,
-				cardholder: 	cardholder,
-				cardToken: 		response['id'],
-				cardExp: 		response['card']['exp_month'] + "/" + response['card']['exp_year'],
-				cardLast4: 		response['card']['last4']
-			},
-			error: function (r) {
-				console.log("AJAX save card error");
-				console.log(r);
-			},
-			success: function (r) {
-				console.log(r);
-			}
-		});
-
-		//done
-		//show user success panel
-		//clear out inputs from add-card form
-		//re-enable button to save new cards
-		$('#customer-id').val('');
-		$('#customer-name').val('');
-		$('#cardholder-name').val('');
-		$('#card-number').val('');
-		$('#card-exp-year').val('0');
-		$('#card-exp-month').val('0');
-		$('#card-cvc').val('');
-		$('#card-postal-code').val('');
-		$('#add-card #submit').prop("disabled", false).text("Add Card");
-		return;
-	}
-
-
-	//stop form from submitting since it won't do anything anyway
-	e.preventDefault();
-	return false;
 });
 
 //*******************************************************************************
@@ -803,4 +594,314 @@ $('#form-update-user').submit(function (e) {
 	});
 
 	return false;
+});
+
+//*******************************************************************************
+//ADD A NEW CARD
+
+//GENERATE LIST OF YEARS FOR CARD EXPIRATION
+//done on page load
+//fills in a <select> with <options>
+$(function() {
+	var elem = $('#card-exp-year');
+	elem.html("");
+
+	//get current year
+	var d = 	new Date()
+	var year = 	d.getFullYear();
+
+	//default first value
+	elem.append("<option value='0'>Please choose.</option>");
+
+	//options for years
+	for (var i = year; i < year + 11; i ++) {
+		elem.append("<option value='" + i + "'>" + i + "</option>");
+	}
+
+	console.log("Loaded list of expiration years.");
+});
+
+//HIDE "THIS YEAR" IF USER CHOOSES AN EXPIRATION MONTH IN THE PAST
+//user cannot choose an expiration in a past month for this year
+$('#add-card').on('change', '#card-exp-month', function() {
+	//get value from month chosen
+	var expMonth = 		$(this).val();
+
+	//get current month
+	var d = 			new Date();
+	var currentMonth = 	d.getMonth() + 1;
+	var currentYear = 	d.getFullYear();
+
+	//check if expiration month is in the past
+	//hide the option for this year if month is in the past
+	if (expMonth < currentMonth) {
+		$('#card-exp-year option[value=' + currentYear + ']').css({"display": "none"});
+	}
+	else {
+		$('#card-exp-year option[value=' + currentYear + ']').css({"display": "block"});
+	}
+
+	return;
+});
+
+//ADD A NEW CREDIT CARD
+//validate the card data and save the card via ajax call
+$('#add-card').submit(function (e) {
+	var form = 			$('#add-card');
+	var customerId = 	$('#customer-id').val().trim();
+	var customerName = 	$('#customer-name').val().trim();
+	var cardholder = 	$('#cardholder-name').val().trim();
+	var cardNum = 		$('#card-number').val().trim().replace(' ', '').replace('-', '');
+	var expYear = 		parseInt($('#card-exp-year').val());
+	var expMonth = 		parseInt($('#card-exp-month').val());
+	var cvc = 			$('#card-cvc').val().trim();
+	var postal = 		$('#card-postal-code').val().trim();
+	var cardType = 		Stripe.card.cardType(cardNum);
+	var submitBtn = 	$('#add-card #submit');
+
+	//hide any existing warnings
+	$('#error-msg').html('');
+
+	//make sure each input is valid
+	//customer name
+	if (customerName.length < 2) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'You must provide a customer name.  This can be the same as the cardholder or the name of a company.  This is used to lookup cards when you want to create a charge.', form);
+		return false;
+	}
+
+	//cardholder name
+	if (cardholder.length < 2) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'Please provide the name of the cardholder as it is given on the card.', form);
+		return false;
+	}
+
+	//card number
+	var cardNumLength = cardNum.length;
+	if (cardNumLength < 15 || cardNumLength > 16) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The card number you provided is ' + cardNumLength + ' digits long, however, it must be exactly 15 or 16 digits.', form);
+		return false;
+	}
+	if (Stripe.card.validateCardNumber(cardNum) === false) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The card number you provided is not valid.', form);
+		return false;
+	}
+
+	//expiration
+	var d = 		new Date();
+	var nowMonth = 	d.getMonth() + 1;
+	var nowYear = 	d.getFullYear();
+	//month
+	if (expMonth === 0 || expMonth === '0') {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'Please choose the card\'s expiration month.', form);
+		return false;
+	}
+	//year
+	if (expYear === 0 || expYear === '0') {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'Please choose the card\'s expiration year.', form);
+		return false;
+	}
+	//both
+	if (expYear === nowYear && expMonth < nowMonth) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
+		return false;
+	}
+	if (Stripe.card.validateExpiry(expMonth, expYear) === false) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
+		return false;
+	}
+
+	//cvc
+	if (Stripe.card.validateCVC(cvc) === false) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The security code you provided is invalid.', form);
+		return false;
+	}
+	if (cardType === "American Express" && cvc.length !== 4) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'You provided an American Express card but your security code is invalid. The security code must be exactly 4 numbers long.', form);
+		return false;
+	}
+	if (cardType !== "American Express" && cvc.length !== 3) {
+		e.preventDefault();
+		console.log("asd");
+
+		showFormErrorMsg('Error!', 'You provided an ' + Stripe.card.cardType(cardNum) + ' card but your security code is invalid. The security code must be exactly 3 numbers long.', form);
+		return false;
+	}
+
+	//postal code
+	if (postal.length < 5 || postal.length > 6) {
+		e.preventDefault();
+		showFormErrorMsg('Error!', 'The postal code must be exactly 5 numeric or 6 alphanumeric characters.', form);
+		return false;
+	}
+
+	//disable the submit button
+	//so the user cannot add the same card twice by mistake
+	submitBtn.prop("disabled", true).text("Adding Card...");
+	
+	//clear any error messages
+	form.find('.error-msg').html('');
+
+	//create card token
+	Stripe.card.createToken({
+		name: 			cardholder,
+		number: 		cardNum,
+		cvc: 			cvc,
+		exp_month: 		expMonth,
+		exp_year: 		expYear,
+		address_zip: 	postal
+	}, createTokenCallback)
+
+	function createTokenCallback (status, response) {
+		if (response.error) {
+			showFormErrorMsg('Error!', 'The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', form);
+			return;
+		}
+
+		//perform ajax call
+		//save data to db
+		//create stripe customer using card token
+		$.ajax({
+			type: 	"POST",
+			url: 	"/card/add/",
+			data: {
+				customerId: 	customerId,
+				customerName: 	customerName,
+				cardholder: 	cardholder,
+				cardToken: 		response['id'],
+				cardExp: 		response['card']['exp_month'] + "/" + response['card']['exp_year'],
+				cardLast4: 		response['card']['last4']
+			},
+			error: function (r) {
+				var j = JSON.parse(r['responseText']);
+				console.log(j);
+
+				if (j['ok'] == false) {
+					showFormErrorMsg("Card Error.", j['data']['error_msg'], form);
+					submitBtn.prop("disabled", false).text("Charge Card");
+					return
+				}
+				return;
+			},
+			success: function (r) {
+				//done
+				//clear out inputs from add-card form
+				//re-enable button to save new cards
+				$('#customer-id').val('');
+				$('#customer-name').val('');
+				$('#cardholder-name').val('');
+				$('#card-number').val('');
+				$('#card-exp-year').val('0');
+				$('#card-exp-month').val('0');
+				$('#card-cvc').val('');
+				$('#card-postal-code').val('');
+				submitBtn.prop("disabled", false).text("Add Card");
+				
+				//show user success panel
+				var containerWidth = 	$('#action-panels-container').outerWidth()
+				var navBtns = 			$('.action-btn');
+				var showingPanel = 		$('#panel-add-card');
+				var newPanel = 			$('#panel-add-card-success');
+				navBtns.attr("disabled", true).children('input').attr("disabled", true);
+				showingPanel.toggle('slide', {distance: containerWidth}, 600, function() {
+					showingPanel.removeClass('show');
+
+					newPanel.toggle('slide', 600, function() {
+						newPanel.addClass('show');
+						navBtns.attr("disabled", false);
+
+						$('.action-btn').removeClass('active');
+					});
+				});
+			}
+		});
+
+		return;
+	}
+
+	//stop form from submitting since it won't do anything anyway
+	e.preventDefault();
+	return false;
+});
+
+//*******************************************************************************
+//REMOVE A CARD
+
+//GET LIST OF CARDS
+function getCards() {
+	var customerList = $('#customer-list');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/card/get/all/",
+		beforeSend: function() {
+			customerList.html('<option value="0">Loading...</option>');
+			return;
+		},
+		error: function (r) {
+			console.log(r);
+			console.log(JSON.parse(r['responseText']));
+			customerList.html('<option value="0">Could Not Load</option>');
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			//put results in data list
+			var data = j['data'];
+			customerList.html('');
+			data.forEach(function (elem, index) {
+				var name = 	elem['customer_name'];
+				var id = 	elem['id'];
+
+				customerList.append('<option value="' + name + '" data-id="' + id + '">');
+			});
+
+			return;
+		}
+	});
+}
+
+//LOAD LIST OF CARDS ON PAGE LOAD
+//so user does not have to wait for them to load
+$(function() {
+	console.log("Loading list of cards...");
+	getCards();
+});
+
+//GET VALUE OF CARD SELECTED FROM INPUT AUTOCOMPLETE LIST
+//gets the id from the data- attribute of the selected option in the datalist
+function getCardIdFromDataList(autocompleteElement) {
+	var selectedOptionValue = 	autocompleteElement.val();
+	var options = 				$('#customer-list option');
+	var id = 					"";
+
+	options.each(function() {
+		var elemValue = $(this).val();
+		var elemId = 	$(this).data('id');
+
+		if (selectedOptionValue === elemValue) {
+			id = elemId;
+			return false;
+		}
+	});
+
+	return id;
+}
+
+//GET CARD ID WHEN USER SELECTS A CARD FROM THE LIST
+//user selected a card by customer name (autocomplete list)
+$('#remove-card').on('change', '.customer-name', function() {
+	var elem = $(this);
+
+	var id = getCardIdFromDataList(elem);
+	console.log(id);
 });

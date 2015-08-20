@@ -2,21 +2,27 @@ package card
 
 import (
 	"net/http"
-	"encoding/json"
 	"io/ioutil"
 	"errors"
-
 	"appengine"
+	"appengine/datastore"
+	"appengine/memcache"
 	"appengine/urlfetch"
-
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/customer"
+	"output"
+	"github.com/coreymgilmore/timestamps"
+	"memcacheutils"
+	"strconv"
 )
 
 const (
 	//PATH TO STRIPE PRIVATE KEY FILE STORED IN TEXT
 	//key is stored in file instead of code so it is easily changed
-	STRIPE_PRIVATE_KEY_PATH = "secrets/stripe-private-key.txt"
+	STRIPE_PRIVATE_KEY_PATH = 	"secrets/stripe-secret-key.txt"
+
+	DATASTORE_KIND = 			"card"
+	LIST_OF_CARDS_KEYNAME = 	"list-of-cards"
 )
 
 var (
@@ -27,15 +33,38 @@ var (
 	initError error
 
 	//error when checking if stripe private key file was empty
-	ErrStripeKeyTooShort = errors.New("The Stripe private key ('stripe-private-key.txt') file was empty. Please provide your Stripe private key.")
+	ErrStripeKeyTooShort = errors.New("The Stripe private key ('stripe-secret-key.txt') file was empty. Please provide your Stripe secret key.")
+
+	ErrMissingCustomerName = 	errors.New("missingCustomerName")
+	ErrMissingCardholerName = 	errors.New("missingCardholderName")
+	ErrMissingCardToken = 		errors.New("missingCardToken")
+	ErrMissingExpiration = 		errors.New("missingExpiration")
+	ErrMissingLast4 = 			errors.New("missingLast4CardDigits")
+	ErrStripe =					errors.New("stripeError")
 )
 
-//CONSISTANT OBJECT FOR RETURNING DATA TO CLIENT
-type returnObj struct {
-	Ok 		bool
-	Title 	string
-	Msg 	string
-	Data 	map[string]interface{}
+//SAVING CUSTOMER TO DATASTORE
+type customerDatastore struct {
+	CustomerId 			string
+	CustomerName 		string
+	Cardholder 			string
+	CardExpiration 		string
+	CardLast4 			string
+	StripeCustomerToken string
+	DatetimeCreated 	string
+}
+
+//CONFIRMING CUSTOMER WAS SAVED
+type confirmCustomer struct{
+	CustomerName 		string
+	Cardholder 			string
+	CardExpiration 		string
+	CardLast4 			string	
+}
+
+type cardList struct {
+	CustomerName 		string	`json:"customer_name"`
+	Id 					int64 	`json:"id"`
 }
 
 //**********************************************************************
@@ -50,17 +79,16 @@ func Init() error {
 
 	//save key to session
 	stripePrivateKey = string(apikey)
-
 	return nil
 }
 
 //**********************************************************************
 //HANDLE HTTP REQUESTS
 
-//ADD A NEW CUSTOMER TO THE DATASTORE
+//ADD A NEW CARD TO THE DATASTORE
 //stripe created a card token that can only be used once
 //need to create a stripe customer to charge many times
-//create the customer and save the stripe customer token along with the customer id and customer name
+//create the customer and save the stripe customer token along with the customer id and customer name to datastore
 //the customer name is used to look up the stripe customer token that is used to charge the card
 func Add(w http.ResponseWriter, r *http.Request) {
 	//get form values
@@ -73,76 +101,142 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//make sure all form values were given
 	if len(customerName) == 0 {
-		returnResults(false, "errMissingCustomername", "You did not provide a customer name.", nil, w)
+		output.Error(ErrMissingCustomerName, "You did not provide the customer's name.", w)
 		return
 	}
 	if len(cardholder) == 0 {
-		returnResults(false, "errMissingCardholder", "You did not provide the name of the cardholder.", nil, w)
+		output.Error(ErrMissingCustomerName, "You did not provide the cardholer's name.", w)
 		return
 	}
 	if len(cardToken) == 0 {
-		returnResults(false, "errMissingCardToken", "A serious error occured. Please contact an administrator.", nil, w)
+		output.Error(ErrMissingCardToken, "A serious error occured, the card token is missing. Please contact an administrator.", w)
 		return
 	}
 	if len(cardExp) == 0 {
-		returnResults(false, "errMissingCardExp", "The card's expiration is missing.", nil, w)
+		output.Error(ErrMissingExpiration, "The card's expiration date is missing.", w)
 		return
 	}
 	if len(cardLast4) == 0 {
-		returnResults(false, "errMissingCardLast4", "The card's last four digits are missing.", nil, w)
+		output.Error(ErrMissingLast4, "The card's last four digits are missing.", w)
 		return
 	}
 
 	//create the stripe customer
 	stripe.Key = stripePrivateKey
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
-
-	custParams := &stripe.CustomerParams{
-		Desc: 	customerId,
-	}
+	custParams := &stripe.CustomerParams{Desc: 	customerName}
 	custParams.SetSource(cardToken)
-
 	cust, err := customer.New(custParams)
+	if err != nil {
+		stripeErr := 		err.(*stripe.Error)
+		stripeErrMsg := 	stripeErr.Msg
+		output.Error(ErrStripe, stripeErrMsg, w)
+		return
+	}
 
-	e := make(map[string]interface{})
-	e["error"] = err
-	e["cust"] = cust 
+	//customer created on stripe
+	//save data to datastore
+	newCustomer := customerDatastore{
+		CustomerId: 			customerId,
+		CustomerName: 			customerName,
+		Cardholder: 			cardholder,
+		CardExpiration: 		cardExp,
+		CardLast4: 				cardLast4,
+		StripeCustomerToken: 	cust.ID,
+		DatetimeCreated: 		timestamps.ISO8601(),
+	}
 
-	returnResults(true, "asdf", "asdfsadfaf", e, w)
+	//generate new incomplete key
+	c := 				appengine.NewContext(r)
+	incompleteKey := 	createNewCustomerKey(c)
+
+	//save
+	//datastore and memcache
+	_, err = 			save(c, incompleteKey, newCustomer)
+	if err != nil {
+		output.Error(err, "There was an error while saving this customer.", w)
+		return
+	}
+
+	//customer saved
+	//return okay
+	confirmation := confirmCustomer{
+		CustomerName: 			customerName,
+		Cardholder: 			cardholder,
+		CardExpiration: 		cardExp,
+		CardLast4: 				cardLast4,
+	}
+	output.Success("createCustomer", confirmation, w)
 	return
-
 }
 
+//GET LIST OF CARDS
+func GetAll(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
 
+	//check if list of cards is saved in memcache
+	result := make([]cardList, 0, 25)
+	_, err := memcache.Gob.Get(c, LIST_OF_CARDS_KEYNAME, &result)
+	if err == nil {
+		output.Success("cardlist-cached", result, w)
+		return
+	}
 
+	//look up list of cards from datastore
+	if err == memcache.ErrCacheMiss {
+		q := 			datastore.NewQuery(DATASTORE_KIND).Order("CustomerName").Project("CustomerName")
+		cards := 		make([]customerDatastore, 0, 25)
+		keys, err := 	q.GetAll(c, &cards)
+		if err != nil {
+			output.Error(err, "Error retrieving list of cards from datastore.", w)
+			return
+		}
+
+		//build result
+		idAndNames := make([]cardList, 0, 25)
+		for i, r := range cards {
+			x := cardList{
+				CustomerName: 	r.CustomerName,
+				Id: 			keys[i].IntID(),
+			}
+
+			idAndNames = append(idAndNames, x)
+		}
+
+		//save list of cards to memcache
+		//ignore errors since we already got results
+		memcacheutils.Save(c, LIST_OF_CARDS_KEYNAME, idAndNames)
+
+		//return data to client
+		output.Success("cardList", idAndNames, w)
+		return
+	
+	} else if err != nil {
+		output.Error(err, "Unknown error retrieving list of cards.", w)
+		return
+	}
+
+	return
+}
+
+//**********************************************************************
+//DATASTORE KEYS
+
+//CREATE INCOMPLETE KEY
+func createNewCustomerKey(c appengine.Context) *datastore.Key {
+	return datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
+}
+
+//CREATE COMPLETE KEY FOR USER
+//get the full complete key from just the ID of a key
+func getCustomerKeyFromId(c appengine.Context, id int64) *datastore.Key {
+	key := datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
+	return key
+}
 
 
 //**********************************************************************
 //FUNCS
-
-//RETURN RESULTS TO CLIENT
-func returnResults (ok bool, title, msg string, data map[string]interface{}, w http.ResponseWriter) {
-	obj := returnObj{
-		Ok: 		ok,
-		Title: 		title,
-		Msg: 		msg,
-		Data: 		data,
-	}
-
-	//convert to json
-	j, _ := json.Marshal(obj)
-
-	//set http status code based on 'ok'
-	if ok {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-
-	//send back json
-	w.Write(j)
-	return
-}
 
 //CHECK IF STRIPE KEY WAS READ CORRECTLY
 func CheckStripe() error {
@@ -158,4 +252,23 @@ func CheckStripe() error {
 
 	//private key read correctly
 	return nil
+}
+
+//SAVE CARD
+func save(c appengine.Context, key *datastore.Key, customer customerDatastore) (*datastore.Key, error) {
+	//save customer
+	completeKey, err := datastore.Put(c, key, &customer)
+	if err != nil {
+		return key, err
+	}
+
+	//save customer to memcache
+	memcacheKey := strconv.FormatInt(completeKey.IntID(), 10)
+	err = memcacheutils.Save(c, memcacheKey, customer)
+	if err != nil {
+		return completeKey, err
+	}
+
+	//done
+	return completeKey, nil
 }

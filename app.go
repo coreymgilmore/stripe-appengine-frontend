@@ -53,27 +53,19 @@ func init() {
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
 	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
 	usersUpdate := 		http.HandlerFunc(users.UpdatePermissions)
-
 	u.Handle("/add/", 			auth.Then(usersAdd))
 	u.Handle("/get/", 			auth.Then(usersGetOne))
 	u.Handle("/get/all/", 		auth.Then(usersGetAll))
 	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd))
 	u.Handle("/update/", 		auth.Then(usersUpdate))
 
-
-	
-
-
-
-
-
-
-
-
-
+	//CUSTOMER CARDS
+	cardsAdd := 		http.HandlerFunc(card.Add)
+	cardsGetAll := 		http.HandlerFunc(card.GetAll)
 
 	c := r.PathPrefix("/card").Subrouter()
-	c.HandleFunc("/add/", 				card.Add)
+	c.Handle("/add/", 				auth.Then(cardsAdd))
+	c.Handle("/get/all/", 			auth.Then(cardsGetAll))
 
 
 	//PAGES THAT DO NOT EXIST
