@@ -74,12 +74,8 @@ function isSimplePassword (password) {
 //title is usually "error" or "warning"
 //message is something descriptive about the error so the user can fix the problem
 //parentElem is the parent html element where the <div .error-msg> is located
-function showFormErrorMsg (title, message, parentElem) {
-	var alert = "" + 
-		"<div class='alert alert-danger'>" + 
-			"<b>" + title + "</b> " + message + 
-		"</div>";
-	parentElem.find('.error-msg').html(alert);
+function showPanelMessage (msg, type, elem) {
+	elem.html('<div class="alert alert-' + type +'">' + msg + '</div>');
 	return;
 }
 
@@ -141,25 +137,26 @@ $('#create-init-admin').submit(function (e) {
 	//get passwords from inputs
 	var pass1 = $('#password1').val();
 	var pass2 = $('#password2').val();
+	var msg = 	$('#create-init-admin .msg');
 
 	//check if passwords match
 	if (doWordsMatch(pass1, pass2) === false) {
 		e.preventDefault();
-		showFormErrorMsg("Error", "The passwords do not match.", $('#create-init-admin'));
+		showPanelMessage("The passwords do not match.", 'danger', msg);
 		return false;
 	}
 
 	//make sure the password is long enough
 	if (isLongPassword(pass1) === false) {
 		e.preventDefault();
-		showFormErrorMsg("Error", "Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", $('#create-init-admin'));
+		showPanelMessage("Error", "Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", 'danger', msg);
 		return false;
 	}
 
 	//make sure the passwords are not very easy to guess
 	if (isSimplePassword(pass1) === true) {
 		e.preventDefault();
-		showFormErrorMsg("Error", "The password you provided is too simple. Please choose a better password.", $('#create-init-admin'));
+		showPanelMessage("Error", "The password you provided is too simple. Please choose a better password.", 'danger', msg);
 		return false;
 	}
 
@@ -657,23 +654,24 @@ $('#add-card').submit(function (e) {
 	var cvc = 			$('#card-cvc').val().trim();
 	var postal = 		$('#card-postal-code').val().trim();
 	var cardType = 		Stripe.card.cardType(cardNum);
-	var submitBtn = 	$('#add-card #submit');
+	var submitBtn = 	$('#add-card .submit-form-btn');
+	var msg = 			$('#add-card .msg');
 
 	//hide any existing warnings
-	$('#error-msg').html('');
+	msg.html('');	
 
 	//make sure each input is valid
 	//customer name
 	if (customerName.length < 2) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'You must provide a customer name.  This can be the same as the cardholder or the name of a company.  This is used to lookup cards when you want to create a charge.', form);
+		showPanelMessage('You must provide a customer name. This can be the same as the cardholder or the name of a company. This is used to lookup cards when you want to create a charge.', "danger", msg);
 		return false;
 	}
 
 	//cardholder name
 	if (cardholder.length < 2) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please provide the name of the cardholder as it is given on the card.', form);
+		showPanelMessage('Please provide the name of the cardholder as it is given on the card.', 'danger', msg);
 		return false;
 	}
 
@@ -681,12 +679,12 @@ $('#add-card').submit(function (e) {
 	var cardNumLength = cardNum.length;
 	if (cardNumLength < 15 || cardNumLength > 16) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card number you provided is ' + cardNumLength + ' digits long, however, it must be exactly 15 or 16 digits.', form);
+		showPanelMessage('The card number you provided is ' + cardNumLength + ' digits long, however, it must be exactly 15 or 16 digits.', 'danger', msg);
 		return false;
 	}
 	if (Stripe.card.validateCardNumber(cardNum) === false) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card number you provided is not valid.', form);
+		showPanelMessage('The card number you provided is not valid.', 'danger', msg);
 		return false;
 	}
 
@@ -697,59 +695,57 @@ $('#add-card').submit(function (e) {
 	//month
 	if (expMonth === 0 || expMonth === '0') {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please choose the card\'s expiration month.', form);
+		showPanelMessage('Please choose the card\'s expiration month.', 'danger', msg);
 		return false;
 	}
 	//year
 	if (expYear === 0 || expYear === '0') {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'Please choose the card\'s expiration year.', form);
+		showPanelMessage('Please choose the card\'s expiration year.', 'danger', msg);
 		return false;
 	}
 	//both
 	if (expYear === nowYear && expMonth < nowMonth) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
+		showPanelMessage('The card\'s expiration must be in the future.', 'danger', msg);
 		return false;
 	}
 	if (Stripe.card.validateExpiry(expMonth, expYear) === false) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The card\'s expiration must be in the future.', form);
+		showPanelMessage('The card\'s expiration must be in the future.', 'danger', msg);
 		return false;
 	}
 
 	//cvc
 	if (Stripe.card.validateCVC(cvc) === false) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The security code you provided is invalid.', form);
+		showPanelMessage('The security code you provided is invalid.', 'danger', msg);
 		return false;
 	}
 	if (cardType === "American Express" && cvc.length !== 4) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'You provided an American Express card but your security code is invalid. The security code must be exactly 4 numbers long.', form);
+		showPanelMessage('You provided an American Express card but your security code is invalid. The security code must be exactly 4 numbers long.', 'danger', msg);
 		return false;
 	}
 	if (cardType !== "American Express" && cvc.length !== 3) {
 		e.preventDefault();
-		console.log("asd");
-
-		showFormErrorMsg('Error!', 'You provided an ' + Stripe.card.cardType(cardNum) + ' card but your security code is invalid. The security code must be exactly 3 numbers long.', form);
+		showPanelMessage('You provided an ' + Stripe.card.cardType(cardNum) + ' card but your security code is invalid. The security code must be exactly 3 numbers long.', 'danger', msg);
 		return false;
 	}
 
 	//postal code
 	if (postal.length < 5 || postal.length > 6) {
 		e.preventDefault();
-		showFormErrorMsg('Error!', 'The postal code must be exactly 5 numeric or 6 alphanumeric characters.', form);
+		showPanelMessage('The postal code must be exactly 5 numeric or 6 alphanumeric characters.', 'danger', msg);
 		return false;
 	}
 
-	//disable the submit button
-	//so the user cannot add the same card twice by mistake
-	submitBtn.prop("disabled", true).text("Adding Card...");
+	//disable the submit button so the user cannot add the same card twice by mistake
+	submitBtn.prop("disabled", true);
 	
 	//clear any error messages
-	form.find('.error-msg').html('');
+	//show "adding card" message
+	showPanelMessage('Saving card...', 'info', msg);
 
 	//create card token
 	Stripe.card.createToken({
@@ -763,7 +759,7 @@ $('#add-card').submit(function (e) {
 
 	function createTokenCallback (status, response) {
 		if (response.error) {
-			showFormErrorMsg('Error!', 'The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', form);
+			showPanelMessage('The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', 'danger', msg);
 			return;
 		}
 
@@ -786,42 +782,30 @@ $('#add-card').submit(function (e) {
 				console.log(j);
 
 				if (j['ok'] == false) {
-					showFormErrorMsg("Card Error.", j['data']['error_msg'], form);
-					submitBtn.prop("disabled", false).text("Charge Card");
+					showPanelMessage(j['data']['error_msg'], 'danger', msg);
+					submitBtn.prop("disabled", false).text("Add Card");
 					return
 				}
 				return;
 			},
 			success: function (r) {
-				//done
-				//clear out inputs from add-card form
-				//re-enable button to save new cards
-				$('#customer-id').val('');
-				$('#customer-name').val('');
-				$('#cardholder-name').val('');
-				$('#card-number').val('');
-				$('#card-exp-year').val('0');
-				$('#card-exp-month').val('0');
-				$('#card-cvc').val('');
-				$('#card-postal-code').val('');
-				submitBtn.prop("disabled", false).text("Add Card");
-				
-				//show user success panel
-				var containerWidth = 	$('#action-panels-container').outerWidth()
-				var navBtns = 			$('.action-btn');
-				var showingPanel = 		$('#panel-add-card');
-				var newPanel = 			$('#panel-add-card-success');
-				navBtns.attr("disabled", true).children('input').attr("disabled", true);
-				showingPanel.toggle('slide', {distance: containerWidth}, 600, function() {
-					showingPanel.removeClass('show');
+				//card was added successfully
+				//clear all inputs
+				//show success alert
+				resetAddCardPanel();
+				showPanelMessage("Card was saved!", 'success', msg);
 
-					newPanel.toggle('slide', 600, function() {
-						newPanel.addClass('show');
-						navBtns.attr("disabled", false);
+				//clear the message
+				//reenable the add card button
+				setTimeout(function() {
+					msg.html('');
+					submitBtn.prop("disabled", false).text("Add Card");
+				}, 3000);
 
-						$('.action-btn').removeClass('active');
-					});
-				});
+				//reload list of cards
+				getCards();
+
+				return;
 			}
 		});
 
@@ -831,6 +815,26 @@ $('#add-card').submit(function (e) {
 	//stop form from submitting since it won't do anything anyway
 	e.preventDefault();
 	return false;
+});
+
+//CLEAR THE ADD CARD FORM
+//reset inputs to defaults
+function resetAddCardPanel() {
+	$('#customer-id').val('');
+	$('#customer-name').val('');
+	$('#cardholder-name').val('');
+	$('#card-number').val('');
+	$('#card-exp-year').val('0');
+	$('#card-exp-month').val('0');
+	$('#card-cvc').val('');
+	$('#card-postal-code').val('');
+	return;
+}
+
+//CLEAR THE FORM WHEN THE USER CLICKS THE CLEAR BTN
+$('#add-card').on('click', '.clear-form-btn', function() {
+	resetAddCardPanel();
+	return;
 });
 
 //*******************************************************************************
@@ -844,13 +848,13 @@ function getCards() {
 		type: 	"GET",
 		url: 	"/card/get/all/",
 		beforeSend: function() {
-			customerList.html('<option value="0">Loading...</option>');
+			customerList.html('<option value="Loading...">');
 			return;
 		},
 		error: function (r) {
 			console.log(r);
 			console.log(JSON.parse(r['responseText']));
-			customerList.html('<option value="0">Could Not Load</option>');
+			customerList.html('<option value="Could Not Load">');
 			return;
 		},
 		dataType: "json",
@@ -897,11 +901,207 @@ function getCardIdFromDataList(autocompleteElement) {
 	return id;
 }
 
-//GET CARD ID WHEN USER SELECTS A CARD FROM THE LIST
-//user selected a card by customer name (autocomplete list)
-$('#remove-card').on('change', '.customer-name', function() {
-	var elem = $(this);
+//REMOVE A CARD
+$('#remove-card').submit(function (e) {
+	//get value of autocomplete list
+	var input = 	$('#remove-card .customer-name');
+	var custName = 	input.val();
+	var custId = 	getCardIdFromDataList(input);
 
-	var id = getCardIdFromDataList(elem);
-	console.log(id);
+	//btn and alerts
+	var btn = 		$('#remove-card .submit-form-btn');
+	var msg = 		$('#remove-card .msg');
+
+	//quick validation
+	if (custId === 0 || custId === "0" || custId.length === 0) {
+		e.preventDefault();
+		showPanelMessage("You must choose a customer.", "danger", msg);
+		console.log("input val: " + input.val());
+		console.log("cust id: " + custId);
+		console.log("cust id length: " + custId.length);
+		return
+	}
+
+	//remove card
+	$.ajax({
+		type: 	"POST",
+		url: 	"/card/remove/",
+		data: {
+			customerId: 	custId,
+			customerName: 	custName
+		},
+		beforeSend: function() {
+			//disable the submit btn and show a message
+			btn.prop('disabled', true);
+			showPanelMessage('Removing card...', 'info', msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				btn.prop('disabled', false);
+				showPanelMessage('An error occured while removing this card. Please contact an administrator.', 'danger', msg);
+				console.log(j);
+				return;
+			}
+		},
+		dataType: 'json',
+		success: function (j) {
+			//card was removed
+			//show success message
+			btn.prop('disabled', false);
+			showPanelMessage('Card was removed!', 'success', msg);
+
+			//clear the chosen option
+			//reload list of cards
+			input.val('');
+			getCards();
+
+			setTimeout(function() {
+				msg.html('');
+			}, 3000);
+
+			return;
+		}
+	});
+
+	e.preventDefault();
+	return false;
+});
+
+//*******************************************************************************
+//CHARGE A CARD
+
+//LOAD DATA INTO THE PANEL WHEN A CUSTOMER IS CHOSEN
+//typed in or selected from the drop down menu
+$('#charge-card').on('change', '.customer-name', function() {
+	//get value of autocomplete list
+	var input = 	$('#charge-card .customer-name');
+	var custId = 	getCardIdFromDataList(input);
+
+	var msg = 		$('#charge-card .msg');
+
+	//get customer card data to fill into panel
+	$.ajax({
+		type: 	"GET",
+		url: 	"/card/get/",
+		data: {
+			customerId: custId
+		},
+		beforeSend: function() {
+			//show loading in readonly inputs
+			$('#charge-card .customer-cardholder').val("Loading...");
+			$('#charge-card .card-last-four').val("Loading...");
+			$('#charge-card .card-expiration').val("Loading...");
+			return;
+		},
+		error: function(r) {
+			showPanelMessage("Error while getting a card's data.", "danger", msg);
+			console.log(r);
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			//put data into readonly form inputs
+			//so a user can verify card information and see some basic data before charging card
+			var data = j['data'];
+			$('#charge-card .customer-cardholder').val(data['cardholder_name']);
+			$('#charge-card .card-last-four').val(data['card_last4']);
+			$('#charge-card .card-expiration').val(data['card_expiration']);
+
+			//enable amount, invoice, po inputs
+			$('#charge-card .charge-amount').prop('disabled', false);
+			$('#charge-card .charge-invoice').prop('disabled', false);
+			$('#charge-card .charge-po').prop('disabled', false);
+
+			return;
+		}
+	});
+
+	return;
+});
+
+//CHARGE A CARD
+//validate the amount, invoice, and po inputs
+//create charge via ajax to stripe
+$('#charge-card').submit(function (e) {
+	//gather inputs
+	var customerNameInput = $('#charge-card .customer-name');
+	var customerName = 		customerNameInput.val();
+	var customerId = 		getCardIdFromDataList(customerNameInput);
+	var amountElem = 		$('#charge-card .charge-amount');
+	var amount = 			parseFloat(amountElem.val());
+	var invoiceElem = 		$('#charge-card .charge-invoice');
+	var invoice = 			invoiceElem.val();
+	var poElem = 			$('#charge-card .charge-po');
+	var po = 				poElem.val();
+	var msg = 				$('#charge-card .msg');
+	var btn = 				$('#charge-card-submit');
+
+	//stop form
+	e.preventDefault();
+
+	//validate
+	if (amount < 1) {
+		e.preventDefault();
+		showPanelMessage("You must provide an amount to charge that is greater than $0.50.", "danger", msg);
+		return;
+	}
+
+	//charge card via ajax
+	$.ajax({
+		type: 	"POST",
+		url: 	"/card/charge/",
+		data: {
+			customerId: 	customerId,
+			customerName: 	customerName,
+			amount: 		amount,
+			invoice: 		invoice, 
+			po: 			po
+		},
+		beforeSend: function() {
+			//disabled the inputs
+			customerNameInput.prop('disabled', true);
+			amountElem.prop('disabled', true);
+			invoiceElem.prop('disabled', true);
+			poElem.prop('disabled', true);
+			btn.prop('disabled', true);
+
+			//show working message
+			showPanelMessage("Charging card...", 'info', msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showPanelMessage(j['data']['error_msg'], 'danger', msg);
+				console.log(j);
+				return
+			}
+		},
+		dataType: "json",
+		success: function (j) {
+			//show success message
+			showPanelMessage('Card charged!', 'success', msg);
+
+			//clear inputs
+			$('#charge-card .customer-name').val('');
+			$('#charge-card .customer-cardholder').val('');
+			$('#charge-card .card-last-four').val('');
+			$('#charge-card .card-expiration').val('');
+			amountElem.val('');
+			invoiceElem.val('');
+			poElem.val('');
+
+			//hide msg and enable btn
+			setTimeout(function() {
+				msg.html('');
+				btn.prop('disabled', false);
+			}, 3000);
+
+			return;
+		}
+	});
+
+	return false;
 });

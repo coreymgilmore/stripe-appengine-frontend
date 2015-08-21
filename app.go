@@ -53,20 +53,25 @@ func init() {
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
 	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
 	usersUpdate := 		http.HandlerFunc(users.UpdatePermissions)
-	u.Handle("/add/", 			auth.Then(usersAdd))
-	u.Handle("/get/", 			auth.Then(usersGetOne))
-	u.Handle("/get/all/", 		auth.Then(usersGetAll))
-	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd))
-	u.Handle("/update/", 		auth.Then(usersUpdate))
+	u.Handle("/add/", 			auth.Then(usersAdd)).Methods("POST")
+	u.Handle("/get/", 			auth.Then(usersGetOne)).Methods("GET")
+	u.Handle("/get/all/", 		auth.Then(usersGetAll)).Methods("GET")
+	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd)).Methods("POST")
+	u.Handle("/update/", 		auth.Then(usersUpdate)).Methods("POST")
 
 	//CUSTOMER CARDS
 	cardsAdd := 		http.HandlerFunc(card.Add)
+	cardsGetOne := 		http.HandlerFunc(card.GetOne)
 	cardsGetAll := 		http.HandlerFunc(card.GetAll)
+	cardsRemove := 		http.HandlerFunc(card.Remove)
+	cardsCharge := 		http.HandlerFunc(card.Charge)
 
 	c := r.PathPrefix("/card").Subrouter()
-	c.Handle("/add/", 				auth.Then(cardsAdd))
-	c.Handle("/get/all/", 			auth.Then(cardsGetAll))
-
+	c.Handle("/add/", 				auth.Then(cardsAdd)).Methods("POST")
+	c.Handle("/get/", 				auth.Then(cardsGetOne)).Methods("GET")
+	c.Handle("/get/all/", 			auth.Then(cardsGetAll)).Methods("GET")
+	c.Handle("/remove/", 			auth.Then(cardsRemove)).Methods("POST")
+	c.Handle("/charge/", 			auth.Then(cardsCharge)).Methods("POST")
 
 	//PAGES THAT DO NOT EXIST
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)

@@ -112,22 +112,14 @@
 									<label class="control-label">Billing Postal Code: </label>
 									<input class="form-control disable-spinner" id="card-postal-code" type="text" maxlength="6" required>
 								</div>
-								<div class="error-msg"></div>
+								<div class="msg"></div>
 								<div class="form-group">
-									<button class="btn btn-primary" id="submit" name="submit" type="submit">Add Card</button>
+									<div class="btn-group">
+										<button class="btn btn-primary submit-form-btn" type="submit">Add Card</button>
+										<button class="btn btn-default clear-form-btn" type="button">Clear</button>
+									</div>
 								</div>
 							</form>
-						</div>
-					</div>
-
-					<!-- SUCCESS ADDING CARD PANEL -->
-					<div class="panel panel-success action-panels" id="panel-add-card-success" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Success!</h3>
-						</div>
-						<div class="panel-body">
-							<h5>The customer and credit card was added succcessfully!.</h5>
-							<p></p>
 						</div>
 					</div>
 					{{end}}
@@ -148,9 +140,9 @@
 									<label class="control-label">Customer Name: </label>
 									<input class="form-control customer-name" type="list" list="customer-list" required>
 								</div>
-								
+								<div class="msg"></div>
 								<div class="form-group">
-									<input class="btn btn-danger" id="submit" name="submit" type="submit" value="Remove Card" required>
+									<input class="btn btn-danger submit-form-btn" name="submit" type="submit" value="Remove Card" required>
 								</div>
 							</form>
 						</div>
@@ -167,7 +159,12 @@
 							<form id="charge-card">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
-									<input class="form-control customer-name" type="list" list="customer-list" required>
+									<div class="input-group">
+										<input class="form-control customer-name" type="list" list="customer-list" required>
+										<span class="input-group-btn">
+											<button class="btn btn-primary" type="button">Go</button>
+										</span>
+									</div>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
@@ -175,17 +172,17 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Last Four: </label>
-									<input class="form-control customer-last-four" readonly tabindex="-1">
+									<input class="form-control card-last-four" readonly tabindex="-1">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration: </label>
-									<input class="form-control customer-expiration" readonly tabindex="-1">
+									<input class="form-control card-expiration" readonly tabindex="-1">
 								</div>
 								<hr class="hr-panel">
 								
 								<div class="form-group">
 									<label class="control-label">Amount: </label>
-									<input class="form-control charge-amount" type="number" min="0" max="30000" step="0.01" placeholder="$1.23" required disabled>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required disabled>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
@@ -195,12 +192,12 @@
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
 									<input class="form-control charge-po" type="text" disabled>
 								</div>
-
+								<div class="msg"></div>
 								<div class="form-group">
-									<input class="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
-									<input class="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
-									<input class="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
-									<input class="btn btn-primary" id="charge-card-submit" name="submit" type="submit" value="Charge Card" required>
+									<div class="btn-group">
+										<button class="btn btn-primary" id="charge-card-submit" type="submit" required>Charge Card</button>
+										<button class="btn btn-default clear-form-btn" type="button">Clear</button>
+									</div>
 								</div>
 							</form>
 						</div>
