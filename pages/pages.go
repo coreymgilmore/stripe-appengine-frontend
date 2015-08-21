@@ -3,11 +3,13 @@ package pages
 import (
 	"net/http"
 	"fmt"
+	
+	"appengine"
+
 	"templates"
 	"sessionutils"
 	"card"
 	"users"
-	"appengine"
 )
 
 //MAIN ROOT PAGES

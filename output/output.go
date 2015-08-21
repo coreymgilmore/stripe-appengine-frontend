@@ -3,6 +3,7 @@ package output
 import (
 	"net/http"
 	"encoding/json"
+	
 	"github.com/coreymgilmore/timestamps"
 )
 

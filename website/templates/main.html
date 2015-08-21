@@ -202,31 +202,6 @@
 							</form>
 						</div>
 					</div>
-
-					<!-- SUCCESS CHARGING CARD PANEL -->
-					<div class="panel panel-success action-panels" id="panel-charge-card-success" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Success!</h3>
-						</div>
-						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-ok"></span> The credit card was charged successfully.</h5>
-							<p>Please see details below and email a receipt if necessary.</p>
-							<div class="details"></div>
-						</div>
-					</div>
-
-					<!-- ERROR CHARGING CARD -->
-					<div class="panel panel-danger action-panels" id="panel-charge-card-error" >
-						<div class="panel-heading">
-							<h3 class="panel-title">Error!</h3>
-						</div>
-						<div class="panel-body">
-							<h5><span class="glyphicon glyphicon-remove"></span> The credit card could not be charged.</h5>
-							<p>Please see details below.</p>
-							<div class="details"></div>
-						</div>
-					</div>
-
 					{{else}}
 					{{/*need this panel as an "else" because this is the default panel*/}}
 					<div class="panel panel-default action-panels show charge-card-no-access" id="panel-charge-card">
@@ -234,7 +209,7 @@
 							<h3 class="panel-title">Task Selector</h3>
 						</div>
 						<div class="panel-body">
-							<h4>Please choose a task you would like to perform by selection one of the buttons above.</h4>
+							<h4>Please choose a task you would like to perform by selecting one of the buttons above.</h4>
 						</div>
 					</div>
 					{{end}}

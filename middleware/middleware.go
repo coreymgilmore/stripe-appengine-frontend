@@ -3,8 +3,10 @@ package middleware
 import (
 	"net/http"
 	"fmt"
-	"sessionutils"
+	
 	"appengine"
+	
+	"sessionutils"
 	"users"
 )
 

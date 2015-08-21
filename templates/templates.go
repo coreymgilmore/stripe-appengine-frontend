@@ -3,7 +3,6 @@ package templates
 import (
 	"net/http"
 	"html/template"
-
 	"io/ioutil"
 	"log"
 )

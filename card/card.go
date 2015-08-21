@@ -334,7 +334,6 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "Could not get the amount to charge in cents.", w)
 		return
 	}
-	amountCentsInt := uint64(amountFloat * 100)
 
 	//look up customer's stripe id
 	c := 				appengine.NewContext(r)
@@ -345,6 +344,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//make sure customer name matches
+	//just another catch in case of strange errors and mismatched data
 	if customerName != custData.CustomerName {
 		output.Error(err, "The customer name did not match what is saved for this customer id.", w)
 		return
@@ -368,7 +368,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	chargeParams := &stripe.ChargeParams{
 		Customer: 	custData.StripeCustomerToken,
-		Amount: 	amountCentsInt,
+		Amount: 	uint64(amountFloat * 100),
 		Currency: 	CURRENCY,
 		Desc: 		jsonString,
 		Statement: 	stripeStatementDescriptor + "-inv:" + invoice,
