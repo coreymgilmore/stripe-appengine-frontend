@@ -20,7 +20,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 
 	//check if stripe private key is read correctly
 	if err := card.CheckStripe(); err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Stripe Key Error", err, "btn-default", "/", "Try Again"})
+		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Stripe Init Error", err, "btn-default", "/", "Try Again"})
 		return
 	}
 
