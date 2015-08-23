@@ -20,27 +20,27 @@
 						<div class="btn-group" id="nav-buttons" data-toggle="buttons">
 							{{/*ONLY USERS WITH CORRECT ACCESS RIGHTS CAN VIEW CERTAIN ACTION PANELS*/}}
 							{{/*hide the buttons to panels the user does not have access to*/}}
-							{{if .AddCards}}
+							{{if .UserData.AddCards}}
 							<label class="btn btn-default action-btn" data-action="panel-add-card">
 								<input type="radio">Add
 							</label>
 							{{end}}
-							{{if .RemoveCards}}
+							{{if .UserData.RemoveCards}}
 							<label class="btn btn-default action-btn" data-action="panel-remove-card">
 								<input type="radio">Remove
 							</label>
 							{{end}}
-							{{if .ChargeCards}}
+							{{if .UserData.ChargeCards}}
 							<label class="btn btn-default action-btn active" data-action="panel-charge-card">
 								<input type="radio" checked>Charge
 							</label>
 							{{end}}
-							{{if .ViewReports}}
+							{{if .UserData.ViewReports}}
 							<label class="btn btn-default action-btn" data-action="panel-reports">
 								<input type="radio">Reports
 							</label>
 							{{end}}
-							{{if .Administrator}}
+							{{if .UserData.Administrator}}
 							<label class="btn btn-default action-btn" data-action="panel-settings">
 								<input type="radio">Settings
 							</label>
@@ -56,7 +56,7 @@
 					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
 					{{/*same as hiding buttons in nav, but hide the panels so the user cannot see the panels in the code*/}}
 
-					{{if .AddCards}}
+					{{if .UserData.AddCards}}
 					<!-- ADD NEW CUSTOMER/CARD -->
 					<div class="panel panel-default action-panels" id="panel-add-card">
 						<div class="panel-heading">
@@ -124,7 +124,7 @@
 					</div>
 					{{end}}
 
-					{{if .RemoveCards}}
+					{{if .UserData.RemoveCards}}
 					<!-- REMOVE CUSTOMER/CARD -->
 					<div class="panel panel-default action-panels" id="panel-remove-card">
 						<div class="panel-heading">
@@ -149,7 +149,7 @@
 					</div>
 					{{end}}
 
-					{{if .ChargeCards}}
+					{{if .UserData.ChargeCards}}
 					<!-- CHARGE A CARD -->
 					<div class="panel panel-default action-panels show" id="panel-charge-card">
 						<div class="panel-heading">
@@ -160,7 +160,7 @@
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<div class="input-group">
-										<input class="form-control customer-name" type="list" list="customer-list" required>
+										<input class="form-control customer-name" type="list" list="customer-list" required value="{{.CardData.CustomerName}}">
 										<span class="input-group-btn">
 											<button class="btn btn-primary" type="button">Go</button>
 										</span>
@@ -168,31 +168,35 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control customer-cardholder" readonly tabindex="-1">
+									<input class="form-control customer-cardholder" readonly tabindex="-1" value="{{.CardData.Cardholder}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Last Four: </label>
-									<input class="form-control card-last-four" readonly tabindex="-1">
+									<input class="form-control card-last-four" readonly tabindex="-1" value="{{.CardData.CardLast4}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration: </label>
-									<input class="form-control card-expiration" readonly tabindex="-1">
+									<input class="form-control card-expiration" readonly tabindex="-1" value="{{.CardData.CardExpiration}}">
 								</div>
 								<hr class="hr-panel">
 								
 								<div class="form-group">
 									<label class="control-label">Amount: </label>
-									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required disabled>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required disabled value="{{.Amount}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control charge-invoice" type="text" disabled>
+									<input class="form-control charge-invoice" type="text" disabled value="{{.Invoice}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control charge-po" type="text" disabled>
+									<input class="form-control charge-po" type="text" disabled value="{{.Po}}">
 								</div>
-								<div class="msg"></div>
+								<div class="msg">
+									{{if .Error}}
+										<div class="alert alert-info">{{.Error}}</div>
+									{{end}}
+								</div>
 								<div class="form-group">
 									<div class="btn-group">
 										<button class="btn btn-primary" id="charge-card-submit" type="submit" required>Charge Card</button>
@@ -214,7 +218,7 @@
 					</div>
 					{{end}}
 
-					{{if .ViewReports}}
+					{{if .UserData.ViewReports}}
 					<!-- REPORTS -->
 					<div class="panel panel-default action-panels" id="panel-reports" >
 						<div class="panel-heading">
@@ -248,7 +252,7 @@
 					</div>
 					{{end}}
 
-					{{if .Administrator}}
+					{{if .UserData.Administrator}}
 					<!-- SETTINGS -->
 					<div class="panel panel-default action-panels" id="panel-settings" >
 						<div class="panel-heading">
@@ -274,7 +278,7 @@
 		</div>
 
 		{{/*ONLY ADMINS CAN SEE MODALS SINCE THESE ARE FOR THE "SETTINGS" NAV BUTTON/PANEL*/}}
-		{{if .Administrator}}
+		{{if .UserData.Administrator}}
 
 		<!-- MODALS -->
 		<!-- NEW USER -->

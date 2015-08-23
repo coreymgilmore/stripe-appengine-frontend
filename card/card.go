@@ -468,6 +468,55 @@ func find(c appengine.Context, datastoreId int64) (CustomerDatastore, error) {
 		//done
 		return custData, nil
 	} else {
-		return customerDatastore{}, err
+		return CustomerDatastore{}, err
 	}
 }
+
+//FIND CARD DATA BY CUSTOMER ID
+//customer id is the value provided during "add a new card" and is unique to the company processing credit cards
+//this is used when making an api-like request to load the /main/ page with the card's data automatically
+//just checking datastore since we do not save card data by customer id
+func FindByCustId(c appengine.Context, customerId string) (CustomerDatastore, error) {
+	q := 		datastore.NewQuery(DATASTORE_KIND).Filter("CustomerId =", customerId).Limit(1).Project("CustomerName", "Cardholder", "CardLast4", "CardExpiration")
+	result := 	make([]CustomerDatastore, 0, 1)
+	_, err := 	q.GetAll(c, &result)
+	if err != nil {
+		return CustomerDatastore{}, err
+	}
+
+	//check if a customer exists with this id
+	if len(result) == 0 {
+		return CustomerDatastore{}, ErrCustIdDoesNotExist
+	}
+
+	//get one result
+	one := result[0]
+	return one, nil
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
