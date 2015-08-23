@@ -2,8 +2,10 @@ package stripeappenginefrontent
 
 import (
 	"net/http"
-	"github.com/gorilla/mux"
+	
 	"github.com/justinas/alice"
+	"github.com/gorilla/mux"
+	
 	"templates"
 	"sessionutils"
 	"pages"
@@ -47,7 +49,7 @@ func init() {
 	r.Handle("/main/", auth.Then(main))
 
 	//users
-	u := r.PathPrefix("/users").Subrouter()
+	u := 				r.PathPrefix("/users").Subrouter()
 	usersAdd := 		http.HandlerFunc(users.Add)
 	usersGetOne := 		http.HandlerFunc(users.GetOne)
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
@@ -59,14 +61,13 @@ func init() {
 	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd)).Methods("POST")
 	u.Handle("/update/", 		auth.Then(usersUpdate)).Methods("POST")
 
-	//CUSTOMER CARDS
+	//cards
+	c := 				r.PathPrefix("/card").Subrouter()
 	cardsAdd := 		http.HandlerFunc(card.Add)
 	cardsGetOne := 		http.HandlerFunc(card.GetOne)
 	cardsGetAll := 		http.HandlerFunc(card.GetAll)
 	cardsRemove := 		http.HandlerFunc(card.Remove)
 	cardsCharge := 		http.HandlerFunc(card.Charge)
-
-	c := r.PathPrefix("/card").Subrouter()
 	c.Handle("/add/", 				auth.Then(cardsAdd)).Methods("POST")
 	c.Handle("/get/", 				auth.Then(cardsGetOne)).Methods("GET")
 	c.Handle("/get/all/", 			auth.Then(cardsGetAll)).Methods("GET")
