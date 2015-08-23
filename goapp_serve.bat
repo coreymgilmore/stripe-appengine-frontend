@@ -1,2 +1,0 @@
-goapp serve
-pause

@@ -16,8 +16,8 @@ const (
 	//keys are stored in files instead of code so they are easily changed
 	//session requires two keys, authentication and encryption, for session token
 	//these keys are read from files and are not published (ignored with .gitignore)
-	AUTH_KEY_PATH = 		"secrets/session-auth-key.txt"
-	ENCRYPT_KEY_PATH = 		"secrets/session-encrypt-key.txt"
+	AUTH_KEY_PATH = 		"config/session-auth-key.txt"
+	ENCRYPT_KEY_PATH = 		"config/session-encrypt-key.txt"
 
 	//keys are a fixed and required size
 	AUTH_KEY_LENGTH = 		64
