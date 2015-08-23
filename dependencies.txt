@@ -1,6 +1,11 @@
 "github.com/stripe/stripe-go"
-"github.com/stripe/stripe-go/customer"
 
 "github.com/justinas/alice"
+
 "github.com/gorilla/mux"
 "github.com/gorilla/sessions"
+
+"github.com/coreymgilmore/timestamps"
+"github.com/coreymgilmore/pwds"
+
+"golang.org/x/crypto/bcrypt"
