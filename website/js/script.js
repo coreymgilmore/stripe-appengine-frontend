@@ -17,6 +17,7 @@ const BAD_PASSWORDS = [
 
 //*******************************************************************************
 //STRIPE PUBLIC KEY
+//stripe.js is only loaded when logged in "/main/"
 if (window.location.pathname !== "/") {
 	Stripe.setPublishableKey('pk_test_pKzD1QYPWJNrwuGTZ2k0HEkn');
 }
@@ -129,6 +130,10 @@ $('body').on('click', '.action-btn', function() {
 			allBtns.attr("disabled", false);
 		});
 	});
+
+	//clear all the panels to default options
+	resetAddCardPanel();
+	resetChargeCardPanel(true)
 });
 
 //VALIDATE THE INITIAL ADMIN CREATE FORM
@@ -760,6 +765,7 @@ $('#add-card').submit(function (e) {
 	function createTokenCallback (status, response) {
 		if (response.error) {
 			showPanelMessage('The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', 'danger', msg);
+			console.log(response);
 			return;
 		}
 
@@ -862,13 +868,21 @@ function getCards() {
 			//put results in data list
 			var data = j['data'];
 			customerList.html('');
+			
+			//check if no cards exist
+			if (data.length === 0) {
+				customerList.html('<option value="None exist yet!" data-id="0">');
+				return;
+			}
+
+			//list each card
+			//store the datastore id for looking up data on just this one card
 			data.forEach(function (elem, index) {
 				var name = 	elem['customer_name'];
 				var id = 	elem['id'];
 
 				customerList.append('<option value="' + name + '" data-id="' + id + '">');
 			});
-
 			return;
 		}
 	});
@@ -1085,13 +1099,7 @@ $('#charge-card').submit(function (e) {
 			showPanelMessage('Card charged!', 'success', msg);
 
 			//clear inputs
-			$('#charge-card .customer-name').val('');
-			$('#charge-card .customer-cardholder').val('');
-			$('#charge-card .card-last-four').val('');
-			$('#charge-card .card-expiration').val('');
-			amountElem.val('');
-			invoiceElem.val('');
-			poElem.val('');
+			resetChargeCardPanel(false);
 
 			//hide msg and enable btn
 			setTimeout(function() {
@@ -1105,3 +1113,43 @@ $('#charge-card').submit(function (e) {
 
 	return false;
 });
+
+//RESET THE CHARGE CARD PANEL TO DEFAULTS
+function resetChargeCardPanel(msgRemove) {
+	$('#charge-card .customer-name').val('').prop('disabled', false);
+	$('#charge-card .customer-cardholder').val('');
+	$('#charge-card .card-last-four').val('');
+	$('#charge-card .card-expiration').val('');
+	$('#charge-card .charge-amount').val('');
+	$('#charge-card .charge-invoice').val('');
+	$('#charge-card .charge-po').val('');
+	$('#charge-card-submit').prop('disabled', false);
+
+	if (msgRemove) {
+		$('#charge-card .msg').html('');
+	}
+	return;
+}
+
+//CLEAR THE FORM BTN
+$('#charge-card').on('click', '.clear-form-btn', function() {
+	resetChargeCardPanel(true);
+	return;
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

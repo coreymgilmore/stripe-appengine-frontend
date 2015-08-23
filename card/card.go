@@ -23,9 +23,10 @@ import (
 
 const (
 	//PATH TO PRIVATE KEY AND STATEMENT DESCRIPTOR
-	//key is stored in file instead of code so it is easily changed
-	STRIPE_PRIVATE_KEY_PATH = 		"secrets/stripe-secret-key.txt"
-	STRIPE_STATEMENT_DESC_PATH = 	"secrets/statement-descriptor.txt"
+	//stored in separate text files so they are easily changed without having to edit code
+	//values are read into the app upon initializing
+	STRIPE_PRIVATE_KEY_PATH = 		"config/stripe-secret-key.txt"
+	STRIPE_STATEMENT_DESC_PATH = 	"config/statement-descriptor.txt"
 
 	DATASTORE_KIND = 				"card"
 	LIST_OF_CARDS_KEYNAME = 		"list-of-cards"
@@ -33,13 +34,8 @@ const (
 )
 
 var (
-	//store for the stripe key used for transactions
-	stripePrivateKey = ""
-
-	//store for statement descriptor
+	stripePrivateKey = 			""
 	stripeStatementDescriptor = ""
-
-	//save errors from Init()
 	initError error
 
 	ErrStripeKeyTooShort = 		errors.New("The Stripe private key ('stripe-secret-key.txt') file was empty. Please provide your Stripe secret key.")
@@ -51,10 +47,12 @@ var (
 	ErrMissingLast4 = 			errors.New("missingLast4CardDigits")
 	ErrStripe =					errors.New("stripeError")
 	ErrMissingInput = 			errors.New("missingInput")
+	ErrCustIdDoesNotExist = 	errors.New("customerIdDoesNotExist")
+	ErrCustIdAlreadyExists = 	errors.New("customerIdAlreadyExists")
 )
 
 //SAVING CUSTOMER TO DATASTORE
-type customerDatastore struct {
+type CustomerDatastore struct {
 	CustomerId 			string 	`json:"customer_id"`
 	CustomerName 		string 	`json:"customer_name"`
 	Cardholder 			string 	`json:"cardholder_name"`
@@ -72,15 +70,15 @@ type confirmCustomer struct{
 	CardLast4 			string	
 }
 
-type cardList struct {
+type CardList struct {
 	CustomerName 		string	`json:"customer_name"`
 	Id 					int64 	`json:"id"`
 }
 
 //**********************************************************************
 //INIT
-//read stripe private key from file and save it to variable
-//read statement descriptor from file and save it to variable
+//read stripe private key and statement descriptor from config files
+//save values to variable for use in other functions
 func Init() error {
 	//stripe private key
 	apikey, err := ioutil.ReadFile(STRIPE_PRIVATE_KEY_PATH)
@@ -111,7 +109,7 @@ func Init() error {
 //HANDLE HTTP REQUESTS
 
 //ADD A NEW CARD TO THE DATASTORE
-//stripe created a card token that can only be used once
+//stripe created a card token (with stripe.js) that can only be used once
 //need to create a stripe customer to charge many times
 //create the customer and save the stripe customer token along with the customer id and customer name to datastore
 //the customer name is used to look up the stripe customer token that is used to charge the card
@@ -137,6 +135,10 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		output.Error(ErrMissingCardToken, "A serious error occured, the card token is missing. Please contact an administrator.", w)
 		return
 	}
+
+	//these are the returned values from stripe.js and are just used to identify a card
+	//the only info we need to charge a card is the card token
+	//these just show the user who is charging the card some info to verify they are charging the correct card
 	if len(cardExp) == 0 {
 		output.Error(ErrMissingExpiration, "The card's expiration date is missing.", w)
 		return
@@ -159,8 +161,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//customer created on stripe
-	//save data to datastore
-	newCustomer := customerDatastore{
+	//save to datastore
+	newCustomer := CustomerDatastore{
 		CustomerId: 			customerId,
 		CustomerName: 			customerName,
 		Cardholder: 			cardholder,
@@ -170,21 +172,12 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		DatetimeCreated: 		timestamps.ISO8601(),
 	}
 
-	//generate new incomplete key
-	c := 				appengine.NewContext(r)
 	incompleteKey := 	createNewCustomerKey(c)
-
-	//save
-	//datastore and memcache
 	_, err = 			save(c, incompleteKey, newCustomer)
 	if err != nil {
-		output.Error(err, "There was an error while saving this customer.", w)
+		output.Error(err, "There was an error while saving this customer. Please try again.", w)
 		return
 	}
-
-	//clear list of cards from memcache
-	//since a card is added, clients need to rebuild list of cards
-	memcacheutils.Delete(c, LIST_OF_CARDS_KEYNAME)
 
 	//customer saved
 	//return okay
@@ -195,25 +188,30 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		CardLast4: 				cardLast4,
 	}
 	output.Success("createCustomer", confirmation, w)
+
+	//clear list of cards from memcache
+	//since a card is added, clients need to rebuild list of cards
+	memcacheutils.Delete(c, LIST_OF_CARDS_KEYNAME)
 	return
 }
 
 //GET LIST OF CARDS
+//returns list of card ids (datastore id) and customer names
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	//check if list of cards is saved in memcache
-	result := make([]cardList, 0, 25)
+	result := make([]CardList, 0, 25)
 	_, err := memcache.Gob.Get(c, LIST_OF_CARDS_KEYNAME, &result)
 	if err == nil {
-		output.Success("cardlist-cached", result, w)
+		output.Success("Cardlist-cached", result, w)
 		return
 	}
 
 	//look up list of cards from datastore
 	if err == memcache.ErrCacheMiss {
 		q := 			datastore.NewQuery(DATASTORE_KIND).Order("CustomerName").Project("CustomerName")
-		cards := 		make([]customerDatastore, 0, 25)
+		cards := 		make([]CustomerDatastore, 0, 25)
 		keys, err := 	q.GetAll(c, &cards)
 		if err != nil {
 			output.Error(err, "Error retrieving list of cards from datastore.", w)
@@ -221,9 +219,9 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//build result
-		idAndNames := make([]cardList, 0, 25)
+		idAndNames := make([]CardList, 0, 25)
 		for i, r := range cards {
-			x := cardList{
+			x := CardList{
 				CustomerName: 	r.CustomerName,
 				Id: 			keys[i].IntID(),
 			}
@@ -236,7 +234,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		memcacheutils.Save(c, LIST_OF_CARDS_KEYNAME, idAndNames)
 
 		//return data to client
-		output.Success("cardList", idAndNames, w)
+		output.Success("CardList", idAndNames, w)
 		return
 	
 	} else if err != nil {
@@ -292,6 +290,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 }
 
 //GET INFO ON ONE CARD
+//returns all the data for a given card id (datastore id)
 func GetOne(w http.ResponseWriter, r *http.Request) {
 	//get form value
 	datastoreId := 		r.FormValue("customerId")
@@ -328,49 +327,49 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get amount as an integer in cents
+	//get amount as a integer in cents
 	amountFloat, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
-		output.Error(err, "Could not get the amount to charge in cents.", w)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
 		return
 	}
+	amountCents := uint64(amountFloat * 100)
 
-	//look up customer's stripe id
+	//look up customer's stripe token from datastore
+	//customer id is the datastore id and this links up to a record with the stripe customer token
 	c := 				appengine.NewContext(r)
 	customerIdInt, _ := strconv.ParseInt(customerId, 10, 64)
 	custData, err := 	find(c, customerIdInt)
 	if err != nil {
-		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w)
+		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
 	}
 
 	//make sure customer name matches
 	//just another catch in case of strange errors and mismatched data
 	if customerName != custData.CustomerName {
-		output.Error(err, "The customer name did not match what is saved for this customer id.", w)
+		output.Error(err, "The customer name and customer ID did not match. Please log out and try again.", w)
 		return
 	}
 
-	//make charge description a json string
-	//golang stripe library does not have metadata for some reason
-	desc := struct{
-		I 	string	`json:"invoice"`
-		P 	string 	`json:"purchase_order"`
-		C 	string	`json:"customer_name"`
-	}{
-		I: invoice,
-		P: poNum, 
-		C: customerName,
+	//create metadata
+	//metadata field does not exist in stripe-go b/c "net/url body.Add" does not support adding maps, only strings
+	//but stripe's API is looking for a key/value pair set of data, not a string
+	//so saving the metadata to the description is a workaround for now.
+	desc := map[string]interface{}{
+		"customer_id": 		customerId,
+		"customer_name": 	customerName,
+		"invoice_num": 		invoice,
+		"po_num": 			poNum,
 	}
-	j, _ := json.Marshal(desc)
-	jsonString := string(j)
+	descJson, _ := json.Marshal(desc)
 
 	//create charge
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	chargeParams := &stripe.ChargeParams{
 		Customer: 	custData.StripeCustomerToken,
-		Amount: 	uint64(amountFloat * 100),
+		Amount: 	amountCents,
 		Currency: 	CURRENCY,
-		Desc: 		jsonString,
+		Desc: 		string(descJson),
 		Statement: 	stripeStatementDescriptor + "-inv:" + invoice,
 	}
 	_, err = charge.New(chargeParams)
@@ -381,7 +380,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//charge completed
+	//charge completed successfully
 	output.Success("cardCharged", nil, w)
 	return
 }
@@ -397,8 +396,7 @@ func createNewCustomerKey(c appengine.Context) *datastore.Key {
 //CREATE COMPLETE KEY FOR USER
 //get the full complete key from just the ID of a key
 func getCustomerKeyFromId(c appengine.Context, id int64) *datastore.Key {
-	key := datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
-	return key
+	return datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
 }
 
 //**********************************************************************
@@ -421,7 +419,7 @@ func CheckStripe() error {
 }
 
 //SAVE CARD
-func save(c appengine.Context, key *datastore.Key, customer customerDatastore) (*datastore.Key, error) {
+func save(c appengine.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
 	//save customer
 	completeKey, err := datastore.Put(c, key, &customer)
 	if err != nil {
@@ -440,9 +438,9 @@ func save(c appengine.Context, key *datastore.Key, customer customerDatastore) (
 }
 
 //GET CARD DATA
-func find(c appengine.Context, datastoreId int64) (customerDatastore, error) {
+func find(c appengine.Context, datastoreId int64) (CustomerDatastore, error) {
 	//memcache
-	var memcacheResult customerDatastore
+	var memcacheResult CustomerDatastore
 	custIdStr := 	strconv.FormatInt(datastoreId, 10)
 	_, err := 		memcache.Gob.Get(c, custIdStr, &memcacheResult)
 	if err == nil {
@@ -453,10 +451,10 @@ func find(c appengine.Context, datastoreId int64) (customerDatastore, error) {
 		//look in datastore
 		key := 		getCustomerKeyFromId(c, datastoreId)
 		q := 		datastore.NewQuery(DATASTORE_KIND).Filter("__key__ =", key).Limit(1)
-		result := 	make([]customerDatastore, 0, 1)
+		result := 	make([]CustomerDatastore, 0, 1)
 		_, err := 	q.GetAll(c, &result)
 		if err != nil {
-			return customerDatastore{}, err
+			return CustomerDatastore{}, err
 		}
 
 		//one result
