@@ -1,4 +1,4 @@
-secrets/session-auth-key.txt
-secrets/session-encrypt-key.txt
-secrets/stripe-secret-key.txt
-secrets/statement-descriptor.txt
+config/session-auth-key.txt
+config/session-encrypt-key.txt
+config/stripe-secret-key.txt
+config/statement-descriptor.txt
