@@ -148,9 +148,24 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//if customer id was given, make sure a customer with this ID does not already exist
+	//customer id is unique and is the basis for api-like calls to /main/ that autofills the charge card panel
+	c := appengine.NewContext(r)
+	if len(customerId) != 0 {
+		_, err := 	FindByCustId(c, customerId)
+		if err == nil {
+			//customer already exists
+			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w)
+			return
+		} else if err != ErrCustIdDoesNotExist {
+			output.Error(err, "An error occured while verifying this customer ID does not already exist. Please try again or leave the customer ID blank.", w)
+			return
+		}
+	}
+
 	//create the stripe customer
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
-	custParams := &stripe.CustomerParams{Desc: 	customerName}
+	custParams := &stripe.CustomerParams{Desc: customerName}
 	custParams.SetSource(cardToken)
 	cust, err := customer.New(custParams)
 	if err != nil {
