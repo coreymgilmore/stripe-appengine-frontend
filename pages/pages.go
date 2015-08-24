@@ -18,21 +18,26 @@ type autoloader struct {
 	Po 				string
 	UserData 		users.User
 	CardData 		card.CustomerDatastore
-	Error 			string
+	Error 			interface{}
 }
+
+const (
+	SESSION_INIT_ERR_TITLE = 	"Session Initialization Error"
+	ADMIN_INIT_ERR_TITLE = 		"Admin. Setup Error"
+)
 
 //MAIN ROOT PAGE
 //not logged in page
 func Root(w http.ResponseWriter, r *http.Request) {
 	//check that session store was initialized correctly
 	if err := sessionutils.CheckSession(); err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Session Init Error", err, "btn-default", "/", "Try Again"})
+		notificationPage(w, "panel-danger", SESSION_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
 		return
 	}
 
 	//check that stripe private key and statement desecriptor were read correctly
 	if err := card.CheckStripe(); err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Stripe Init Error", err, "btn-default", "/", "Try Again"})
+		notificationPage(w, "panel-danger", SESSION_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
 		return
 	}
 
@@ -43,7 +48,33 @@ func Root(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup/", http.StatusFound)
 		return
 	} else if err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Admin Setup Error", err, "btn-default", "/", "Try Again"})
+		notificationPage(w, "panel-danger", ADMIN_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
+		return
+	}
+
+	//check if user is already signed in
+	//if user is already logged in, redirect to /main/ page
+	session := sessionutils.Get(r)
+	if session.IsNew == false {
+		uId := 		session.Values["user_id"].(int64)
+		c := 		appengine.NewContext(r)
+		u, err := 	users.Find(c, uId)
+		if err != nil {
+			sessionutils.Destroy(w, r)
+			notificationPage(w, "panel-danger", "Autologin Error", "There was an issue looking up your user account. Please go back and try logging in.", "btn-default", "/", "Go Back")
+			return
+		}
+
+		//user data was found
+		//check if user is allowed access
+		if users.AllowedAccess(u) == false {
+			sessionutils.Destroy(w, r)
+			notificationPage(w, "panel-danger", "Autologin Error", "You are not allowed access. Please contact an administrator.", "btn-default", "/", "Go Back")
+		}
+
+		//user account is found an allowed access
+		//redirect user
+		http.Redirect(w, r, "/main/", http.StatusFound)
 		return
 	}
 
@@ -73,7 +104,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	c := 			appengine.NewContext(r)
 	user, err := 	users.Find(c, userId)
 	if err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again"})
+		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return;
 	}
 	
@@ -91,21 +122,19 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//if an error occurs, just load the page normally
 	custData, err := card.FindByCustId(c, custId)
 	if err != nil {
-		tempData.Error = "The form could not be autofilled because the customer ID you provided could not be found."
+		//tempData.Error = 	"The form could not be autofilled because the customer ID you provided could not be found."
+		tempData.Error = 	err
 		tempData.UserData = user
 		templates.Load(w, "main", tempData)
 		return
 	}
 
-	//if amount is given, is was given in cents
-	//display it in input as dollars.cents
-	amountUrl := 		r.FormValue("amount")
-	amountFloat, _ := 	strconv.ParseFloat(amountUrl, 64)
-	amountDollars := 	amountFloat / 100
-	tempData.Amount = 	amountDollars
-
-	//card data was found
+	//if amount was given it is in cents, display it in input as dollars
 	//check for other form values and build template
+	amountUrl := 			r.FormValue("amount")
+	amountFloat, _ := 		strconv.ParseFloat(amountUrl, 64)
+	amountDollars := 		amountFloat / 100
+	tempData.Amount = 		amountDollars
 	tempData.Invoice = 		r.FormValue("invoice")
 	tempData.Po = 			r.FormValue("po")
 	tempData.CardData = 	custData
@@ -124,7 +153,17 @@ func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	templates.Load(w, "create-admin", nil)
+	return
+}
+
+//HELPER FUNC TO SHOW NOTIFICAITON PAGE
+//less retyping
+//panelType is "panel-default", "panel-danger", etc.
+//title is the text in the panel-heading
+//btnType is "ben-default", etc.
+//btnPath is the link to the page where the btn redirects
+func notificationPage(w http.ResponseWriter, panelType, title string, err interface{}, btnType, btnPath, btnText string) {
+	templates.Load(w, "notifications", templates.NotificationPage{panelType, title, err, btnType, btnPath, btnText})
 	return
 }
