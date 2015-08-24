@@ -131,3 +131,12 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
+
+//CHECK IF FILES WERE READ CORRECTLY
+func Check() error {
+	if initError != nil {
+		return initError
+	}
+
+	return nil
+}

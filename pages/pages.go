@@ -10,6 +10,7 @@ import (
 	"sessionutils"
 	"card"
 	"users"
+	"receipt"
 )
 
 type autoloader struct {
@@ -38,6 +39,12 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	//check that stripe private key and statement desecriptor were read correctly
 	if err := card.CheckStripe(); err != nil {
 		notificationPage(w, "panel-danger", SESSION_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
+		return
+	}
+
+	//check that receipt info was read correctly
+	if err := receipt.Check(); err != nil {
+		notificationPage(w, "panel-danger", "Receipt Info Error", err, "btn-default", "/", "Go Back")
 		return
 	}
 
