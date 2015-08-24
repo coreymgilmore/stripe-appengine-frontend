@@ -31,6 +31,7 @@ const (
 	DATASTORE_KIND = 				"card"
 	LIST_OF_CARDS_KEYNAME = 		"list-of-cards"
 	CURRENCY = 						"usd"
+	MIN_CHARGE = 					50	//cents
 )
 
 var (
@@ -47,7 +48,8 @@ var (
 	ErrMissingLast4 = 			errors.New("missingLast4CardDigits")
 	ErrStripe =					errors.New("stripeError")
 	ErrMissingInput = 			errors.New("missingInput")
-	ErrCustIdDoesNotExist = 	errors.New("customerIdDoesNotExist")
+	ErrChargeAmountTooLow = 	errors.New("amountLessThanMinCharge")
+	ErrCustomerNotFound = 		errors.New("customerNotFound")
 	ErrCustIdAlreadyExists = 	errors.New("customerIdAlreadyExists")
 )
 
@@ -70,6 +72,8 @@ type confirmCustomer struct{
 	CardLast4 			string	
 }
 
+//FOR RETURNING JUST A LIST OF CARDS
+//used to build autocomplete datalist in html
 type CardList struct {
 	CustomerName 		string	`json:"customer_name"`
 	Id 					int64 	`json:"id"`
@@ -107,6 +111,75 @@ func Init() error {
 
 //**********************************************************************
 //HANDLE HTTP REQUESTS
+
+//GET LIST OF CARDS
+//returns list of card ids (datastore id) and customer names
+func GetAll(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	//memcache
+	result := make([]CardList, 0, 25)
+	_, err := memcache.Gob.Get(c, LIST_OF_CARDS_KEYNAME, &result)
+	if err == nil {
+		output.Success("Cardlist-cached", result, w)
+		return
+	}
+
+	//look up list of cards from datastore
+	if err == memcache.ErrCacheMiss {
+		q := 			datastore.NewQuery(DATASTORE_KIND).Order("CustomerName").Project("CustomerName")
+		cards := 		make([]CustomerDatastore, 0, 25)
+		keys, err := 	q.GetAll(c, &cards)
+		if err != nil {
+			output.Error(err, "Error retrieving list of cards from datastore.", w)
+			return
+		}
+
+		//build result
+		idAndNames := make([]CardList, 0, 25)
+		for i, r := range cards {
+			x := CardList{
+				CustomerName: 	r.CustomerName,
+				Id: 			keys[i].IntID(),
+			}
+
+			idAndNames = append(idAndNames, x)
+		}
+
+		//save list of cards to memcache
+		//ignore errors since we already got results
+		memcacheutils.Save(c, LIST_OF_CARDS_KEYNAME, idAndNames)
+
+		//return data to client
+		output.Success("CardList", idAndNames, w)
+		return
+	
+	} else if err != nil {
+		output.Error(err, "Unknown error retrieving list of cards.", w)
+		return
+	}
+
+	return
+}
+
+//GET INFO ON ONE CARD
+//returns all the data for a given card id (datastore id)
+func GetOne(w http.ResponseWriter, r *http.Request) {
+	//get form value
+	datastoreId := 		r.FormValue("customerId")
+	datstoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
+
+	//get customer card data
+	c := 			appengine.NewContext(r)
+	data, err := 	findByDatastoreId(c, datstoreIdInt)
+	if err != nil {
+		output.Error(err, "Could not retrieve a customer's card data.", w)
+		return
+	}
+
+	output.Success("cardFound", data, w)
+	return
+}
 
 //ADD A NEW CARD TO THE DATASTORE
 //stripe created a card token (with stripe.js) that can only be used once
@@ -157,7 +230,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 			//customer already exists
 			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w)
 			return
-		} else if err != ErrCustIdDoesNotExist {
+		} else if err != ErrCustomerNotFound {
 			output.Error(err, "An error occured while verifying this customer ID does not already exist. Please try again or leave the customer ID blank.", w)
 			return
 		}
@@ -210,56 +283,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//GET LIST OF CARDS
-//returns list of card ids (datastore id) and customer names
-func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-
-	//check if list of cards is saved in memcache
-	result := make([]CardList, 0, 25)
-	_, err := memcache.Gob.Get(c, LIST_OF_CARDS_KEYNAME, &result)
-	if err == nil {
-		output.Success("Cardlist-cached", result, w)
-		return
-	}
-
-	//look up list of cards from datastore
-	if err == memcache.ErrCacheMiss {
-		q := 			datastore.NewQuery(DATASTORE_KIND).Order("CustomerName").Project("CustomerName")
-		cards := 		make([]CustomerDatastore, 0, 25)
-		keys, err := 	q.GetAll(c, &cards)
-		if err != nil {
-			output.Error(err, "Error retrieving list of cards from datastore.", w)
-			return
-		}
-
-		//build result
-		idAndNames := make([]CardList, 0, 25)
-		for i, r := range cards {
-			x := CardList{
-				CustomerName: 	r.CustomerName,
-				Id: 			keys[i].IntID(),
-			}
-
-			idAndNames = append(idAndNames, x)
-		}
-
-		//save list of cards to memcache
-		//ignore errors since we already got results
-		memcacheutils.Save(c, LIST_OF_CARDS_KEYNAME, idAndNames)
-
-		//return data to client
-		output.Success("CardList", idAndNames, w)
-		return
-	
-	} else if err != nil {
-		output.Error(err, "Unknown error retrieving list of cards.", w)
-		return
-	}
-
-	return
-}
-
 //REMOVE A CARD
 //remove from memcache, datastore, and stripe
 func Remove(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +298,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 
 	//look up customer's stripe id
 	c := 				appengine.NewContext(r)
-	custData, err := 	find(c, custIdInt)
+	custData, err := 	findByDatastoreId(c, custIdInt)
 	if err != nil {
 		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w)
 	}
@@ -301,25 +324,6 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 
 	//customer remove
 	output.Success("removeCustomer", nil, w)
-	return
-}
-
-//GET INFO ON ONE CARD
-//returns all the data for a given card id (datastore id)
-func GetOne(w http.ResponseWriter, r *http.Request) {
-	//get form value
-	datastoreId := 		r.FormValue("customerId")
-	datstoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
-
-	//get customer card data
-	c := 			appengine.NewContext(r)
-	data, err := 	find(c, datstoreIdInt)
-	if err != nil {
-		output.Error(err, "Could not retrieve a customer's card data.", w)
-		return
-	}
-
-	output.Success("cardFound", data, w)
 	return
 }
 
@@ -350,11 +354,17 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 	amountCents := uint64(amountFloat * 100)
 
+	//check if amount is greater than zero
+	if amountCents < MIN_CHARGE {
+		output.Error(ErrChargeAmountTooLow, "You must charge at least " + strconv.FormatInt(MIN_CHARGE, 10) + " cents.", w)
+		return
+	}
+
 	//look up customer's stripe token from datastore
 	//customer id is the datastore id and this links up to a record with the stripe customer token
 	c := 				appengine.NewContext(r)
 	customerIdInt, _ := strconv.ParseInt(customerId, 10, 64)
-	custData, err := 	find(c, customerIdInt)
+	custData, err := 	findByDatastoreId(c, customerIdInt)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
 	}
@@ -452,36 +462,30 @@ func save(c appengine.Context, key *datastore.Key, customer CustomerDatastore) (
 	return completeKey, nil
 }
 
-//GET CARD DATA
-func find(c appengine.Context, datastoreId int64) (CustomerDatastore, error) {
+//GET CARD DATA BY THE DATASTORE ID
+//use the datastore intID as the id when displayed in htmls
+func findByDatastoreId(c appengine.Context, datastoreId int64) (CustomerDatastore, error) {
 	//memcache
-	var memcacheResult CustomerDatastore
-	custIdStr := 	strconv.FormatInt(datastoreId, 10)
-	_, err := 		memcache.Gob.Get(c, custIdStr, &memcacheResult)
+	//convert datastoreId to string for memcache
+	var r CustomerDatastore
+	datastoreIdStr := 	strconv.FormatInt(datastoreId, 10)
+	_, err := 			memcache.Gob.Get(c, datastoreIdStr, &r)
+	
 	if err == nil {
-		//data found in memcache
-		return memcacheResult, nil
+		return r, nil
 	} else if err == memcache.ErrCacheMiss {
-		//data not in memcache
-		//look in datastore
-		key := 		getCustomerKeyFromId(c, datastoreId)
-		q := 		datastore.NewQuery(DATASTORE_KIND).Filter("__key__ =", key).Limit(1)
-		result := 	make([]CustomerDatastore, 0, 1)
-		_, err := 	q.GetAll(c, &result)
+		//look up data in datastore
+		key := 			getCustomerKeyFromId(c, datastoreId)
+		data, err := 	datastoreFindOne(c, "__key__ =", key, 1, []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
 		if err != nil {
-			return CustomerDatastore{}, err
+			return data, err
 		}
 
-		//one result
-		custData := result[0]
-
-		//data found
 		//save to memcache
-		//ignore errors since we still found the data
-		memcacheutils.Save(c, custIdStr, custData)
+		memcacheutils.Save(c, datastoreIdStr, data)
 
 		//done
-		return custData, nil
+		return data, nil
 	} else {
 		return CustomerDatastore{}, err
 	}
@@ -490,48 +494,45 @@ func find(c appengine.Context, datastoreId int64) (CustomerDatastore, error) {
 //FIND CARD DATA BY CUSTOMER ID
 //customer id is the value provided during "add a new card" and is unique to the company processing credit cards
 //this is used when making an api-like request to load the /main/ page with the card's data automatically
-//just checking datastore since we do not save card data by customer id
 func FindByCustId(c appengine.Context, customerId string) (CustomerDatastore, error) {
-	q := 		datastore.NewQuery(DATASTORE_KIND).Filter("CustomerId =", customerId).Limit(1).Project("CustomerName", "Cardholder", "CardLast4", "CardExpiration")
-	result := 	make([]CustomerDatastore, 0, 1)
-	_, err := 	q.GetAll(c, &result)
+	//memcache
+	var r CustomerDatastore
+	_, err := memcache.Gob.Get(c, customerId, &r)
+	
+	if err == nil {
+		return r, nil
+	} else if err == memcache.ErrCacheMiss {
+		//look up data in datastore
+		data, err := datastoreFindOne(c, "CustomerId =", customerId, 1, []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"})
+		if err != nil {
+			return data, err
+		}
+
+		//save to memcache
+		memcacheutils.Save(c, customerId, data)
+
+		//done
+		return data, nil
+	} else {
+		return CustomerDatastore{}, err
+	}
+}
+
+//FIND AN ENTITY IN THE DATASTORE
+func datastoreFindOne(c appengine.Context, filterField string, filterValue interface{}, limit int, project []string) (CustomerDatastore, error) {
+	q := datastore.NewQuery(DATASTORE_KIND).Filter(filterField, filterValue).Limit(limit).Project(project...)
+	r := make([]CustomerDatastore, 0, 1)
+
+	_, err := q.GetAll(c, &r)
 	if err != nil {
 		return CustomerDatastore{}, err
 	}
 
-	//check if a customer exists with this id
-	if len(result) == 0 {
-		return CustomerDatastore{}, ErrCustIdDoesNotExist
+	//check if one result exists
+	if len(r) == 0 {
+		return CustomerDatastore{}, ErrCustomerNotFound
 	}
 
 	//get one result
-	one := result[0]
-	return one, nil
+	return r[0], nil
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
