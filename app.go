@@ -19,7 +19,7 @@ func init() {
 	//INIT
 
 	//BUILD TEMPLATES
-	templates.Build()
+	templates.Init()
 
 	//INIT SESSIONS
 	sessionutils.Init()
@@ -30,7 +30,6 @@ func init() {
 	//**********************************************************************
 	//MIDDLEWARE
 	auth := alice.New(middleware.Auth)
-
 
 	//**********************************************************************
 	//ROUTER
@@ -68,11 +67,11 @@ func init() {
 	cardsGetAll := 		http.HandlerFunc(card.GetAll)
 	cardsRemove := 		http.HandlerFunc(card.Remove)
 	cardsCharge := 		http.HandlerFunc(card.Charge)
-	c.Handle("/add/", 				auth.Then(cardsAdd)).Methods("POST")
-	c.Handle("/get/", 				auth.Then(cardsGetOne)).Methods("GET")
-	c.Handle("/get/all/", 			auth.Then(cardsGetAll)).Methods("GET")
-	c.Handle("/remove/", 			auth.Then(cardsRemove)).Methods("POST")
-	c.Handle("/charge/", 			auth.Then(cardsCharge)).Methods("POST")
+	c.Handle("/add/", 			auth.Then(cardsAdd)).Methods("POST")
+	c.Handle("/get/", 			auth.Then(cardsGetOne)).Methods("GET")
+	c.Handle("/get/all/", 		auth.Then(cardsGetAll)).Methods("GET")
+	c.Handle("/remove/", 		auth.Then(cardsRemove)).Methods("POST")
+	c.Handle("/charge/", 		auth.Then(cardsCharge)).Methods("POST")
 
 	//PAGES THAT DO NOT EXIST
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)

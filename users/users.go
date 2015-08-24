@@ -13,10 +13,10 @@ import (
 	"github.com/coreymgilmore/pwds"
 	"github.com/coreymgilmore/timestamps"
 	
-	"templates"
 	"sessionutils"
 	"output"
 	"memcacheutils"
+	"templates"
 )
 
 const (
@@ -63,7 +63,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//make sure the admin user doesnt already exist
 	err := DoesAdminExist(r)
 	if err == nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "The admin user already exists. You cannot create it again.", "btn-default", "/", "Go Back"})
+		notificationPage(w, "panel-danger", "Error", "The admin user already exists.", "btn-default", "/", "Go Back")
 		return
 	}
 
@@ -73,13 +73,13 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//make sure they match
 	if doStringsMatch(pass1, pass2) == false {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "The passwords you provided did not match.", "btn-default", "/setup/", "Try Again"})
+		notificationPage(w, "panel-danger", "Error", "The passwords id not match.", "btn-default", "/setup/", "Try Again")
 		return
 	}
 
 	//make sure the password is long enough
 	if len(pass1) < MIN_PASSWORD_LENGTH {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "The password you provided is not long enough.", "btn-default", "/setup/", "Try Again"})
+		notificationPage(w, "panel-danger", "Error", "The password you provided is too short. It must me at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters.", "btn-default", "/setup/", "Try Again")
 		return
 	}
 
@@ -110,9 +110,10 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//save user to session
 	//this is how we authenticate users that are already signed in
+	//the user is automatically logged in as the administrator user
 	session := sessionutils.Get(r)
 	if session.IsNew == false {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Error", "An error occured while trying to save the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again"})
+		notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
 		return
 	}
 	sessionutils.AddValue(session, "username", ADMIN_USERNAME)
@@ -124,8 +125,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//LOGIN A USER
-//from root page
+//LOGIN
 func Login(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	username := r.FormValue("username")
@@ -135,31 +135,30 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	c := 				appengine.NewContext(r)
 	id, data, err := 	exists(c, username)
 	if err == ErrUserDoesNotExist {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Cannot Log In", "The username you provided does not exist.", "btn-default", "/", "Go Back"})
+		notificationPage(w, "panel-danger", "Cannot Log In", "The username you provided does not exist.", "btn-default", "/", "Try Again")
 		return
 	}
 
 	//is user allowed access
 	if AllowedAccess(data) == false {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Cannot Log In", "You are not allowed access. Please contact an administrator.", "btn-default", "/", "Go Back"})
+		notificationPage(w, "panel-danger", "Cannot Log In", "You are not allowed access. Please contact an administrator.", "btn-default", "/", "Go Back")
 		return
 	}
 
 	//validate password
 	_, err = pwds.Verify(password, data.Password)
 	if err != nil {
-		templates.Load(w, "notifications", templates.NotificationPage{"panel-danger", "Cannot Log In", "The password you provided is invalid.", "btn-default", "/", "Go Back"})
+		notificationPage(w, "panel-danger", "Cannot Log In", "The password you provided is invalid.", "btn-default", "/", "Try Again")
 		return
 	}
 
 	//user validated
-	//save session token
+	//save session data
 	session := sessionutils.Get(r)
 	if session.IsNew == false {
 		sessionutils.Destroy(w, r)
 		session = sessionutils.Get(r)
 	}
-
 	sessionutils.AddValue(session, "username", username)
 	sessionutils.AddValue(session, "user_id", id)
 	sessionutils.Save(session, w, r)
@@ -201,7 +200,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		//user already exists
 		//notify client
-		output.Error(ErrUserAlreadyExists, "You cannot create a user with this username because this user already exists.", w)
+		output.Error(ErrUserAlreadyExists, "This username already exists. Please choose a different username.", w)
 		return
 	}
 
@@ -213,7 +212,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//make sure password is long enough
 	if len(password1) < MIN_PASSWORD_LENGTH {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters long.", w)
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters.", w)
 		return
 	}
 
@@ -250,7 +249,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 }
 
 //GET LIST OF ALL USERS
-//return object of IntID: username to be used in building select options
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -260,7 +258,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	userId := 			session.Values["user_id"].(int64)
 	userData, err := 	Find(c, userId)
 	if err != nil {
-		output.Error(err, "Error verifying if you are an administrator while getting list of users.", w)
+		output.Error(err, "You could not be verified as an administrator therefore the list of users could not be found.", w)
 		return
 	}
 	if userData.Administrator == false {
@@ -317,7 +315,27 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//CHANGE A USER'S PASSWORD
+//GET ONE USER'S DATA
+func GetOne(w http.ResponseWriter, r *http.Request) {
+	//get user id from form value
+	userId := 		r.FormValue("userId")
+	userIdInt, _ :=	strconv.ParseInt(userId, 10, 64)
+
+	//get user data
+	//looks in memcache and in datastore
+	c := 			appengine.NewContext(r)
+	data, err := 	Find(c, userIdInt)
+	if err != nil {
+		output.Error(err, "Cannot look up user data.", w)
+		return
+	}
+
+	//return user data
+	output.Success("findUser", data, w)
+	return
+}
+
+//UPDATE A USER'S PASSWORD
 func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//gather inputs
 	userId := 		r.FormValue("userId")
@@ -333,7 +351,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//make sure password is long enough
 	if len(password1) < MIN_PASSWORD_LENGTH {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters long.", w)
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least " + strconv.FormatInt(MIN_PASSWORD_LENGTH, 10) + " characters.", w)
 		return
 	}
 
@@ -341,8 +359,8 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	hashedPwd := pwds.Create(password1)
 
 	//get user data
-	c := appengine.NewContext(r)
-	userData, err := Find(c, userIdInt)
+	c := 				appengine.NewContext(r)
+	userData, err := 	Find(c, userIdInt)
 	if err != nil {
 		output.Error(err, "Error while retreiving user data to update user's password.", w)
 		return
@@ -377,29 +395,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//GET ONE USER'S DATA
-func GetOne(w http.ResponseWriter, r *http.Request) {
-	//get user id from form value
-	userId := 		r.FormValue("userId")
-	userIdInt, _ :=	strconv.ParseInt(userId, 10, 64)
-
-	//get user data
-	//looks in memcache and in datastore
-	c := 			appengine.NewContext(r)
-	data, err := 	Find(c, userIdInt)
-	if err != nil {
-		output.Error(err, "Cannot look up user data.", w)
-		return
-	}
-
-	//return user data
-	output.Success("findUser", data, w)
-	return
-}
-
 //UPDATE A USER'S PERMISSIONS
-//requires reading and resaving all data in datastore
-//wipe use from memcache by id and username
 func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//gather form values
 	userId := 			r.FormValue("userId")
@@ -447,9 +443,9 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//check is user is editing the super admin user
+	//check iF user is editing the super admin user
 	if userData.Username == ADMIN_USERNAME {
-		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user as this is the super-admin and is locked.", w)
+		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w)
 		return
 	}
 
@@ -500,8 +496,7 @@ func createNewUserKey(c appengine.Context) *datastore.Key {
 //CREATE COMPLETE KEY FOR USER
 //get the full complete key from just the ID of a key
 func getUserKeyFromId(c appengine.Context, id int64) *datastore.Key {
-	key := datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
-	return key
+	return datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
 }
 
 //**********************************************************************
@@ -512,12 +507,11 @@ func getUserKeyFromId(c appengine.Context, id int64) *datastore.Key {
 //this should only happen on the first time the app starts
 //admin user is required to log in and create other users
 func DoesAdminExist(r *http.Request) error {
-	c := appengine.NewContext(r)
-
 	//query for admin user
 	var user []User
-	q := datastore.NewQuery(DATASTORE_KIND).Filter("Username=", ADMIN_USERNAME).KeysOnly()
-	keys, err := q.GetAll(c, &user)
+	c := 			appengine.NewContext(r)
+	q := 			datastore.NewQuery(DATASTORE_KIND).Filter("Username = ", ADMIN_USERNAME).KeysOnly()
+	keys, err := 	q.GetAll(c, &user)
 	if err != nil {
 		return err
 	}
@@ -535,15 +529,15 @@ func DoesAdminExist(r *http.Request) error {
 //input key is an incomplete key
 //returned key is a complete key...use this to save session data
 func saveUser(c appengine.Context, key *datastore.Key, user User) (*datastore.Key, error) {
-	//save user
+	//save to datastore
 	completeKey, err := datastore.Put(c, key, &user)
 	if err != nil {
-		return key, err
+		return completeKey, err
 	}
 
 	//save user to memcache
-	memcacheKey := strconv.FormatInt(completeKey.IntID(), 10)
-	err = memcacheutils.Save(c, memcacheKey, user)
+	mKey := strconv.FormatInt(completeKey.IntID(), 10)
+	err = 	memcacheutils.Save(c, mKey, user)
 	if err != nil {
 		return completeKey, err
 	}
@@ -575,12 +569,13 @@ func doStringsMatch(string1, string2 string) bool {
 //userId is the IntID of an entity key
 func Find(c appengine.Context, userId int64) (User, error) {
 	//memcache
-	var memcacheResult User
+	var r User
 	userIdStr := 	strconv.FormatInt(userId, 10)
-	_, err := 		memcache.Gob.Get(c, userIdStr, &memcacheResult)
+	_, err := 		memcache.Gob.Get(c, userIdStr, &r)
+	
 	if err == nil {
 		//data found in memcache
-		return memcacheResult, nil
+		return r, nil
 	} else if err == memcache.ErrCacheMiss {
 		//data not found in memcache
 		//look in datastore
@@ -623,4 +618,11 @@ func exists(c appengine.Context, username string) (int64, User, error) {
 
 	//return user found data
 	return keys[0].IntID(), result[0], nil
+}
+
+//SHOW THE NOTIFICATION PAGES
+//same as pages.notificationPage but have to have separate function b/c of dependecy circle
+func notificationPage(w http.ResponseWriter, panelType, title string, err interface{}, btnType, btnPath, btnText string) {
+	templates.Load(w, "notifications", templates.NotificationPage{panelType, title, err, btnType, btnPath, btnText})
+	return
 }

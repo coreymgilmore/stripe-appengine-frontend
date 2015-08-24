@@ -25,20 +25,17 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		//session is not new
-		//session data may exist
-		userId := 	session.Values["user_id"].(int64)
-
 		//look up user in memcache and/or datastore
-		c := appengine.NewContext(r)
-		userData, err := users.Find(c, userId)
+		c := 			appengine.NewContext(r)
+		userId := 		session.Values["user_id"].(int64)
+		data, err := 	users.Find(c, userId)
 		if err != nil {
 			fmt.Fprint(w, err)
 			return
 		}
 
 		//check if user is allowed access
-		if users.AllowedAccess(userData) == false {
+		if users.AllowedAccess(data) == false {
 			sessionutils.Destroy(w, r)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return

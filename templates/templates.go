@@ -29,9 +29,9 @@ type NotificationPage struct {
 
 //GET LIST OF FILES FROM DIRECTORY TO BUILD INTO TEMPLATES
 //do this instead of having to list every file in ParseFiles() manually
-func Build() {
+func Init() {
 	//placeholder
-	filepaths := make([]string, 0, 1)
+	paths := make([]string, 0, 8)
 
 	//get list of files
 	files, err := ioutil.ReadDir(P)
@@ -47,14 +47,13 @@ func Build() {
 		}
 
 		path := P + f.Name()
-		filepaths = append(filepaths, path)
+		paths = append(paths, path)
 	}
 
 	//parse files into templates
 	htmlTemplates = template.Must(template.ParseFiles(
-		filepaths...
+		paths...
 	))
-
 	return
 }
 
@@ -67,4 +66,6 @@ func Load(w http.ResponseWriter, templateName string, data interface{}) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	return
 }

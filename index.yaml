@@ -27,3 +27,12 @@ indexes:
   properties:
   - name: CustomerId
   - name: CustomerName, Cardholder, CardLast4, CardExpiration
+
+- kind: card
+  properties:
+  - name: __key__
+  - name: CardExpiration
+  - name: CardLast4
+  - name: Cardholder
+  - name: CustomerName
+  - name: StripeCustomerToken

@@ -15,6 +15,8 @@ const BAD_PASSWORDS = [
 	"admin@example.com"
 ];
 
+const MIN_CHARGE = 0.5;
+
 //*******************************************************************************
 //STRIPE PUBLIC KEY
 //stripe.js is only loaded when logged in "/main/"
@@ -1052,13 +1054,13 @@ $('#charge-card').submit(function (e) {
 	var msg = 				$('#charge-card .msg');
 	var btn = 				$('#charge-card-submit');
 
-	//stop form
+	//stop form submission
 	e.preventDefault();
 
 	//validate
-	if (amount < 1) {
+	if (amount < MIN_CHARGE) {
 		e.preventDefault();
-		showPanelMessage("You must provide an amount to charge that is greater than $0.50.", "danger", msg);
+		showPanelMessage("You must provide an amount to charge greater than the minimum charge (" + MIN_CHARGE + ").", "danger", msg);
 		return;
 	}
 
