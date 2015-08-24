@@ -401,6 +401,8 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 	descJson, _ := json.Marshal(desc)
 
+	stmtDesc := stripeStatementDescriptor + "-inv:" + invoice
+
 	//create charge
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	chargeParams := &stripe.ChargeParams{
@@ -408,7 +410,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Amount: 	amountCents,
 		Currency: 	CURRENCY,
 		Desc: 		string(descJson),
-		Statement: 	stripeStatementDescriptor + "-inv:" + invoice,
+		Statement: 	stmtDesc[:22],
 	}
 	_, err = charge.New(chargeParams)
 	if err != nil {
