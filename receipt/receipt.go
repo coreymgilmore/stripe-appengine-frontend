@@ -11,6 +11,7 @@ const (
 	PATH_CITY = 		"config/receipt/city.txt"
 	PATH_STATE = 		"config/receipt/state.txt"
 	PATH_POSTAL = 		"config/receipt/postal-code.txt"
+	PATH_COUNTRY = 		"config/receipt/country.txt"
 	PATH_PHONE_NUM = 	"config/receipt/phone-num.txt"
 )
 
@@ -20,6 +21,7 @@ var (
 	city = 			""
 	state = 		""
 	postal = 		""
+	country = 		""
 	phoneNum = 		""
 
 	initError 		error
@@ -67,6 +69,13 @@ func Init() error {
 	}
 	postal = string(r)
 
+	r, err = ioutil.ReadFile(PATH_COUNTRY)
+	if err != nil {
+		initError = err
+		return err
+	}
+	country = string(r)
+
 	r, err = ioutil.ReadFile(PATH_PHONE_NUM)
 	if err != nil {
 		initError = err
@@ -97,6 +106,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(companyName + "\n"))
 	w.Write([]byte(street + "\n"))
 	w.Write([]byte(city + ", " + state + " " + postal + "\n"))
+	w.Write([]byte(country + "\n"))
 	w.Write([]byte(phoneNum + "\n"))
 	w.Write([]byte("**************************************************\n"))
 	w.Write([]byte("\n"))

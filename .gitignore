@@ -2,3 +2,10 @@ config/session-auth-key.txt
 config/session-encrypt-key.txt
 config/stripe-secret-key.txt
 config/statement-descriptor.txt
+config/receipt/city.txt
+config/receipt/company-name.txt
+config/receipt/country.txt
+config/receipt/phone-num.txt
+config/receipt/postal-code.txt
+config/receipt/state.txt
+config/receipt/street.txt
