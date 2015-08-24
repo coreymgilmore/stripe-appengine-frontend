@@ -208,6 +208,33 @@
 							</form>
 						</div>
 					</div>
+
+					<div class="panel panel-success action-panels" id="panel-charge-success">
+						<div class="panel-heading">
+							<h3 class="panel-title">Charge Successful!</h3>
+						</div>
+						<div class="panel-body">
+							<dl class="dl-horizontal" id="charge-success-info">
+								<dt>Customer:</dt>
+								<dd class="customer-name"></dd>
+								<dt>Cardholder:</dt>
+								<dd class="cardholder"></dd>
+								<dt>Card #:</dt>
+								<dd class="card-last4"></dd>
+								<dt>Expiration:</dt>
+								<dd class="card-exp"></dd>
+								<dt>Amount:</dt>
+								<dd class="amount"></dd>
+								<dt>Invoice:</dt>
+								<dd class="invoice"></dd>
+								<dt>PO:</dt>
+								<dd class="po"></dd>
+							</dl>
+							<hr class="hr-panel">
+							<a class="btn btn-default" id="show-receipt" href="/receipt/?" target="_blank">Show Receipt</a>
+						</div>
+					</div>
+
 					{{else}}
 					{{/*need this panel as an "else" because this is the default panel*/}}
 					<div class="panel panel-default action-panels show charge-card-no-access" id="panel-charge-card">

@@ -1085,6 +1085,9 @@ $('#charge-card').submit(function (e) {
 
 			//show working message
 			showPanelMessage("Charging card...", 'info', msg);
+			
+			//clear success panel in case it has old data
+			resetChargeSuccessPanel();
 			return;
 		},
 		error: function (r) {
@@ -1097,18 +1100,47 @@ $('#charge-card').submit(function (e) {
 		},
 		dataType: "json",
 		success: function (j) {
-			//show success message
-			showPanelMessage('Card charged!', 'success', msg);
+			//load data into the success panel
+			var data = j['data'];
+			$('#panel-charge-success .customer-name').text(data['customer_name']);
+			$('#panel-charge-success .cardholder').text(data['cardholder_name']);
+			$('#panel-charge-success .card-last4').text(data['card_last4']);
+			$('#panel-charge-success .card-exp').text(data['card_expiration']);
+			$('#panel-charge-success .amount').text(data['amount']);
+			$('#panel-charge-success .invoice').text(data['invoice']);
+			$('#panel-charge-success .po').text(data['po']);
 
-			//clear inputs
-			resetChargeCardPanel(false);
+			var href = "/card/receipt/" + 
+				"?cus=" + data['customer_name'] + 
+				"&hol=" + data['cardholder_name'] + 
+				"&las=" + data['card_last4'] + 
+				"&exp=" + data['card_expiration'] +
+				"&amt=" + data['amount'] +
+				"&inv=" + data['invoice'] +
+				"&pon=" + data['po'] +
+				"&dat=" + data['datetime'];
+			$('#show-receipt').attr('href', href);
 
-			//hide msg and enable btn
-			setTimeout(function() {
-				msg.html('');
-				btn.prop('disabled', false);
-			}, 3000);
+			//show success panel
+			var containerWidth = 	$('#action-panels-container').outerWidth()
+			var chargeCardPanel = 	$('#panel-charge-card');
+			var successPanel = 		$('#panel-charge-success');
+			var navBtns = 			$('.action-btn');
 
+			navBtns.attr("disabled", true).children('input').attr("disabled", true);
+			chargeCardPanel.toggle('slide', {distance: containerWidth}, 600, function() {
+				chargeCardPanel.removeClass('show');
+				successPanel.toggle('slide', 600, function() {
+					successPanel.addClass('show');
+					navBtns.attr("disabled", false);
+				});
+			});
+
+			//set the "charge" nav button to "unselected"
+			navBtns.removeClass('active');
+
+			//clear the charge card panel
+			resetChargeCardPanel(true);
 			return;
 		}
 	});
@@ -1139,19 +1171,15 @@ $('#charge-card').on('click', '.clear-form-btn', function() {
 	return;
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//RESET THE CHARGE SUCCESSFUL PANEL
+function resetChargeSuccessPanel() {
+	$('#panel-charge-success .customer-name').text('');
+	$('#panel-charge-success .cardholder').text('');
+	$('#panel-charge-success .card-last4').text('');
+	$('#panel-charge-success .card-exp').text('');
+	$('#panel-charge-success .amount').text('');
+	$('#panel-charge-success .invoice').text('');
+	$('#panel-charge-success .po').text('');
+	$('#show-receipt').attr('href', '');
+	return;
+}

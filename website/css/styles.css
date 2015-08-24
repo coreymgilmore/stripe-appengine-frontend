@@ -211,3 +211,14 @@ hr {
 .modal .msg>.alert {
 	margin-bottom:  			0;
 }
+
+/*WHEN SHOWING CARD CHARGED SUCCESS PANEL*/
+#charge-success-info dt {
+	width:  					70px;
+}
+#charge-success-info dd {
+	margin-left: 				90px;
+}
+#show-receipt {
+	margin-top: 				-10px; 	/*keep the spacing above the btn and below the same*/
+}

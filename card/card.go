@@ -72,6 +72,18 @@ type confirmCustomer struct{
 	CardLast4 			string	
 }
 
+//CHARGE SUCCESSFUL, RETURN DATA TO CLIENT
+type chargeSuccessful struct{
+	CustomerName 		string 	`json:"customer_name"`
+	Cardholder 			string 	`json:"cardholder_name"`
+	CardExpiration 		string 	`json:"card_expiration"`
+	CardLast4 			string 	`json:"card_last4"`
+	Amount 				string 	`json:"amount"`
+	Invoice 			string 	`json:"invoice"`
+	Po 					string 	`json:"po"`
+	Datetime 			string 	`json:"datetime"`
+}
+
 //FOR RETURNING JUST A LIST OF CARDS
 //used to build autocomplete datalist in html
 type CardList struct {
@@ -406,7 +418,18 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//charge completed successfully
-	output.Success("cardCharged", nil, w)
+	out := chargeSuccessful{
+		CustomerName: 		customerName,
+		Cardholder: 		custData.Cardholder,
+		CardExpiration: 	custData.CardExpiration,
+		CardLast4: 			custData.CardLast4,
+		Amount: 			amount,
+		Invoice: 			invoice,
+		Po: 				poNum,
+		Datetime: 			timestamps.ISO8601(),
+	}
+
+	output.Success("cardCharged", out, w)
 	return
 }
 
