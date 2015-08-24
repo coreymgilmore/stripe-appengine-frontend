@@ -51,7 +51,7 @@
 			</div>
 
 			<!-- ADD, REMOVE, CHARGE PANELS -->
-			<div class="row">
+			<div class="row" id="panels-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
 					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
 					{{/*same as hiding buttons in nav, but hide the panels so the user cannot see the panels in the code*/}}
@@ -254,27 +254,25 @@
 							<h3 class="panel-title">Get Reports</h3>
 						</div>
 						<div class="panel-body">
-							<form id="report-by-customer">
+							<form id="reports">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<datalist id="customer-ids">
 										<option value="None">None</option>
 									</datalist>
-									<input class="form-control customer-name" name="customer-name" type="list" list="customer-ids" required>
+									<input class="form-control customer-name" type="list" list="customer-list">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Start Date: </label>
-									<input class="form-control start-date" name="start-date" type="date" required>
+									<input class="form-control start-date" type="date" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">End Date: </label>
-									<input class="form-control start-date" name="start-date" type="date" required>
+									<input class="form-control end-date" type="date" required>
 								</div>
+								<div class="msg"></div>
 								<div class="form-group">
-									<input id="customer-datastore-id" type="hidden"> <!-- the appengine datastore id for this customer id and customer name -->
-									<input id="customer-id" type="hidden">	<!-- the customer id that was provided when creating this customer -->
-									<input id="customer-stripe-id" type="hidden"> <!-- the stripe id for this customer 'cus_' -->
-									<input class="btn btn-primary" id="reports-submit" name="submit" type="submit" value="Go" required>
+									<input class="btn btn-primary" id="reports-submit" type="submit" value="Go">
 								</div>
 							</form>
 						</div>
@@ -304,6 +302,40 @@
 
 				</div>
 			</div>
+
+			<!-- REPORTS -->
+			{{if .UserData.ViewReports}}
+			<div class="row" id="reports-row">
+				<div class="col-xs-12">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Transaction Report</h3>
+						</div>
+						<div class="panel-body">
+							<div class="table-responsive">
+								<table class="table table-hover table-striped">
+									<thead>
+										<tr>
+											<td>Customer ID &<br>Customer Name</td>
+											<td>Cardholder</td>
+											<td>Card Last 4</td>
+											<td>Amount Charged</td>
+											<td>Invoice</td>
+											<td>Timestamp</td>
+											<td>Refund</td>
+										</tr>
+									</thead>
+									<tbody id="report-rows">
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			{{end}}
+
+
 		</div>
 
 		{{/*ONLY ADMINS CAN SEE MODALS SINCE THESE ARE FOR THE "SETTINGS" NAV BUTTON/PANEL*/}}

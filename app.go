@@ -72,12 +72,14 @@ func init() {
 	cardsRemove := 		http.HandlerFunc(card.Remove)
 	cardsCharge := 		http.HandlerFunc(card.Charge)
 	cardsReceipt := 	http.HandlerFunc(receipt.Show)
+	cardsReports := 	http.HandlerFunc(card.Report)
 	c.Handle("/add/", 			auth.Then(cardsAdd)).Methods("POST")
 	c.Handle("/get/", 			auth.Then(cardsGetOne)).Methods("GET")
 	c.Handle("/get/all/", 		auth.Then(cardsGetAll)).Methods("GET")
 	c.Handle("/remove/", 		auth.Then(cardsRemove)).Methods("POST")
 	c.Handle("/charge/", 		auth.Then(cardsCharge)).Methods("POST")
 	c.Handle("/receipt/", 		auth.Then(cardsReceipt)).Methods("GET")
+	c.Handle("/report/", 		auth.Then(cardsReports)).Methods("GET")
 
 	//PAGES THAT DO NOT EXIST
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strconv"
 	"encoding/json"
+	"time"
 
 	"appengine"
 	"appengine/datastore"
@@ -430,6 +431,63 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("cardCharged", out, w)
+	return
+}
+
+//SHOW REPORTS
+//results array of full stripe Charge objects
+func Report(w http.ResponseWriter, r *http.Request) {
+	//get form values
+	//custName := 	r.FormValue("customerName")
+	custId := 		r.FormValue("customerId")
+	startDate := 	r.FormValue("startDate")
+	endDate := 		r.FormValue("endDate")
+
+	//conver start and end dates to unix timestamps
+	start, err := 	time.Parse("2006-01-02", startDate)
+	end, err1 := 	time.Parse("2006-01-02", endDate)
+	if err != nil {
+		output.Error(err, "Could not convert start date to timestamp.", w)
+		return
+	}
+	if err1 != nil {
+		output.Error(err, "Could not covert end date to timestamp.", w)
+		return
+	}
+
+	startUnix := 	start.Unix()
+	endUnix := 		end.Unix() + (60*60*24)
+
+	//retrieve data from stripe
+	c := appengine.NewContext(r)
+	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
+	params := &stripe.ChargeListParams{}
+	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
+	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
+	params.Filters.AddFilter("limit", "", "100")
+
+	//check if we need to filter by a specific customer/card
+	if len(custId) != 0 {
+		custIdInt, _ := strconv.ParseInt(custId, 10, 64)
+		data, err := findByDatastoreId(c, custIdInt)
+		if err != nil {
+			output.Error(err, "An error occured and this report could not be generated.", w)
+			return
+		}
+		
+		params.Filters.AddFilter("customer", "", data.StripeCustomerToken)
+	}
+
+	//get results
+	//gets full stripe Charge results for each item
+	//data is already sorted with most recent first
+	i := 	charge.List(params)
+	out := 	make([]*stripe.Charge, 0, 10)
+	for i.Next() {
+		out = append(out, i.Charge())
+	}
+
+	output.Success("report", out, w)
 	return
 }
 

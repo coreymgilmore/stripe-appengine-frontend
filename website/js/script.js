@@ -1183,3 +1183,77 @@ function resetChargeSuccessPanel() {
 	$('#show-receipt').attr('href', '');
 	return;
 }
+
+//*******************************************************************************
+//SHOW REPORTS
+
+//SUBMIT REPORT
+$('#reports').submit(function (e) {
+	//get form inputs
+	var customerNameInput = $('#reports .customer-name');
+	var customerName = 		customerNameInput.val();
+	var customerId = 		getCardIdFromDataList(customerNameInput);
+	var startDate = 		$('#reports .start-date').val();
+	var endDate = 			$('#reports .end-date').val()
+	var msg = 				$('#reports .msg');
+	var btn = 				$('#reports-submit');
+
+	//hide existing alerts
+	msg.html('');
+
+	//make sure dates were chosen
+	if (startDate === "") {
+		e.preventDefault();
+		showPanelMessage("You must choose a Start Date.", "danger", msg);
+		return;
+	}
+	if (endDate === "") {
+		e.preventDefault();
+		showPanelMessage("You must choose an End Date.", "danger", msg);
+		return;
+	}
+
+	//make sure start date is before end date
+	if (endDate < startDate) {
+		e.preventDefault();
+		showPanelMessage("The Start Date must be before the End Date.", "danger", msg);
+		return;
+	}
+
+	//submit via ajax to get data
+	$.ajax({
+		type: 	"GET",
+		url: 	"/card/report/",
+		data: {
+			customerName: 	customerName,
+			customerId: 	customerId,
+			startDate: 		startDate,
+			endDate: 		endDate
+		},
+		beforeSend: function () {
+			showPanelMessage("Building report...", "info", msg);
+			btn.prop('disabled', true);
+			return;
+		},
+		error: function (r) {
+			showPanelMessage("An error occured. Please contact an administrator.", "danger", msg);
+			console.log(r);
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			msg.html('')
+			btn.prop('disabled', false);
+			console.log(j);
+
+			//hide get reports panel
+			//deactivate reports nav button
+			//build report in "show reports" panel
+			//show "show reports" panel
+		}
+	})
+
+
+	e.preventDefault();
+	return false;
+});
