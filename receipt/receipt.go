@@ -3,6 +3,16 @@ package receipt
 import (
 	"net/http"
 	"io/ioutil"
+	"fmt"
+	"strconv"
+	"encoding/json"
+	"time"
+
+	"appengine"
+	"appengine/urlfetch"
+
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/charge"
 )
 
 const (
@@ -26,8 +36,6 @@ var (
 
 	initError 		error
 )
-
-
 
 //**********************************************************************
 //INIT
@@ -92,42 +100,69 @@ func Init() error {
 //SHOW THE RECEIPT
 //just a plain text page for easy printing and reading
 func Show(w http.ResponseWriter, r *http.Request) {
-	//get form values
-	customerName := r.FormValue("cus")
-	cardholder := 	r.FormValue("hol")
-	last4 := 		r.FormValue("las")
-	exp := 			r.FormValue("exp")
-	amount := 		r.FormValue("amt")
-	invoice := 		r.FormValue("inv")
-	po := 			r.FormValue("pon")
-	datetime := 	r.FormValue("dat")
+	//get charge id from form value
+	chargeId := r.FormValue("chg_id")
+
+	//look up charge data
+	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
+	chg, err := charge.Get(chargeId, nil)
+	if err != nil {
+		fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
+		fmt.Fprint(w, err)
+		return
+	}
+
+	//get card information
+	j, _ := 		json.Marshal(chg.Source)
+	s := 			chg.Source
+	s.UnmarshalJSON(j)
+	card := 		s.Card
+	cardholder := 	card.Name
+	expMonth := 	strconv.FormatInt(int64(card.Month), 10)
+	expYear := 		strconv.FormatInt(int64(card.Year), 10)
+	exp := 			expMonth + "/" + expYear
+	last4 := 		card.LastFour
+	cardBrand := 	card.Brand
+
+	//charge information
+	amount := 		strconv.FormatFloat((float64(chg.Amount) / 100), 'f', 2, 64)
+	timestamp := 	chg.Created
+
+	//get metadata
+	customerName := chg.Meta["customer_name"]
+	invoice := 		chg.Meta["invoice_num"]
+	po := 			chg.Meta["po_num"]
+
+	//convert timestamp to dateteim
+	dt := 			time.Unix(timestamp, 0).Format("2006-01-02T15:04:05.000Z")
 
 	//display receipt
-	w.Write([]byte(companyName + "\n"))
-	w.Write([]byte(street + "\n"))
-	w.Write([]byte(city + ", " + state + " " + postal + "\n"))
-	w.Write([]byte(country + "\n"))
-	w.Write([]byte(phoneNum + "\n"))
-	w.Write([]byte("**************************************************\n"))
-	w.Write([]byte("\n"))
+	fmt.Fprint(w, companyName + "\n")
+	fmt.Fprint(w, street + "\n")
+	fmt.Fprint(w, city + ", " + state + " " + postal + "\n")
+	fmt.Fprint(w, country + "\n")
+	fmt.Fprint(w, phoneNum + "\n")
+	fmt.Fprint(w, "**************************************************\n")
+	fmt.Fprint(w, "\n")
 	
-	w.Write([]byte("Customer Name:        " + customerName + "\n"))
-	w.Write([]byte("Cardholder:           " + cardholder + "\n"))
-	w.Write([]byte("Card Ending:          " + last4 + "\n"))
-	w.Write([]byte("Expiration:           " + exp + "\n"))
-	w.Write([]byte("**************************************************\n"))
-	w.Write([]byte("\n"))
+	fmt.Fprint(w, "Customer Name:        " + customerName + "\n")
+	fmt.Fprint(w, "Cardholder:           " + cardholder + "\n")
+	fmt.Fprint(w, "Card Type:            " + cardBrand + "\n")
+	fmt.Fprint(w, "Card Ending:          " + last4 + "\n")
+	fmt.Fprint(w, "Expiration:           " + exp + "\n")
+	fmt.Fprint(w, "**************************************************\n")
+	fmt.Fprint(w, "\n")
 
-	w.Write([]byte("Transaction Type:     Sale\n"))
-	w.Write([]byte("Timestamp:            " + datetime + "\n"))
-	w.Write([]byte("**************************************************\n"))
-	w.Write([]byte("\n"))
+	fmt.Fprint(w, "Transaction Type:     Sale\n")
+	fmt.Fprint(w, "Timestamp:            " + dt + "\n")
+	fmt.Fprint(w, "**************************************************\n")
+	fmt.Fprint(w, "\n")
 
-	w.Write([]byte("Amount Charged:       $" + amount + "\n"))
-	w.Write([]byte("Invoice:              " + invoice + "\n"))
-	w.Write([]byte("Purchase Order:       " + po + "\n"))
-	w.Write([]byte("**************************************************\n"))
-	w.Write([]byte("\n"))
+	fmt.Fprint(w, "Amount Charged:       $" + amount + "\n")
+	fmt.Fprint(w, "Invoice:              " + invoice + "\n")
+	fmt.Fprint(w, "Purchase Order:       " + po + "\n")
+	fmt.Fprint(w, "**************************************************\n")
+	fmt.Fprint(w, "\n")
 
 	return
 }

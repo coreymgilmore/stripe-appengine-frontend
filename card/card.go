@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"errors"
 	"strconv"
-	"encoding/json"
 	"time"
 
 	"appengine"
@@ -20,6 +19,7 @@ import (
 	
 	"output"
 	"memcacheutils"
+	"sessionutils"
 )
 
 const (
@@ -83,6 +83,7 @@ type chargeSuccessful struct{
 	Invoice 			string 	`json:"invoice"`
 	Po 					string 	`json:"po"`
 	Datetime 			string 	`json:"datetime"`
+	ChargeId 			string 	`json:"charge_id"`
 }
 
 //FOR RETURNING JUST A LIST OF CARDS
@@ -343,14 +344,14 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 //CHARGE A CARD
 func Charge(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	customerId := 		r.FormValue("customerId")
+	datastoreId := 		r.FormValue("datastoreId")
 	customerName := 	r.FormValue("customerName")
 	amount := 			r.FormValue("amount")
 	invoice := 			r.FormValue("invoice")
 	poNum := 			r.FormValue("po")
 
 	//validation
-	if len(customerId) == 0 {
+	if len(datastoreId) == 0 {
 		output.Error(ErrMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w)
 		return
 	}
@@ -375,9 +376,9 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//look up customer's stripe token from datastore
 	//customer id is the datastore id and this links up to a record with the stripe customer token
-	c := 				appengine.NewContext(r)
-	customerIdInt, _ := strconv.ParseInt(customerId, 10, 64)
-	custData, err := 	findByDatastoreId(c, customerIdInt)
+	c := 					appengine.NewContext(r)
+	datastoreIdInt, _ := 	strconv.ParseInt(datastoreId, 10, 64)
+	custData, err := 		findByDatastoreId(c, datastoreIdInt)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
 	}
@@ -430,6 +431,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Invoice: 			invoice,
 		Po: 				poNum,
 		Datetime: 			timestamps.ISO8601(),
+		ChargeId: 			chg.ID,
 	}
 
 	output.Success("cardCharged", out, w)
@@ -618,4 +620,16 @@ func datastoreFindOne(c appengine.Context, filterField string, filterValue inter
 
 	//get one result
 	return r[0], nil
+}
+
+//FORMAT STATEMENT DESCRIPTOR
+//this is a max of 22 characters long
+func formatStatementDescriptor() string {
+	s := stripeStatementDescriptor
+
+	if len(s) > 22 {
+		return s[:22]
+	}
+
+	return s
 }

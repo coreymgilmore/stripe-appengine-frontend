@@ -1044,7 +1044,7 @@ $('#charge-card').submit(function (e) {
 	//gather inputs
 	var customerNameInput = $('#charge-card .customer-name');
 	var customerName = 		customerNameInput.val();
-	var customerId = 		getCardIdFromDataList(customerNameInput);
+	var datastoreId = 		getCardIdFromDataList(customerNameInput);
 	var amountElem = 		$('#charge-card .charge-amount');
 	var amount = 			parseFloat(amountElem.val());
 	var invoiceElem = 		$('#charge-card .charge-invoice');
@@ -1069,7 +1069,7 @@ $('#charge-card').submit(function (e) {
 		type: 	"POST",
 		url: 	"/card/charge/",
 		data: {
-			customerId: 	customerId,
+			datastoreId: 	datastoreId,
 			customerName: 	customerName,
 			amount: 		amount,
 			invoice: 		invoice, 
@@ -1110,15 +1110,7 @@ $('#charge-card').submit(function (e) {
 			$('#panel-charge-success .invoice').text(data['invoice']);
 			$('#panel-charge-success .po').text(data['po']);
 
-			var href = "/card/receipt/" + 
-				"?cus=" + data['customer_name'] + 
-				"&hol=" + data['cardholder_name'] + 
-				"&las=" + data['card_last4'] + 
-				"&exp=" + data['card_expiration'] +
-				"&amt=" + data['amount'] +
-				"&inv=" + data['invoice'] +
-				"&pon=" + data['po'] +
-				"&dat=" + data['datetime'];
+			var href = "/card/receipt/?chg_id=" + data['charge_id'];
 			$('#show-receipt').attr('href', href);
 
 			//show success panel
