@@ -386,23 +386,22 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//make sure customer name matches
 	//just another catch in case of strange errors and mismatched data
 	if customerName != custData.CustomerName {
-		output.Error(err, "The customer name and customer ID did not match. Please log out and try again.", w)
+		output.Error(err, "The customer name did not match the data for the customer ID. Please log out and try again.", w)
 		return
 	}
 
-	//create metadata
-	//metadata field does not exist in stripe-go b/c "net/url body.Add" does not support adding maps, only strings
-	//but stripe's API is looking for a key/value pair set of data, not a string
-	//so saving the metadata to the description is a workaround for now.
-	desc := map[string]interface{}{
-		"customer_id": 		customerId,
+	//get username of logged in user
+	session := 	sessionutils.Get(r)
+	username := session.Values["username"].(string)
+
+	//build metadata
+	meta := map[string]string{
+		"datastore_id": 	datastoreId,
 		"customer_name": 	customerName,
 		"invoice_num": 		invoice,
 		"po_num": 			poNum,
+		"charged_by": 		username,
 	}
-	descJson, _ := json.Marshal(desc)
-
-	stmtDesc := stripeStatementDescriptor + "-inv:" + invoice
 
 	//create charge
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
@@ -410,10 +409,11 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Customer: 	custData.StripeCustomerToken,
 		Amount: 	amountCents,
 		Currency: 	CURRENCY,
-		Desc: 		string(descJson),
-		Statement: 	stmtDesc[:22],
+		Desc: 		"Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
+		Meta: 		meta,
+		Statement: 	formatStatementDescriptor(),
 	}
-	_, err = charge.New(chargeParams)
+	chg, err := charge.New(chargeParams)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)
 		stripeErrMsg := 	stripeErr.Msg
