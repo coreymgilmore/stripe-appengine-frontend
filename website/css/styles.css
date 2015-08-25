@@ -47,7 +47,7 @@ input[type=password].form-control {
 	border: 				1px solid #ddd;
 	border-radius:  		3px; 				/*same as btns*/
 	padding-left: 			5px;
-	padding-right: 			5px;
+	/* padding-right: 			5px; */
 	border-bottom-width: 	1px;
 	box-shadow:  			none !important;
 }
@@ -67,6 +67,19 @@ input[type=password].form-control:focus {
 }
 .form-control[disabled] {
 	border: 				1px solid #ddd !important;
+}
+
+/*FIX INPUT SPINNER BUTTONS*/
+input.form-control {
+	padding-right: 			0;
+}
+input::-webkit-inner-spin-button,
+input::-webkit-outer-spin-button {
+	height: 				auto;
+}
+input[type=date]::-webkit-calendar-picker-indicator {
+	height: 				10px;
+	margin: 				0;
 }
 
 /*MADE DEFAULT FONT COLOR A BIT DARKER*/
