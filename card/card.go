@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"encoding/json"
 	"time"
+	"fmt"
 
 	"appengine"
 	"appengine/datastore"
@@ -439,11 +440,10 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 //SHOW REPORTS
 //results array of full stripe Charge objects
 func Report(w http.ResponseWriter, r *http.Request) {
-	//get form values
-	//custName := 	r.FormValue("customerName")
+	//get form valuess
 	custId := 		r.FormValue("customerId")
-	startDate := 	r.FormValue("startDate")
-	endDate := 		r.FormValue("endDate")
+	startDate := 	r.FormValue("start-date")
+	endDate := 		r.FormValue("end-date")
 
 	//conver start and end dates to unix timestamps
 	start, err := 	time.Parse("2006-01-02", startDate)
@@ -457,12 +457,35 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startUnix := 	start.Unix()
-	endUnix := 		end.Unix() + (60*60*24)
+	//get end of day datetime
+	end = end.Add((24 * 60 - 1) * time.Minute + (59 * time.Second))
 
+	//get unix timestamps
+	startUnix := 	start.Unix()
+	endUnix := 		end.Unix()
+
+
+	fmt.Fprint(w, "Start Date: ")
+	fmt.Fprint(w, start)
+	fmt.Fprint(w, " | ")
+	fmt.Fprint(w, startUnix)
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "End Date:   ")
+	fmt.Fprint(w, end)
+	fmt.Fprint(w, " | ")
+	fmt.Fprint(w, endUnix)
+	fmt.Fprint(w, "\n******************************************************\n\n")
+
+
+
+
+
+
+	
 	//retrieve data from stripe
 	c := appengine.NewContext(r)
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
+	
 	params := &stripe.ChargeListParams{}
 	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
 	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
@@ -471,7 +494,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//check if we need to filter by a specific customer/card
 	if len(custId) != 0 {
 		custIdInt, _ := strconv.ParseInt(custId, 10, 64)
-		data, err := findByDatastoreId(c, custIdInt)
+		data, err := 	findByDatastoreId(c, custIdInt)
 		if err != nil {
 			output.Error(err, "An error occured and this report could not be generated.", w)
 			return
@@ -480,16 +503,87 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		params.Filters.AddFilter("customer", "", data.StripeCustomerToken)
 	}
 
-	//get results
-	//gets full stripe Charge results for each item
-	//data is already sorted with most recent first
-	i := 	charge.List(params)
-	out := 	make([]*stripe.Charge, 0, 10)
-	for i.Next() {
-		out = append(out, i.Charge())
+	type chargeData struct {
+		Id 			string 		`json:"charge_id"`
+		Amount 		string 		`json:"amount"`
+		Captured 	bool 		`json:"captured"`
+		Timestamp 	int64 		`json:"timestamp"`
+		Invoice 	string 		`json:"invoice_num"`
+		Po 			string 		`json:"po_num"`
+		Customer 	string 		`json:"customer_name"`
+		User 		string 		`json:"username"`
+		Cardholder 	string 		`json:"cardholder"`
+		LastFour 	string 		`json:"last4"`
+		Expiration 	string 		`json:"expiration"`
 	}
 
-	output.Success("report", out, w)
+	//get results
+	charges := 					charge.List(params)
+	out := 						make([]chargeData, 0, 10)
+	var amountTotal uint64 = 	0
+	var numCharges uint16 = 	0
+
+	for charges.Next() {
+		chg := 			charges.Charge()
+		
+		//get charge data
+		chgId := 		chg.ID
+		amountInt := 	chg.Amount
+		amount := 		strconv.FormatFloat((float64(amountInt) / 100), 'f', 2, 64)
+		captured := 	chg.Captured 
+		timestamp := 	chg.Created 
+		invoice := 		chg.Meta["invoice_num"]
+		po := 			chg.Meta["po_num"]
+		customerName := chg.Meta["customer_name"]
+		user := 		chg.Meta["username"]
+
+		//get card data
+		source := 		chg.Source
+		j, _ := 		json.Marshal(source)
+		source.UnmarshalJSON(j)
+		card := 		source.Card 
+		cardholder := 	card.Name
+		expMonth := 	strconv.FormatInt(int64(card.Month), 10)
+		expYear := 		strconv.FormatInt(int64(card.Year), 10)
+		exp := 			expMonth + "/" + expYear
+		lastFour := 	card.LastFour
+
+		//save data to build template
+		x := chargeData{
+			Id: 		chgId,
+			Amount: 	amount,
+			Captured: 	captured,
+			Timestamp: 	timestamp,
+			Invoice: 	invoice,
+			Po: 		po,
+			Customer: 	customerName,
+			User: 		user,
+			Cardholder: cardholder,
+			LastFour: 	lastFour,
+			Expiration: exp,
+		}
+		out = append(out, x)
+
+		//add to total amount
+		amountTotal += amountInt
+		numCharges++
+	}
+
+	//store data for building template
+	y := struct{
+		Charges 		[]chargeData 	`json:"charges"`
+		TotalAmount 	uint64 			`json:"total_amount"`
+		NumCharges  	uint16			`json:"num_charges"`
+	}{
+		Charges: 		out,
+		TotalAmount: 	amountTotal,
+		NumCharges: 	numCharges,
+	}
+
+	//build template to display report
+	j, _ := json.Marshal(y)
+	w.Write(j)
+
 	return
 }
 

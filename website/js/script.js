@@ -1220,6 +1220,11 @@ $('#reports').submit(function (e) {
 		return;
 	}
 
+	//let form submit normally
+	//opens in new tab
+	return;
+
+	/*
 	//submit via ajax to get data
 	$.ajax({
 		type: 	"GET",
@@ -1253,7 +1258,7 @@ $('#reports').submit(function (e) {
 		}
 	})
 
-
 	e.preventDefault();
 	return false;
+	*/
 });

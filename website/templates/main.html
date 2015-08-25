@@ -50,7 +50,7 @@
 				</div>
 			</div>
 
-			<!-- ADD, REMOVE, CHARGE PANELS -->
+			<!-- ADD, REMOVE, CHARGE, REPORTS, SETTINGSS PANELS -->
 			<div class="row" id="panels-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
 					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
@@ -208,7 +208,6 @@
 							</form>
 						</div>
 					</div>
-
 					<div class="panel panel-success action-panels" id="panel-charge-success">
 						<div class="panel-heading">
 							<h3 class="panel-title">Charge Successful!</h3>
@@ -254,7 +253,7 @@
 							<h3 class="panel-title">Get Reports</h3>
 						</div>
 						<div class="panel-body">
-							<form id="reports">
+							<form id="reports" method="GET" action="/card/report/" target="_blank">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<datalist id="customer-ids">
@@ -264,11 +263,11 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Start Date: </label>
-									<input class="form-control start-date" type="date" required>
+									<input class="form-control start-date" name="start-date" type="date" required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">End Date: </label>
-									<input class="form-control end-date" type="date" required>
+									<input class="form-control end-date" name="end-date" type="date" required>
 								</div>
 								<div class="msg"></div>
 								<div class="form-group">
