@@ -1220,45 +1220,11 @@ $('#reports').submit(function (e) {
 		return;
 	}
 
+	//set user's timezone into hidden input
+	var d = 		new Date();
+	var offset = 	(d.getTimezoneOffset() / 60) * -1; 	//returns -4 for EST
+	$('#timezone').val(offset);
+
 	//let form submit normally
-	//opens in new tab
 	return;
-
-	/*
-	//submit via ajax to get data
-	$.ajax({
-		type: 	"GET",
-		url: 	"/card/report/",
-		data: {
-			customerName: 	customerName,
-			customerId: 	customerId,
-			startDate: 		startDate,
-			endDate: 		endDate
-		},
-		beforeSend: function () {
-			showPanelMessage("Building report...", "info", msg);
-			btn.prop('disabled', true);
-			return;
-		},
-		error: function (r) {
-			showPanelMessage("An error occured. Please contact an administrator.", "danger", msg);
-			console.log(r);
-			return;
-		},
-		dataType: "json",
-		success: function (j) {
-			msg.html('')
-			btn.prop('disabled', false);
-			console.log(j);
-
-			//hide get reports panel
-			//deactivate reports nav button
-			//build report in "show reports" panel
-			//show "show reports" panel
-		}
-	})
-
-	e.preventDefault();
-	return false;
-	*/
 });
