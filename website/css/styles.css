@@ -237,3 +237,13 @@ hr {
 #reports-row {
 	margin-top: 				23px;
 }
+
+/*REFUND BUTTON*/
+.refund {
+	font-size:  				18px;
+	color: 						#E51C23;
+}
+.refund:hover {
+	cursor: 					pointer;
+	color: 						red;
+}
