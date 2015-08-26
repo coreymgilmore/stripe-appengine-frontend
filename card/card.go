@@ -455,7 +455,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 //results array of full stripe Charge objects
 func Report(w http.ResponseWriter, r *http.Request) {
 	//get form valuess
-	custId := 		r.FormValue("customerId")
+	datastoreId := 		r.FormValue("customer-id")
 	startString := 	r.FormValue("start-date")
 	endString := 	r.FormValue("end-date")
 	hoursToUTC := 	r.FormValue("timezone") 	//hour offset from UTC (EST is -4)
@@ -510,15 +510,16 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	params.Filters.AddFilter("limit", "", "200")
 
 	//check if we need to filter by a specific customer/card
-	if len(custId) != 0 {
-		custIdInt, _ := strconv.ParseInt(custId, 10, 64)
-		data, err := 	findByDatastoreId(c, custIdInt)
+	//look up stripe customer id by the datastore id
+	if len(datastoreId) != 0 {
+		datastoreIdInt, _ := 	strconv.ParseInt(datastoreId, 10, 64)
+		custData, err := 		findByDatastoreId(c, datastoreIdInt)
 		if err != nil {
 			output.Error(err, "An error occured and this report could not be generated.", w)
 			return
 		}
-		
-		params.Filters.AddFilter("customer", "", data.StripeCustomerToken)
+
+		params.Filters.AddFilter("customer", "", custData.StripeCustomerToken)
 	}
 
 	//get results
