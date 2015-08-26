@@ -17,6 +17,7 @@ type Data struct{
 	Timestamp 		string 		`json:"timestamp"`
 	Invoice 		string 		`json:"invoice_num"`
 	Po 				string 		`json:"po_num"`
+	StripeCustId 	string 		`json:"stripe_customer_id"` //this is the id given to the customer by stripe and is used to charge the card
 	Customer 		string 		`json:"customer_name"`
 	CustomerId 		string 		`json:"customer_id"` 		//this is your unique id you gave the customer when you saved the card
 	User 			string 		`json:"username"`
@@ -45,10 +46,16 @@ func ExtractData(chg *stripe.Charge) Data {
 	po := 				meta["po_num"]
 	username := 		meta["username"]
 
+	//customer info
+	customer := 		chg.Customer
+	j, _ := 			json.Marshal(customer)
+	customer.UnmarshalJSON(j)
+	stripeCustId := 	customer.ID
+
 	//card info
 	source := 			chg.Source
-	j, _ := 			json.Marshal(source)
-	source.UnmarshalJSON(j)
+	j2, _ := 			json.Marshal(source)
+	source.UnmarshalJSON(j2)
 	card := 			source.Card
 	cardholder := 		card.Name 
 	expMonth := 		strconv.FormatInt(int64(card.Month), 10)
@@ -73,6 +80,7 @@ func ExtractData(chg *stripe.Charge) Data {
 		Timestamp: 		datetime,
 		Invoice: 		invoice,
 		Po: 			po,
+		StripeCustId: 	stripeCustId,
 		Customer: 		customerName,
 		CustomerId: 	customerId,
 		User: 			username,
