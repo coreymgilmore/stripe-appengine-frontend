@@ -43,7 +43,8 @@ select.form-control,
 input.form-control,
 input[type=text].form-control,
 input[type=email].form-control,
-input[type=password].form-control {
+input[type=password].form-control,
+textarea.form-control {
 	border: 				1px solid #ddd;
 	border-radius:  		3px; 				/*same as btns*/
 	padding-left: 			5px;
@@ -54,7 +55,8 @@ select.form-control:focus,
 input.form-control:focus,
 input[type=text].form-control:focus,
 input[type=email].form-control:focus,
-input[type=password].form-control:focus {
+input[type=password].form-control:focus,
+textarea.form-control:focus {
 	border-color: 			#66afe9;
 	box-shadow:  			none !important;
 	-webkit-box-shadow:		none !important;
@@ -241,9 +243,14 @@ hr {
 /*REFUND BUTTON*/
 .refund {
 	font-size:  				18px;
-	color: 						#E51C23;
+	color:       #E51C23;
 }
 .refund:hover {
 	cursor: 					pointer;
-	color: 						red;
+	color: #B11117;
+}
+
+/*RECEIPT BUTTON*/
+.receipt {
+	font-size: 					18px;
 }
