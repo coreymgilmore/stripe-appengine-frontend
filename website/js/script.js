@@ -1091,8 +1091,8 @@ $('#charge-card').submit(function (e) {
 			if (j['ok'] === false) {
 				showPanelMessage(j['data']['error_msg'], 'danger', msg);
 				console.log(j);
-				return
 			}
+			return;
 		},
 		dataType: "json",
 		success: function (j) {
@@ -1241,4 +1241,74 @@ $('#report-rows').on('click', '.refund', function() {
 	var refundAmount = 	$('#refund-amount');
 	refundAmount.val(amountDollars).attr("max", amountDollars);
 
+	//set the charge id
+	$('#refund-chg-id').val(chargeId);
+	return;
+});
+
+//SUMBIT REFUND FORM
+//handle with ajax
+$('#form-refund').submit(function (e) {
+	//get inputs
+	var chargeId = 	$('#refund-chg-id').val();
+	var amount = 	$('#refund-amount').val();
+	var reason = 	$('#refund-reason').val();
+	var msg = 		$('#form-refund .msg');
+	var btn = 		$('#refund-submit');
+
+	//clear alerts
+	msg.html('');
+
+	//make sure a charge id and amount is given
+	if (chargeId.length === 0) {
+		e.preventDefault();
+		showModalMessage("A charge ID was not submitted.  Please refresh your browser and try again.", "danger", msg);
+		return;
+	}
+	if (amount.length === 0 || parseFloat(amount) < 0) {
+		e.preventDefault();
+		showModalMessage("You must provide an amount to refund that is greater than zero but less than the amount charged.", "danger", msg);
+		return;
+	}
+
+	//stop form submission
+	e.preventDefault();
+
+	//submit via ajax
+	$.ajax({
+		type: 	"POST",
+		url: 	"/card/refund/",
+		data: {
+			chargeId: 	chargeId,
+			amount: 	amount,
+			reason: 	reason
+		},
+		beforeSend: function () {
+			//show working message
+			showModalMessage("Refunding charge...", "info", msg);
+			btn.prop('disabled', true);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage(j['data']['error_msg'], 'danger', msg);
+				btn.prop('disabled', false);
+				console.log(j);
+			}
+			return;
+		},
+		dataType: "json",
+		success: function (j) {
+			showModalMessage("Refund successful!", "success", msg);
+			btn.prop('disabled', false);
+
+			//clear inputs and/or disable inputs
+			$('#refund-amount').val("");
+			$('#refund-reason').val("0");
+			return;
+		}
+	})
+
+	return false;
 });
