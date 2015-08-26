@@ -7,6 +7,7 @@ import (
 
 	"appengine"
 	"appengine/urlfetch"
+	"appengine/memcache"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
@@ -102,14 +103,21 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	//get charge id from form value
 	chargeId := r.FormValue("chg_id")
 
+	//try looking up charge data in memcache
+	var chg *stripe.Charge
+	c := 		appengine.NewContext(r)
+	_, err := 	memcache.Gob.Get(c, chargeId, &chg)
+	
+	//charge not found in memcache
 	//look up charge data from stripe
-	//looking up data via the charge id that stripe gave us
-	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
-	chg, err := charge.Get(chargeId, nil)
-	if err != nil {
-		fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
-		fmt.Fprint(w, err)
-		return
+	if err == memcache.ErrCacheMiss {
+		stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
+		chg, err = charge.Get(chargeId, nil)
+		if err != nil {
+			fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
+			fmt.Fprint(w, err)
+			return
+		}
 	}
 
 	//extract charge data
