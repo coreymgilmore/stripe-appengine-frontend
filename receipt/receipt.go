@@ -13,6 +13,7 @@ import (
 	"github.com/stripe/stripe-go/charge"
 
 	"chargeutils"
+	"memcacheutils"
 )
 
 const (
@@ -118,6 +119,9 @@ func Show(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, err)
 			return
 		}
+
+		//save to memcache
+		memcacheutils.Save(c, chg.ID, chg)
 	}
 
 	//extract charge data
