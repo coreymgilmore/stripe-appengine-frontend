@@ -4,15 +4,14 @@ import (
 	"net/http"
 	"io/ioutil"
 	"fmt"
-	"strconv"
-	"encoding/json"
-	"time"
 
 	"appengine"
 	"appengine/urlfetch"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
+
+	"chargeutils"
 )
 
 const (
@@ -103,7 +102,8 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	//get charge id from form value
 	chargeId := r.FormValue("chg_id")
 
-	//look up charge data
+	//look up charge data from stripe
+	//looking up data via the charge id that stripe gave us
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	chg, err := charge.Get(chargeId, nil)
 	if err != nil {
@@ -112,29 +112,8 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get card information
-	j, _ := 		json.Marshal(chg.Source)
-	s := 			chg.Source
-	s.UnmarshalJSON(j)
-	card := 		s.Card
-	cardholder := 	card.Name
-	expMonth := 	strconv.FormatInt(int64(card.Month), 10)
-	expYear := 		strconv.FormatInt(int64(card.Year), 10)
-	exp := 			expMonth + "/" + expYear
-	last4 := 		card.LastFour
-	cardBrand := 	card.Brand
-
-	//charge information
-	amount := 		strconv.FormatFloat((float64(chg.Amount) / 100), 'f', 2, 64)
-	timestamp := 	chg.Created
-
-	//get metadata
-	customerName := chg.Meta["customer_name"]
-	invoice := 		chg.Meta["invoice_num"]
-	po := 			chg.Meta["po_num"]
-
-	//convert timestamp to dateteim
-	dt := 			time.Unix(timestamp, 0).Format("2006-01-02T15:04:05.000Z")
+	//extract charge data
+	d := chargeutils.ExtractData(chg)
 
 	//display receipt
 	fmt.Fprint(w, companyName + "\n")
@@ -145,28 +124,39 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "**************************************************\n")
 	fmt.Fprint(w, "\n")
 	
-	fmt.Fprint(w, "Customer Name:        " + customerName + "\n")
-	fmt.Fprint(w, "Cardholder:           " + cardholder + "\n")
-	fmt.Fprint(w, "Card Type:            " + cardBrand + "\n")
-	fmt.Fprint(w, "Card Ending:          " + last4 + "\n")
-	fmt.Fprint(w, "Expiration:           " + exp + "\n")
+	fmt.Fprint(w, "Customer Name:        " + d.Customer + "\n")
+	fmt.Fprint(w, "Cardholder:           " + d.Cardholder + "\n")
+	fmt.Fprint(w, "Card Type:            " + d.CardBrand + "\n")
+	fmt.Fprint(w, "Card Ending:          " + d.LastFour + "\n")
+	fmt.Fprint(w, "Expiration:           " + d.Expiration + "\n")
 	fmt.Fprint(w, "**************************************************\n")
 	fmt.Fprint(w, "\n")
 
 	fmt.Fprint(w, "Transaction Type:     Sale\n")
-	fmt.Fprint(w, "Timestamp:            " + dt + "\n")
+	fmt.Fprint(w, "Captured:             " + d.CapturedStr + "\n")
+	fmt.Fprint(w, "Timestamp (UTC):      " + d.Timestamp + "\n")
 	fmt.Fprint(w, "**************************************************\n")
 	fmt.Fprint(w, "\n")
 
-	fmt.Fprint(w, "Amount Charged:       $" + amount + "\n")
-	fmt.Fprint(w, "Invoice:              " + invoice + "\n")
-	fmt.Fprint(w, "Purchase Order:       " + po + "\n")
+	fmt.Fprint(w, "Amount Charged:       $" + d.AmountDollars + "\n")
+	fmt.Fprint(w, "Invoice:              " + d.Invoice + "\n")
+	fmt.Fprint(w, "Purchase Order:       " + d.Po + "\n")
 	fmt.Fprint(w, "**************************************************\n")
 	fmt.Fprint(w, "\n")
+
+	//error checking
+	if d.Captured == false {
+		fmt.Fprint(w, "\n\n\n")
+		fmt.Fprint(w, "**************************************************\n")
+		fmt.Fprint(w, "**************************************************\n")
+		fmt.Fprint(w, "ERROR!   ERROR!   ERROR!\n")
+		fmt.Fprint(w, "Charge was not captured!")
+	}
 
 	return
 }
 
+//**********************************************************************
 //CHECK IF FILES WERE READ CORRECTLY
 func Check() error {
 	if initError != nil {

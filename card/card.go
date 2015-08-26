@@ -21,6 +21,8 @@ import (
 	"output"
 	"memcacheutils"
 	"sessionutils"
+	"chargeutils"
+	"templates"
 )
 
 const (
@@ -95,27 +97,12 @@ type CardList struct {
 }
 
 //FOR BUILDING REPORTS
-//charge data (each row)
-type chargeData struct {
-	Id 			string 		`json:"charge_id"`
-	Amount 		string 		`json:"amount"`
-	Captured 	bool 		`json:"captured"`
-	Timestamp 	int64 		`json:"timestamp"`
-	Invoice 	string 		`json:"invoice_num"`
-	Po 			string 		`json:"po_num"`
-	Customer 	string 		`json:"customer_name"`
-	User 		string 		`json:"username"`
-	Cardholder 	string 		`json:"cardholder"`
-	LastFour 	string 		`json:"last4"`
-	Expiration 	string 		`json:"expiration"`
-}
-//general data for building report
 type reportData struct{
-	StartDate 		time.Time		`json:"start_datetime"`
-	EndDate 		time.Time		`json:"end_datetime"`
-	Charges 		[]chargeData 	`json:"charges"`
-	TotalAmount 	uint64 			`json:"total_amount"`
-	NumCharges  	uint16			`json:"num_charges"`
+	StartDate 		time.Time			`json:"start_datetime"`
+	EndDate 		time.Time			`json:"end_datetime"`
+	Charges 		[]chargeutils.Data 	`json:"charges"`
+	TotalAmount 	string 				`json:"total_amount"`
+	NumCharges  	uint16				`json:"num_charges"`
 }
 
 //**********************************************************************
@@ -399,8 +386,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//look up customer's stripe token from datastore
-	//customer id is the datastore id and this links up to a record with the stripe customer token
+	//look up stripe customer id from datastore
 	c := 					appengine.NewContext(r)
 	datastoreIdInt, _ := 	strconv.ParseInt(datastoreId, 10, 64)
 	custData, err := 		findByDatastoreId(c, datastoreIdInt)
@@ -420,8 +406,10 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	username := session.Values["username"].(string)
 
 	//build metadata
+	//requires non-official stripe-go libraray
 	meta := map[string]string{
 		"datastore_id": 	datastoreId,
+		"customer_id": 		custData.CustomerId,
 		"customer_name": 	customerName,
 		"invoice_num": 		invoice,
 		"po_num": 			poNum,
@@ -470,7 +458,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	custId := 		r.FormValue("customerId")
 	startString := 	r.FormValue("start-date")
 	endString := 	r.FormValue("end-date")
-	hoursToUTC := 	r.FormValue("timezone") 	//hour offset (EST is -4)
+	hoursToUTC := 	r.FormValue("timezone") 	//hour offset from UTC (EST is -4)
 
 	//make sure inputs are given
 	if len(startString) == 0 {
@@ -504,6 +492,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get end of day datetime
+	//need to get 23:59:59 datetime
 	endDt = endDt.Add((24 * 60 - 1) * time.Minute + (59 * time.Second))
 
 	//get unix timestamps
@@ -511,12 +500,14 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	endUnix := 		endDt.Unix()
 	
 	//retrieve data from stripe
+	//date is a range inclusive of the days the user chose
+	//limit is 200 but apparently 100 is the max per stripe
 	c := appengine.NewContext(r)
 	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	params := &stripe.ChargeListParams{}
 	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
 	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
-	params.Filters.AddFilter("limit", "", "100")
+	params.Filters.AddFilter("limit", "", "200")
 
 	//check if we need to filter by a specific customer/card
 	if len(custId) != 0 {
@@ -531,70 +522,37 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get results
+	//loop through each charge and extract charge data
+	//add up total amount of all charges
 	charges := 					charge.List(params)
-	out := 						make([]chargeData, 0, 10)
+	data := 					make([]chargeutils.Data, 0, 10)
 	var amountTotal uint64 = 	0
 	var numCharges uint16 = 	0
-
 	for charges.Next() {
-		chg := 			charges.Charge()
-		
-		//get charge data
-		chgId := 		chg.ID
-		amountInt := 	chg.Amount
-		amount := 		strconv.FormatFloat((float64(amountInt) / 100), 'f', 2, 64)
-		captured := 	chg.Captured 
-		timestamp := 	chg.Created 
-		invoice := 		chg.Meta["invoice_num"]
-		po := 			chg.Meta["po_num"]
-		customerName := chg.Meta["customer_name"]
-		user := 		chg.Meta["username"]
+		//get each charges data
+		chg := 	charges.Charge()
+		d := 	chargeutils.ExtractData(chg)
+		data = 	append(data, d)
 
-		//get card data
-		source := 		chg.Source
-		j, _ := 		json.Marshal(source)
-		source.UnmarshalJSON(j)
-		card := 		source.Card 
-		cardholder := 	card.Name
-		expMonth := 	strconv.FormatInt(int64(card.Month), 10)
-		expYear := 		strconv.FormatInt(int64(card.Year), 10)
-		exp := 			expMonth + "/" + expYear
-		lastFour := 	card.LastFour
-
-		//save data to build template
-		x := chargeData{
-			Id: 		chgId,
-			Amount: 	amount,
-			Captured: 	captured,
-			Timestamp: 	timestamp,
-			Invoice: 	invoice,
-			Po: 		po,
-			Customer: 	customerName,
-			User: 		user,
-			Cardholder: cardholder,
-			LastFour: 	lastFour,
-			Expiration: exp,
-		}
-		out = append(out, x)
-
-		//add to total amount
-		amountTotal += amountInt
+		//increment totals
+		amountTotal += d.AmountCents
 		numCharges++
 	}
+
+	//convert total amount to dollars
+	amountTotalDollars := strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
 
 	//store data for building template
 	output := reportData{
 		StartDate: 		startDt,
 		EndDate: 		endDt,
-		Charges: 		out,
-		TotalAmount: 	amountTotal,
+		Charges: 		data,
+		TotalAmount: 	amountTotalDollars,
 		NumCharges: 	numCharges,
 	}
 
 	//build template to display report
-	j, _ := json.Marshal(output)
-	w.Write(j)
-
+	templates.Load(w, "report", output)
 	return
 }
 
@@ -736,7 +694,6 @@ func formatStatementDescriptor() string {
 
 	return s
 }
-
 
 //GET A GOLANG STYLE TIMEZONE OFFSET
 //takes a string value input of the hours before or after UTC (-4 for EST for example)
