@@ -33,7 +33,12 @@ func init() {
 
 	//**********************************************************************
 	//MIDDLEWARE
-	auth := alice.New(middleware.Auth)
+	a := 		alice.New(middleware.Auth)
+	admin := 	alice.New(middleware.Auth, middleware.Administrator)
+	add := 		alice.New(middleware.Auth, middleware.AddCards)
+	remove := 	alice.New(middleware.Auth, middleware.RemoveCards)
+	charge := 	alice.New(middleware.Auth, middleware.ChargeCards)
+	reports := 	alice.New(middleware.Auth, middleware.ViewReports)
 
 	//**********************************************************************
 	//ROUTER
@@ -49,23 +54,14 @@ func init() {
 
 	//logged in
 	main := http.HandlerFunc(pages.Main)
-	r.Handle("/main/", auth.Then(main))
+	r.Handle("/main/", a.Then(main))
 
-	//users
-	u := 				r.PathPrefix("/users").Subrouter()
+	//handlers
 	usersAdd := 		http.HandlerFunc(users.Add)
 	usersGetOne := 		http.HandlerFunc(users.GetOne)
 	usersGetAll := 		http.HandlerFunc(users.GetAll)
 	usersChangePwd := 	http.HandlerFunc(users.ChangePwd)
 	usersUpdate := 		http.HandlerFunc(users.UpdatePermissions)
-	u.Handle("/add/", 			auth.Then(usersAdd)).Methods("POST")
-	u.Handle("/get/", 			auth.Then(usersGetOne)).Methods("GET")
-	u.Handle("/get/all/", 		auth.Then(usersGetAll)).Methods("GET")
-	u.Handle("/change-pwd/", 	auth.Then(usersChangePwd)).Methods("POST")
-	u.Handle("/update/", 		auth.Then(usersUpdate)).Methods("POST")
-
-	//cards
-	c := 				r.PathPrefix("/card").Subrouter()
 	cardsAdd := 		http.HandlerFunc(card.Add)
 	cardsGetOne := 		http.HandlerFunc(card.GetOne)
 	cardsGetAll := 		http.HandlerFunc(card.GetAll)
@@ -73,13 +69,26 @@ func init() {
 	cardsCharge := 		http.HandlerFunc(card.Charge)
 	cardsReceipt := 	http.HandlerFunc(receipt.Show)
 	cardsReports := 	http.HandlerFunc(card.Report)
-	c.Handle("/add/", 			auth.Then(cardsAdd)).Methods("POST")
-	c.Handle("/get/", 			auth.Then(cardsGetOne)).Methods("GET")
-	c.Handle("/get/all/", 		auth.Then(cardsGetAll)).Methods("GET")
-	c.Handle("/remove/", 		auth.Then(cardsRemove)).Methods("POST")
-	c.Handle("/charge/", 		auth.Then(cardsCharge)).Methods("POST")
-	c.Handle("/receipt/", 		auth.Then(cardsReceipt)).Methods("GET")
-	c.Handle("/report/", 		auth.Then(cardsReports)).Methods("GET")
+	cardsRefund := 		http.HandlerFunc(card.Refund)
+	
+	//users
+	u := 						r.PathPrefix("/users").Subrouter()
+	u.Handle("/add/", 			admin.Then(usersAdd)).Methods("POST")
+	u.Handle("/get/", 			a.Then(usersGetOne)).Methods("GET")
+	u.Handle("/get/all/", 		admin.Then(usersGetAll)).Methods("GET")
+	u.Handle("/change-pwd/", 	admin.Then(usersChangePwd)).Methods("POST")
+	u.Handle("/update/", 		admin.Then(usersUpdate)).Methods("POST")
+
+	//cards
+	c := 						r.PathPrefix("/card").Subrouter()
+	c.Handle("/add/", 			add.Then(cardsAdd)).Methods("POST")
+	c.Handle("/get/", 			a.Then(cardsGetOne)).Methods("GET")
+	c.Handle("/get/all/", 		a.Then(cardsGetAll)).Methods("GET")
+	c.Handle("/remove/", 		remove.Then(cardsRemove)).Methods("POST")
+	c.Handle("/charge/", 		charge.Then(cardsCharge)).Methods("POST")
+	c.Handle("/receipt/", 		charge.Then(cardsReceipt)).Methods("GET")
+	c.Handle("/report/", 		reports.Then(cardsReports)).Methods("GET")
+	c.Handle("/refund/", 		charge.Then(cardsRefund)).Methods("POST")
 
 	//PAGES THAT DO NOT EXIST
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)
