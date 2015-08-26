@@ -12,6 +12,14 @@ indexes:
 
 - kind: card
   properties:
+  - name: CustomerId
+  - name: CardExpiration
+  - name: CardLast4
+  - name: Cardholder
+  - name: CustomerName
+
+- kind: card
+  properties:
   - name: __key__
   - name: CardExpiration
   - name: CardLast4

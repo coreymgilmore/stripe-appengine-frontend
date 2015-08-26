@@ -86,7 +86,7 @@ func init() {
 	c.Handle("/get/all/", 		a.Then(cardsGetAll)).Methods("GET")
 	c.Handle("/remove/", 		remove.Then(cardsRemove)).Methods("POST")
 	c.Handle("/charge/", 		charge.Then(cardsCharge)).Methods("POST")
-	c.Handle("/receipt/", 		charge.Then(cardsReceipt)).Methods("GET")
+	c.Handle("/receipt/", 		a.Then(cardsReceipt)).Methods("GET")
 	c.Handle("/report/", 		reports.Then(cardsReports)).Methods("GET")
 	c.Handle("/refund/", 		charge.Then(cardsRefund)).Methods("POST")
 
