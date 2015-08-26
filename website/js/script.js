@@ -1213,6 +1213,13 @@ $('#reports').submit(function (e) {
 	var offset = 	(d.getTimezoneOffset() / 60) * -1; 	//returns -4 for EST
 	$('#timezone').val(offset);
 
+	//set the customer id into hidden input
+	//customer id is in data attribute so it won't be submitted from data list
+	//use this value to look up stripe customer id when building report
+	var customerNameInput = $('#reports .customer-name');
+	var datastoreId = 		getCardIdFromDataList(customerNameInput);
+	$('#report-customer-id').val(datastoreId);
+
 	//let form submit normally
 	return;
 });
