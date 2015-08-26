@@ -1223,3 +1223,22 @@ $('#reports').submit(function (e) {
 	//let form submit normally
 	return;
 });
+
+//*******************************************************************************
+//SHOW REPORTS
+
+//AUTOFILL MODAL DATA
+//when the modal launches
+$('#report-rows').on('click', '.refund', function() {
+	//get amount of charge
+	var refundBtn = 	$(this);
+	var amountDollars = refundBtn.parent().siblings('td.amount-dollars').children('.amount').text();
+
+	//get charge id
+	var chargeId = 		refundBtn.data("chgid");
+
+	//set the value and max of the refund input
+	var refundAmount = 	$('#refund-amount');
+	refundAmount.val(amountDollars).attr("max", amountDollars);
+
+});

@@ -23,6 +23,7 @@
 											<th>Amount Charged</th>
 											<th>Invoice</th>
 											<th>Timestamp (UTC)</th>
+											<th class="text-center">Receipt</th>
 											<th class="text-center">Refund</th>
 										</tr>
 									</thead>
@@ -33,10 +34,11 @@
 												<tr {{if eq .Captured false}}class="danger"{{end}}>
 													<td>{{.Customer}}</td>
 													<td>{{.LastFour}}</td>
-													<td>${{.AmountDollars}}</td>
+													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
 													<td>{{.Invoice}}</td>
 													<td>{{.Timestamp}}</td>
-													<td class="text-center"><a class="refund" data-id="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+													<td class="text-center"><a class="receipt" href="/card/receipt/?chg_id={{.Id}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+													<td class="text-center"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
 												</tr>
 											{{end}}
 										{{else}}
@@ -52,6 +54,43 @@
 				</div>
 			</div>
 
+		</div>
+
+		<!-- REFUND MODAL -->
+		<div class="modal fade" id="modal-refund">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Refund Charge</h4>
+					</div>
+					<div class="modal-body">
+						<form class="form-horizontal" id="form-refund" method="POST" action="">
+							<div class="form-group">
+								<label class="control-label col-sm-3">Amount:</label>
+								<div class="col-sm-8">
+									<input class="form-control" id="refund-amount" type="number" min="0" max="" step="0.01" required>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Note:</label>
+								<div class="col-sm-8">
+									<textarea class="form-control" id="refund-note" rows="3"></textarea>
+								</div>
+							</div>
+							<div class="msg"></div>
+						</form>
+					</div>
+					<div class="msg"></div>
+					<div class="modal-footer">
+						<div class="btn-group">
+							<input id="refund-chg-id" type="hidden">
+							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							<button class="btn btn-primary" id="refund-submit" type="submit" form="form-refund">Refund</button>
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		{{template "html_scripts"}}
