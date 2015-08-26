@@ -15,7 +15,7 @@
 						</div>
 						<div class="panel-body">
 							<div class="table-responsive">
-								<table class="table table-hovertable-condensed">
+								<table class="table table-hover table-condensed">
 									<thead>
 										<tr>
 											<th>Customer Name</th>
@@ -27,15 +27,21 @@
 										</tr>
 									</thead>
 									<tbody id="report-rows">
-										{{range .Charges}}
-											{{/*HIGHLIGHT ROWS WHERE CAPTURED IS FALSE TO SHOW ERRORS*/}}
-											<tr {{if eq .Captured false}}class="danger"{{end}}>
-												<td>{{.Customer}}</td>
-												<td>{{.LastFour}}</td>
-												<td>${{.AmountDollars}}</td>
-												<td>{{.Invoice}}</td>
-												<td>{{.Timestamp}}</td>
-												<td class="text-center"><a class="refund" data-id="{{.Id}}"><span class="glyphicon glyphicon-trash text-danger"></span></a></td>
+										{{if .Charges}}
+											{{range .Charges}}
+												{{/*HIGHLIGHT ROWS WHERE CAPTURED IS FALSE TO SHOW ERRORS*/}}
+												<tr {{if eq .Captured false}}class="danger"{{end}}>
+													<td>{{.Customer}}</td>
+													<td>{{.LastFour}}</td>
+													<td>${{.AmountDollars}}</td>
+													<td>{{.Invoice}}</td>
+													<td>{{.Timestamp}}</td>
+													<td class="text-center"><a class="refund" data-id="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+												</tr>
+											{{end}}
+										{{else}}
+											<tr>
+												<td colspan=100>No results found.</td>
 											</tr>
 										{{end}}
 									</tbody>
