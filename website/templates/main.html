@@ -13,7 +13,7 @@
 		</datalist>
 
 		<div class="container">
-			<!-- APP TITLE & NAV BAR -->
+			<!-- NAV BAR -->
 			<div class="row">
 				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
 					<center>
@@ -619,5 +619,11 @@
 		{{template "footer"}}
 		{{template "stripe-js"}}
 		{{template "html_scripts"}}
+
+		<!-- SCRIPTS TO RUN ON PAGE LOAD -->
+		<script>
+			generateExpirationYears();
+			getCards();
+		</script>
 	<body>
 </body>

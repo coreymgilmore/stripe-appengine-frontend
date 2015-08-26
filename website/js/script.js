@@ -20,7 +20,7 @@ const MIN_CHARGE = 0.5;
 //*******************************************************************************
 //STRIPE PUBLIC KEY
 //stripe.js is only loaded when logged in "/main/"
-if (window.location.pathname !== "/") {
+if (window.location.pathname == "/main/") {
 	Stripe.setPublishableKey('pk_test_pKzD1QYPWJNrwuGTZ2k0HEkn');
 }
 
@@ -606,7 +606,7 @@ $('#form-update-user').submit(function (e) {
 //GENERATE LIST OF YEARS FOR CARD EXPIRATION
 //done on page load
 //fills in a <select> with <options>
-$(function() {
+function generateExpirationYears() {
 	var elem = $('#card-exp-year');
 	elem.html("");
 
@@ -622,8 +622,8 @@ $(function() {
 		elem.append("<option value='" + i + "'>" + i + "</option>");
 	}
 
-	console.log("Loaded list of expiration years.");
-});
+	console.log("Loading expiration years...done!");
+}
 
 //HIDE "THIS YEAR" IF USER CHOOSES AN EXPIRATION MONTH IN THE PAST
 //user cannot choose an expiration in a past month for this year
@@ -857,6 +857,7 @@ function getCards() {
 		type: 	"GET",
 		url: 	"/card/get/all/",
 		beforeSend: function() {
+			console.log("Loading cards...");
 			customerList.html('<option value="Loading...">');
 			return;
 		},
@@ -868,6 +869,8 @@ function getCards() {
 		},
 		dataType: "json",
 		success: function (j) {
+			console.log("Loading cards...done!")
+
 			//put results in data list
 			var data = j['data'];
 			customerList.html('');
@@ -890,13 +893,6 @@ function getCards() {
 		}
 	});
 }
-
-//LOAD LIST OF CARDS ON PAGE LOAD
-//so user does not have to wait for them to load
-$(function() {
-	console.log("Loading list of cards...");
-	getCards();
-});
 
 //GET VALUE OF CARD SELECTED FROM INPUT AUTOCOMPLETE LIST
 //gets the id from the data- attribute of the selected option in the datalist
