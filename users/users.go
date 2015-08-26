@@ -250,27 +250,10 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 //GET LIST OF ALL USERS
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-
-	//check if current logged in user is an admin
-	//only admins can get the list of users
-	session := 			sessionutils.Get(r)
-	userId := 			session.Values["user_id"].(int64)
-	userData, err := 	Find(c, userId)
-	if err != nil {
-		output.Error(err, "You could not be verified as an administrator therefore the list of users could not be found.", w)
-		return
-	}
-	if userData.Administrator == false {
-		//user is not an admin
-		//cannot access list of users
-		output.Error(ErrNotAdmin, "You are not an administrator therefore you cannot access the list of users.", w)
-		return
-	}
-
 	//check if list of users is saved in memcache
 	result := 	make([]userList, 0, 5)
-	_, err = 	memcache.Gob.Get(c, LIST_OF_USERS_KEYNAME, &result)
+	c := 		appengine.NewContext(r)
+	_, err := 	memcache.Gob.Get(c, LIST_OF_USERS_KEYNAME, &result)
 	if err == nil {
 		//return results
 		output.Success("userList-cached", result, w)
@@ -416,21 +399,9 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//look up user's data to check if they are an admin
-	sessionUserId := 	session.Values["user_id"].(int64)
-	c := 				appengine.NewContext(r)
-	sessionUser, err := Find(c, sessionUserId)
-	if err != nil {
-		output.Error(err, "We could not verify that you are an administrator. You cannot change setting.", w)
-		return
-	}
-	if sessionUser.Administrator == false {
-		output.Error(ErrNotAdmin, "Only administrators can change settings.", w)
-		return
-	}
-
 	//get user data to update
-	userData, err := Find(c, userIdInt)
+	c := 				appengine.NewContext(r)
+	userData, err := 	Find(c, userIdInt)
 	if err != nil {
 		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w)
 		return
