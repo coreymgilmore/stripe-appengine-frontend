@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		{{template "html_head"}}
+	</head>
+	<body>
+		<!-- NO HEADER OR FOOTER TO MAKE PRITING EASIER -->
+
+		<div class="container">
+			<div class="row" id="reports-row">
+				<div class="col-xs-12">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Transaction Report</h3>
+						</div>
+						<div class="panel-body">
+							<div class="table-responsive">
+								<table class="table table-hovertable-condensed">
+									<thead>
+										<tr>
+											<th>Customer Name</th>
+											<th>Card Ending</th>
+											<th>Amount Charged</th>
+											<th>Invoice</th>
+											<th>Timestamp (UTC)</th>
+											<th class="text-center">Refund</th>
+										</tr>
+									</thead>
+									<tbody id="report-rows">
+										{{range .Charges}}
+											{{/*HIGHLIGHT ROWS WHERE CAPTURED IS FALSE TO SHOW ERRORS*/}}
+											<tr {{if eq .Captured false}}class="danger"{{end}}>
+												<td>{{.Customer}}</td>
+												<td>{{.LastFour}}</td>
+												<td>${{.AmountDollars}}</td>
+												<td>{{.Invoice}}</td>
+												<td>{{.Timestamp}}</td>
+												<td class="text-center"><a class="refund" data-id="{{.Id}}"><span class="glyphicon glyphicon-trash text-danger"></span></a></td>
+											</tr>
+										{{end}}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+		{{template "html_scripts"}}
+	<body>
+</body>

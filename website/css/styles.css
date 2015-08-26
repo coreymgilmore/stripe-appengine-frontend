@@ -163,9 +163,6 @@ hr {
 .app-title {
 	font-weight: 				300;
 }
-#nav-buttons {
-	margin-bottom: 				23px;
-}
 #nav-buttons .btn {
 	border-top: 				0;
 }
@@ -233,4 +230,10 @@ hr {
 }
 #show-receipt {
 	margin-top: 				-10px; 	/*keep the spacing above the btn and below the same*/
+}
+
+/*SPACING BETWEEN PANELS AND HEADER*/
+#panels-row,
+#reports-row {
+	margin-top: 				23px;
 }
