@@ -66,19 +66,19 @@
 							<form id="add-card">
 								<div class="form-group">
 									<label class="control-label">Customer ID <small>(optional)</small>: </label>
-									<input class="form-control" id="customer-id" type="text" placeholder="A unique identifier.">
+									<input class="form-control" id="customer-id" type="text" placeholder="A unique identifier." autocomplete="off">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
-									<input class="form-control" id="customer-name" type="text" placeholder="ABC Corp., John Smith" required>
+									<input class="form-control" id="customer-name" type="text" placeholder="ABC Corp., John Smith" required autocomplete="off">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control" id="cardholder-name" type="text" placeholder="The name on the card." required>
+									<input class="form-control" id="cardholder-name" type="text" placeholder="The name on the card." required autocomplete="off">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Card Number: </label>
-									<input class="form-control disable-spinner" id="card-number" type="number" min="0" step="1" placeholder="The credit card number." required>
+									<input class="form-control disable-spinner" id="card-number" type="number" min="0" step="1" placeholder="The credit card number." required autocomplete="off">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration Month: </label>
@@ -110,7 +110,7 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Billing Postal Code: </label>
-									<input class="form-control disable-spinner" id="card-postal-code" type="text" maxlength="6" required>
+									<input class="form-control disable-spinner" id="card-postal-code" type="text" maxlength="6" required autocomplete="off">
 								</div>
 								<div class="msg"></div>
 								<div class="form-group">
