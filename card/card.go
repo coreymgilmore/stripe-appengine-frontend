@@ -264,8 +264,11 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	//init stripe
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(c))
+
 	//create the stripe customer
-	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	custParams := &stripe.CustomerParams{Desc: customerName}
 	custParams.SetSource(cardToken)
 	cust, err := customer.New(custParams)
@@ -331,9 +334,12 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w)
 	}
 
+	//init stripe
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(c))
+
 	//remove card from stripe
 	//ingnore errors with .Del() b/c as long as we delete the customer from the datastore any users should not be able to charge this customer card
-	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	stripeId := custData.StripeCustomerToken
 	customer.Del(stripeId)
 
@@ -394,6 +400,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	custData, err := 		findByDatastoreId(c, datastoreIdInt)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
+		return
 	}
 
 	//make sure customer name matches
@@ -418,8 +425,11 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		"charged_by": 		username,
 	}
 
+	//init stripe
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(c))
+
 	//create charge
-	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	chargeParams := &stripe.ChargeParams{
 		Customer: 	custData.StripeCustomerToken,
 		Amount: 	amountCents,
@@ -508,11 +518,14 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	startUnix := 	startDt.Unix()
 	endUnix := 		endDt.Unix()
 	
+	//init stripe
+	c := appengine.NewContext(r)
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(c))	
+
 	//retrieve data from stripe
 	//date is a range inclusive of the days the user chose
 	//limit is 200 but apparently 100 is the max per stripe
-	c := appengine.NewContext(r)
-	stripe.SetHTTPClient(urlfetch.Client(c))
 	params := &stripe.ChargeListParams{}
 	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
 	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
@@ -611,8 +624,12 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 		params.Reason = refund.RefundRequestedByCustomer
 	}
 
+	//init stripe
+	c := appengine.NewContext(r)
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(c))
+
 	//create refund with stripe
-	stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
 	_, err = refund.New(params)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)

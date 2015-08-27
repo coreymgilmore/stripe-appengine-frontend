@@ -112,7 +112,11 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	//charge not found in memcache
 	//look up charge data from stripe
 	if err == memcache.ErrCacheMiss {
-		stripe.SetHTTPClient(urlfetch.Client(appengine.NewContext(r)))
+		//init stripe
+		c := appengine.NewContext(r)
+		stripe.SetBackend(stripe.APIBackend, nil)
+		stripe.SetHTTPClient(urlfetch.Client(c))
+
 		chg, err = charge.Get(chargeId, nil)
 		if err != nil {
 			fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
