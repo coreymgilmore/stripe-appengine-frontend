@@ -15,7 +15,7 @@
 - Requirements:
   - *This file is required.*
   - The contents of this file is a text string that is 64 random characters long without whitespace.
-  - - The contents *should not* be legible text (words, phrases, etc.)
+  - The contents *should not* be legible text (words, phrases, etc.)
 
 ######session-encrypt-key.txt
 - This file encrypts session data and tokens.
