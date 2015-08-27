@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Charge Credit Cards - Receipt</title>
+	</head>
+	<body>
+
+
+{{/*MUST NOT HAVE ANY TABS OR SPACING IN FRONT OF TEXT TO ALIGN ALL TEXT TO LEFT SIDE OF BROWSER WINDOW*/}}
+<pre>
+{{.CompanyName}}
+{{.Street}}
+{{.City}}, {{.State}} {{.Postal}}
+{{.Country}}
+{{.PhoneNum}}
+*************************************************
+
+Customer Name:      {{.Customer}}
+Cardholder:         {{.Cardholder}}
+Card Type:          {{.CardBrand}}
+Card Ending:        {{.LastFour}}
+Expiration:         {{.Expiration}}
+*************************************************
+
+Transaction Type:   Sale
+Captured:           {{.Captured}}
+Timestamp (UTC):    {{.Timestamp}}
+
+*************************************************
+
+Amount Charged:     ${{.Amount}}
+Invoice:            {{.Invoice}}
+Purchase Order:     {{.Po}}
+*************************************************
+</pre>
+
+
+	</body>
+</html>

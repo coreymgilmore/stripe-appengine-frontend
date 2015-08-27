@@ -14,6 +14,7 @@ import (
 
 	"chargeutils"
 	"memcacheutils"
+	"templates"
 )
 
 const (
@@ -37,6 +38,26 @@ var (
 
 	initError 		error
 )
+
+type templateData struct{
+	CompanyName,
+	Street,
+	City,
+	State,
+	Postal,
+	Country,
+	PhoneNum,
+	Customer,
+	Cardholder,
+	CardBrand,
+	LastFour,
+	Expiration,
+	Captured,
+	Timestamp,
+	Amount,
+	Invoice,
+	Po string
+}
 
 //**********************************************************************
 //INIT
@@ -132,43 +153,26 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	d := chargeutils.ExtractData(chg)
 
 	//display receipt
-	fmt.Fprint(w, companyName + "<br>")
-	fmt.Fprint(w, street + "<br>")
-	fmt.Fprint(w, city + ", " + state + " " + postal + "<br>")
-	fmt.Fprint(w, country + "<br>")
-	fmt.Fprint(w, phoneNum + "<br>")
-	fmt.Fprint(w, "**************************************************<br>")
-	fmt.Fprint(w, "<br>")
-	
-	fmt.Fprint(w, "Customer Name:        " + d.Customer + "<br>")
-	fmt.Fprint(w, "Cardholder:           " + d.Cardholder + "<br>")
-	fmt.Fprint(w, "Card Type:            " + d.CardBrand + "<br>")
-	fmt.Fprint(w, "Card Ending:          " + d.LastFour + "<br>")
-	fmt.Fprint(w, "Expiration:           " + d.Expiration + "<br>")
-	fmt.Fprint(w, "**************************************************<br>")
-	fmt.Fprint(w, "<br>")
-
-	fmt.Fprint(w, "Transaction Type:     Sale<br>")
-	fmt.Fprint(w, "Captured:             " + d.CapturedStr + "<br>")
-	fmt.Fprint(w, "Timestamp (UTC):      " + d.Timestamp + "<br>")
-	fmt.Fprint(w, "**************************************************<br>")
-	fmt.Fprint(w, "<br>")
-
-	fmt.Fprint(w, "Amount Charged:       $" + d.AmountDollars + "<br>")
-	fmt.Fprint(w, "Invoice:              " + d.Invoice + "<br>")
-	fmt.Fprint(w, "Purchase Order:       " + d.Po + "<br>")
-	fmt.Fprint(w, "**************************************************<br>")
-	fmt.Fprint(w, "<br>")
-
-	//error checking
-	if d.Captured == false {
-		fmt.Fprint(w, "<br><br><br>")
-		fmt.Fprint(w, "**************************************************<br>")
-		fmt.Fprint(w, "**************************************************<br>")
-		fmt.Fprint(w, "ERROR!   ERROR!   ERROR!<br>")
-		fmt.Fprint(w, "Charge was not captured!")
+	output := templateData{
+		CompanyName: 	companyName,
+		Street: 		street,
+		City: 			city,
+		State: 			state,
+		Postal: 		postal,
+		Country: 		country,
+		PhoneNum: 		phoneNum,
+		Customer: 		d.Customer,
+		Cardholder: 	d.Cardholder,
+		CardBrand: 		d.CardBrand,
+		LastFour: 		d.LastFour,
+		Expiration: 	d.Expiration,
+		Captured: 		d.CapturedStr,
+		Timestamp: 		d.Timestamp,
+		Amount: 		d.AmountDollars,
+		Invoice: 		d.Invoice,
+		Po: 			d.Po,
 	}
-
+	templates.Load(w, "receipt", output)
 	return
 }
 
