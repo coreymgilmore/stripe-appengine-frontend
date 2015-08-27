@@ -17,7 +17,7 @@
   - The contents of this file is a text string that is 64 random characters long without whitespace.
   - The contents *should not* be legible text (words, phrases, etc.).
 
-######session-encrypt-key.txt
+#####session-encrypt-key.txt
 - This file encrypts session data and tokens.
 - For details on secure session, please see http://www.gorillatoolkit.org/pkg/sessions.
 - Requirements:
@@ -31,7 +31,7 @@
 - You get this by logging into Stripe, choose "Your account", choose "Acount Settings", and select the "API Keys" tab.
 - Requirements:
   - *This file is required.*
-  - The file should start with "sk_"
+  - The file should start with "sk_".
 
 #####statement-descriptor.txt
 - This is the identifying phrase that will show up on the purchaser's credit card statement.
@@ -42,7 +42,7 @@
 #####receipt/city.txt
 - The city in which you are located.
 
-######receipt/company-name.txt
+#####receipt/company-name.txt
 - Your company's name as would be recognized by your customers.
 - Requirements:
   - *This file is required.*
@@ -63,7 +63,7 @@
 - Requirements:
   - *This file is required.*
 
-######receipt/state.txt
+#####receipt/state.txt
 - The state/province in which your company is located.
 - Full name (Alabama) or short style (TX).
 - Requirements:
