@@ -1,0 +1,12 @@
+This is just a placeholder file.
+
+In this directory, there should be each of these file:
+- city.txt
+- company-name.txt
+- country.txt
+- phone-num.txt
+- postal-code.txt
+- state.txt
+- street.txt
+
+Please see /config/config-readme.txt for details on what should be in each of these files.  The names of each file is pretty self explainatory.

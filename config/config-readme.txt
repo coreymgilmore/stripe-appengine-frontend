@@ -1,6 +1,7 @@
 Notes
 *****
-- All these files are saved in this directory without whitespace padding on the beginning or end (no newlines).
+- All these files are saved in this directory without whitespace padding on the beginning or end (no newlines or "Enters" at the end).
+	- Aka each file should be one line.
 - These files are read by the app when the app initiates.
 - Most of the files in this directory are "gitignored" so secrets are not shared.
 - Storing data in this manner keeps your secrets in easily accessible files instead of having to read through and edit code.
