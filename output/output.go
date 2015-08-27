@@ -21,7 +21,7 @@ type returnObj struct {
 //shows info on the error
 type errorObj struct {
 	Title 	string 		`json:"error_type"`
-	Msg 	string 		`json:"error_msg"`
+	Msg 	string	`json:"error_msg"`
 }
 
 //**********************************************************************
