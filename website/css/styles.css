@@ -254,3 +254,15 @@ hr {
 .receipt {
 	font-size: 					18px;
 }
+
+/*DONT SHOW RECEIPT HREF LINK WHEN PRINTING REPORT FORM*/
+a:link:after,
+a:visited:after {
+	content: "";
+}
+
+/*STYLE REPORT TABLE FOOTER*/
+.table>tfoot>tr>td {
+	border-top: 				2px solid #DDD;
+	background-color: 			#F5F5F5
+}

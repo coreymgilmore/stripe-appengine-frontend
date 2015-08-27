@@ -23,8 +23,8 @@
 											<th>Amount Charged</th>
 											<th>Invoice</th>
 											<th>Timestamp (UTC)</th>
-											<th class="text-center">Receipt</th>
-											<th class="text-center">Refund</th>
+											<th class="text-center hidden-print">Receipt</th>
+											<th class="text-center hidden-print">Refund</th>
 										</tr>
 									</thead>
 									<tbody id="report-rows">
@@ -41,10 +41,10 @@
 													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
 													<td>{{.Invoice}}</td>
 													<td>{{.Timestamp}}</td>
-													<td class="text-center"><a class="receipt" href="/card/receipt/?chg_id={{.Id}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+													<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.Id}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 													
 													{{ if $canCharge }}
-													<td class="text-center"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+													<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
 													{{else}}
 													<td></td>
 													{{end}}
@@ -56,6 +56,22 @@
 											</tr>
 										{{end}}
 									</tbody>
+
+									{{if gt .NumCharges 0}}
+									<tfoot>
+										<tr>
+											<td><b>Total Amount Charged:</b><br>({{.NumCharges}} Charges)</td>
+											<td></td>
+											<td><b>${{.TotalAmount}}</b></td>
+											<td></td>
+											<td></td>
+											<td></td>
+											<td class="hidden-print"></td>
+											<td class="hidden-print"></td>
+										</tr>
+									</tfoot>
+									{{end}}
+
 								</table>
 							</div>
 						</div>
