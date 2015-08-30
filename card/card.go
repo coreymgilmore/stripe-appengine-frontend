@@ -201,7 +201,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := 			appengine.NewContext(r)
 	data, err := 	findByDatastoreId(c, datstoreIdInt)
 	if err != nil {
-		output.Error(err, "Could not retrieve a customer's card data.", w)
+		output.Error(err, "Could not find this customer's data.", w)
 		return
 	}
 

@@ -149,14 +149,14 @@ $('#create-init-admin').submit(function (e) {
 	//make sure the password is long enough
 	if (isLongPassword(pass1) === false) {
 		e.preventDefault();
-		showPanelMessage("Error", "Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", 'danger', msg);
+		showPanelMessage("Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", 'danger', msg);
 		return false;
 	}
 
 	//make sure the passwords are not very easy to guess
 	if (isSimplePassword(pass1) === true) {
 		e.preventDefault();
-		showPanelMessage("Error", "The password you provided is too simple. Please choose a better password.", 'danger', msg);
+		essage("The password you provided is too simple. Please choose a better password.", 'danger', msg);
 		return false;
 	}
 
@@ -983,8 +983,13 @@ $('#charge-card').on('change', '.customer-name', function() {
 	//get value of autocomplete list
 	var input = 	$('#charge-card .customer-name');
 	var custId = 	getCardIdFromDataList(input);
-
 	var msg = 		$('#charge-card .msg');
+
+	//check if no valid customer was selected
+	if (custId === "") {
+		showPanelMessage("The customer name you provided is not a real customer. Please choose a customer from the list.", "danger", msg);
+		return;
+	}
 
 	//get customer card data to fill into panel
 	$.ajax({
@@ -1001,7 +1006,8 @@ $('#charge-card').on('change', '.customer-name', function() {
 			return;
 		},
 		error: function(r) {
-			showPanelMessage("Error while getting a card's data.", "danger", msg);
+			var  j = JSON.parse(r['responseText']);
+			showPanelMessage(j['data']['error_msg'], "danger", msg);
 			console.log(r);
 			return;
 		},
