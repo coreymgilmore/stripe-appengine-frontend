@@ -13,5 +13,15 @@ handlers:
 - url: /img
   static_dir: website/img
 
+- url: /robots.txt
+  static_files: website/robots/robots.txt
+  upload: website/robots/robots.txt
+
 - url: /.*
   script: _go_app
+
+error_handlers:
+  - file: default_error.html
+
+  - error_code: over_quota
+    file: over_quota.html
