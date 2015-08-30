@@ -45,6 +45,16 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 4. Stripe looks up the credit card's information and processes the charge.
 5. If the charge is successful, a receipt is shown.  If the card was declined, an error is shown.
 
+
+####Limitations:
+- Currency is currently hardcoded as USD.
+  - This can be changed in card/card.go as the card.CURRENCY constant.
+- You *must* access this app over HTTPS.
+  - Stripe requires this for security and it makes absolute sense.
+  - If you use this app with the *.appspot.com URL, your app can be accessed by HTTPS without any changes.
+- Only the basic company information and address are editable on the receipt.
+- You cannot view refunds within the app. You must use the Stripe Dashboard.
+
 ####Install & Setup:
 - Please see the [wiki page](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Install-&-Setup) for more thorough instructions.
 
