@@ -8,6 +8,13 @@ All processing and storing of credit card data is done via Stripe (https://strip
 
 When you install this app, you deploy it to Google App Engine. The app lives "in the cloud" so your employees can access it from anywhere.  This also reduces complexity and the needs for IT personel.
 
+***
+
+Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki) for in-depth install, usage, and other details.
+
+***
+
+
 ####What can you do with this app?:
 1. Add credit cards to charge now or in the future.
 2. Remove cards that already exist.
