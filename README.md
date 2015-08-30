@@ -50,5 +50,6 @@ When you install this app, you deploy it to Google App Engine. The app lives "in
 
 ####Pricing:
 There are two pricing considerations for this app. Stripe, and Google App Engine.
+
 1. Pricing for credit card processing is given by Stripe.  Please visit this link: https://stripe.com/us/pricing. The charges are removed from your balance before it is ACH-ed to your bank account.  Any payment processor will charge processing fees.
 2. You *may* have to pay for Google App Engine if you use this app heavily. App Engine has a free tier that allows for a set limit to daily usage. Once these limits hit, your app will either stop functioning or you will be billed. Please see this link for details on pricing: https://cloud.google.com/appengine/pricing.
