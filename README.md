@@ -1,4 +1,4 @@
-#A Frontend for Stripe Hosted on App Engine
+#A Credit Card Processing Virtual Terminal
 
 ####Intro:
 
