@@ -39,6 +39,8 @@ When you install this app, you deploy it to Google App Engine. The app lives "in
 5. If the charge is successful, a receipt is shown.  If the card was declined, an error is shown.
 
 ####Install & Setup:
+- Please see the [wiki page](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Install-&-Setup) for more thorough instructions.
+
 1. Create a Stripe account.
 2. Activate your Stripe account.
 3. Create a Google Account.
