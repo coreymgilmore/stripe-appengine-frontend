@@ -9,3 +9,4 @@ config/receipt/phone-num.txt
 config/receipt/postal-code.txt
 config/receipt/state.txt
 config/receipt/street.txt
+website/js/stripe-public-key.js

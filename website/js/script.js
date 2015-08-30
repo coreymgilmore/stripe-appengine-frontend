@@ -18,13 +18,6 @@ const BAD_PASSWORDS = [
 const MIN_CHARGE = 0.5;
 
 //*******************************************************************************
-//STRIPE PUBLIC KEY
-//stripe.js is only loaded when logged in "/main/"
-if (window.location.pathname == "/main/") {
-	Stripe.setPublishableKey('pk_test_pKzD1QYPWJNrwuGTZ2k0HEkn');
-}
-
-//*******************************************************************************
 //COMMON FUNCS
 
 //ESCAPE STRINGS
