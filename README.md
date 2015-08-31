@@ -14,10 +14,14 @@ When you install this app, you deploy it to Google App Engine. The app lives "in
 
 Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki) for in-depth install, usage, and other details.
 
-Screenshots, [click here](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Screenshots).
-
 ***
 
+####Quick Screenshots:
+#####Charge a Card
+![charge-card](https://raw.githubusercontent.com/coreymgilmore/stripe-appengine-frontend/master/doc_imgs/charge-card.png)
+
+#####Add a New Card
+![add-card](https://raw.githubusercontent.com/coreymgilmore/stripe-appengine-frontend/master/doc_imgs/add_a_card.png)
 
 ####What can you do with this app?:
 1. Add credit cards to charge now or in the future.
