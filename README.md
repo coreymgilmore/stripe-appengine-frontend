@@ -17,11 +17,8 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 ***
 
 ####Quick Screenshots:
-#####Charge a Card
 ![charge-card](https://raw.githubusercontent.com/coreymgilmore/stripe-appengine-frontend/master/doc_imgs/charge-card.png)
-
-#####Add a New Card
-![add-card](https://raw.githubusercontent.com/coreymgilmore/stripe-appengine-frontend/master/doc_imgs/add_a_card.png)
+![add-card](https://raw.githubusercontent.com/coreymgilmore/stripe-appengine-frontend/master/doc_imgs/add-card.png)
 
 ####What can you do with this app?:
 1. Add credit cards to charge now or in the future.
