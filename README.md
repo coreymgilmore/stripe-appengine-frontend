@@ -8,7 +8,7 @@ All processing and storing of credit card data is done via Stripe (https://strip
 
 When you install this app, you deploy it to Google App Engine. The app lives "in the cloud" so your employees can access it from anywhere.  This also reduces complexity and the needs for IT personel.
 
-**NOTE:** This app is in development.  It currently functions 100% as stated, however, changes are required to the `stripe-go` library (a dependency). Until Stripe updates their library, some modifications will be required for this app to work.  [Click here](#) for details on the required changes.
+**NOTE:** This app is in development.  It currently functions 100% as stated, however, changes are required to the `stripe-go` library (a dependency). Until Stripe updates their library, some modifications will be required for this app to work.  [Click here](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Stripe-go-Required-Changes) for details on the required changes.
 
 ***
 
