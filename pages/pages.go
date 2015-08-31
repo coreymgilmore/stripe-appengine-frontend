@@ -129,8 +129,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//if an error occurs, just load the page normally
 	custData, err := card.FindByCustId(c, custId)
 	if err != nil {
-		//tempData.Error = 	"The form could not be autofilled because the customer ID you provided could not be found."
-		tempData.Error = 	err
+		tempData.Error = 	"The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
 		tempData.UserData = user
 		templates.Load(w, "main", tempData)
 		return
