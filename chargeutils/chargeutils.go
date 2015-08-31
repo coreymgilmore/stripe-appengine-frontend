@@ -9,18 +9,18 @@ import (
 )
 
 type Data struct{
-	Id 				string 		`json:"charge_id"`
-	AmountCents 	uint64 		`json:"amount_cents"`
-	AmountDollars	string 		`json:"amount_dollars"`
-	Captured 		bool 		`json:"captured"`
-	CapturedStr 	string 		`json:"captured_string"`
-	Timestamp 		string 		`json:"timestamp"`
+	Id 				string 		`json:"charge_id"` 			//the stripe charge id
+	AmountCents 	uint64 		`json:"amount_cents"` 		//whole number
+	AmountDollars	string 		`json:"amount_dollars"` 	//without dollar sign
+	Captured 		bool 		`json:"captured"` 			//True or False
+	CapturedStr 	string 		`json:"captured_string"` 	//"true" or "false"
+	Timestamp 		string 		`json:"timestamp"` 			//unix timestamp of the time that stripe charged the card
 	Invoice 		string 		`json:"invoice_num"`
 	Po 				string 		`json:"po_num"`
 	StripeCustId 	string 		`json:"stripe_customer_id"` //this is the id given to the customer by stripe and is used to charge the card
 	Customer 		string 		`json:"customer_name"`
 	CustomerId 		string 		`json:"customer_id"` 		//this is your unique id you gave the customer when you saved the card
-	User 			string 		`json:"username"`
+	User 			string 		`json:"username"` 			//username of the user who charged the card
 	Cardholder 		string 		`json:"cardholder"`
 	LastFour 		string 		`json:"last4"`
 	Expiration 		string 		`json:"expiration"`
@@ -44,7 +44,7 @@ func ExtractData(chg *stripe.Charge) Data {
 	customerId := 		meta["customer_id"]
 	invoice := 			meta["invoice_num"]
 	po := 				meta["po_num"]
-	username := 		meta["username"]
+	username := 		meta["charged_by"]
 
 	//customer info
 	customer := 		chg.Customer

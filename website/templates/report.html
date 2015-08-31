@@ -22,6 +22,7 @@
 											<th>Card Ending</th>
 											<th>Amount Charged</th>
 											<th>Invoice</th>
+											<th>User</th>
 											<th>Timestamp (UTC)</th>
 											<th class="text-center hidden-print">Receipt</th>
 											<th class="text-center hidden-print">Refund</th>
@@ -40,6 +41,7 @@
 													<td>{{.LastFour}}</td>
 													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
 													<td>{{.Invoice}}</td>
+													<td>{{.User}}
 													<td>{{.Timestamp}}</td>
 													<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.Id}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 													
