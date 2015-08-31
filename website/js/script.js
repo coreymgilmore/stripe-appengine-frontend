@@ -985,11 +985,15 @@ $('#charge-card').on('change', '.customer-name', function() {
 	var custId = 	getCardIdFromDataList(input);
 	var msg = 		$('#charge-card .msg');
 
+	//clear existing wanrings
+	msg.html('');
+	
 	//check if no valid customer was selected
 	if (custId === "") {
 		showPanelMessage("The customer name you provided is not a real customer. Please choose a customer from the list.", "danger", msg);
 		return;
 	}
+
 
 	//get customer card data to fill into panel
 	$.ajax({
