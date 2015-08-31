@@ -14,8 +14,7 @@ import (
 	"appengine/urlfetch"
 	
 	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/customer"
-	"github.com/stripe/stripe-go/charge"
+	"github.com/stripe/stripe-go/client"
 	"github.com/stripe/stripe-go/refund"
 	"github.com/coreymgilmore/timestamps"
 	
@@ -265,13 +264,12 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(c))
+	sc := createAppengineStripeClient(c)
 
 	//create the stripe customer
 	custParams := &stripe.CustomerParams{Desc: customerName}
 	custParams.SetSource(cardToken)
-	cust, err := customer.New(custParams)
+	cust, err := sc.Customers.New(custParams)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)
 		stripeErrMsg := 	stripeErr.Msg
@@ -335,13 +333,12 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(c))
+	sc := createAppengineStripeClient(c)
 
 	//remove card from stripe
 	//ingnore errors with .Del() b/c as long as we delete the customer from the datastore any users should not be able to charge this customer card
 	stripeId := custData.StripeCustomerToken
-	customer.Del(stripeId)
+	sc.Customers.Del(stripeId)
 
 	//remove card from memcache
 	//delete list of cards in memcache
@@ -426,8 +423,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(c))
+	sc := createAppengineStripeClient(c)
 
 	//create charge
 	chargeParams := &stripe.ChargeParams{
@@ -438,7 +434,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Meta: 		meta,
 		Statement: 	formatStatementDescriptor(),
 	}
-	chg, err := charge.New(chargeParams)
+	chg, err := sc.Charges.New(chargeParams)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)
 		stripeErrMsg := 	stripeErr.Msg
@@ -520,8 +516,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	
 	//init stripe
 	c := appengine.NewContext(r)
-	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(c))	
+	sc := createAppengineStripeClient(c)	
 
 	//retrieve data from stripe
 	//date is a range inclusive of the days the user chose
@@ -547,7 +542,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get results
 	//loop through each charge and extract charge data
 	//add up total amount of all charges
-	charges := 					charge.List(params)
+	charges := 					sc.Charges.List(params)
 	data := 					make([]chargeutils.Data, 0, 10)
 	var amountTotal uint64 = 	0
 	var numCharges uint16 = 	0
@@ -626,11 +621,10 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//init stripe
 	c := appengine.NewContext(r)
-	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(c))
+	sc := createAppengineStripeClient(c)
 
 	//create refund with stripe
-	_, err = refund.New(params)
+	_, err = sc.Refunds.New(params)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)
 		stripeErrMsg := 	stripeErr.Msg
@@ -823,3 +817,29 @@ func calcTzOffset(hoursToUTC string) string {
 
 	return tzOffset
 }
+
+//CREATE STRIPE CLIENT
+//this creates an httpclient on a per-request basis and is used only for this one request
+//need to do this since each request needs its own http client backend
+//otherwise multiple requests could use the incorrect http client
+//this is for app engine only since the golang http.DefaultClient is unavailable
+func createAppengineStripeClient(c appengine.Context) *client.API {
+	//create http client
+	httpClient := urlfetch.Client(c)
+
+	//create backends for http client
+	//these are the stripe api backends that we need to communicate with
+	backends := stripe.Backends{
+		API: 		stripe.BackendConfiguration{stripe.APIBackend, "https://api.stripe.com/v1", httpClient},
+		Uploads: 	stripe.BackendConfiguration{stripe.UploadsBackend, "https://uploads.stripe.com/v1", httpClient},
+	}
+
+	//initialize the client
+	//this creates a client that uses our per-request httpclient
+	sc := &client.API{}
+	sc.Init(stripePrivateKey, &backends)
+
+	//return the client to use in making charges, adding customer, getting data, etc.
+	return sc
+}
+
