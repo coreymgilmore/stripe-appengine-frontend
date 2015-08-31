@@ -411,29 +411,27 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	session := 	sessionutils.Get(r)
 	username := session.Values["username"].(string)
 
-	//build metadata
-	//requires non-official stripe-go libraray
-	meta := map[string]string{
-		"datastore_id": 	datastoreId,
-		"customer_id": 		custData.CustomerId,
-		"customer_name": 	customerName,
-		"invoice_num": 		invoice,
-		"po_num": 			poNum,
-		"charged_by": 		username,
-	}
-
 	//init stripe
 	sc := createAppengineStripeClient(c)
 
-	//create charge
+	//init charge
 	chargeParams := &stripe.ChargeParams{
 		Customer: 	custData.StripeCustomerToken,
 		Amount: 	amountCents,
 		Currency: 	CURRENCY,
 		Desc: 		"Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
-		Meta: 		meta,
 		Statement: 	formatStatementDescriptor(),
 	}
+
+	//add metadata to charge
+	chargeParams.AddMeta("datastore_id", datastoreId)
+	chargeParams.AddMeta("customer_id", custData.CustomerId)
+	chargeParams.AddMeta("customer_name", customerName)
+	chargeParams.AddMeta("invoice_num", invoice)
+	chargeParams.AddMeta("po_num", poNum)
+	chargeParams.AddMeta("charged_by", username)
+
+	//create the charge
 	chg, err := sc.Charges.New(chargeParams)
 	if err != nil {
 		stripeErr := 		err.(*stripe.Error)
