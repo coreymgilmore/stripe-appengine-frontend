@@ -12,6 +12,8 @@ When you install this app, you deploy it to Google App Engine. The app lives "in
 
 Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki) for in-depth install, usage, and other details.
 
+Screenshots, [click here](#)
+
 ***
 
 
