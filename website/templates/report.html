@@ -11,7 +11,7 @@
 				<div class="col-xs-12">
 					<div class="panel panel-default">
 						<div class="panel-heading">
-							<h3 class="panel-title">Charges Report</h3>
+							<h3 class="panel-title">Charges</h3>
 						</div>
 						<div class="panel-body">
 							<div class="table-responsive">
@@ -54,7 +54,7 @@
 											{{end}}
 										{{else}}
 											<tr>
-												<td colspan=100>No results found.</td>
+												<td colspan=100>No charges found.</td>
 											</tr>
 										{{end}}
 									</tbody>
@@ -73,7 +73,52 @@
 										</tr>
 									</tfoot>
 									{{end}}
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 
+			<div class="row" id="reports-row-refunds">
+				<div class="col-xs-12">
+					<div class="panel panel-default">
+						<div class="panel-heading">
+							<h3 class="panel-title">Refunds</h3>
+						</div>
+						<div class="panel-body">
+							<div class="table-responsive">
+								<table class="table table-hover table-condensed">
+									<thead>
+										<tr>
+											<th>Customer Name</th>
+											<th>Card Ending</th>
+											<th>Refund Amount</th>
+											<th>Invoice</th>
+											<th>User</th>
+											<th>Timestamp (UTC)</th>
+											<th>Reason</th>
+										</tr>
+									</thead>
+									<tbody id="report-rows">
+										{{if .Refunds}}
+											{{range .Refunds}}
+												<tr>
+													<td>{{.Customer}}</td>
+													<td>{{.LastFour}}</td>
+													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
+													<td>{{.Invoice}}</td>
+													<td>{{.User}}
+													<td>{{.Timestamp}}</td>
+													<td>{{.Reason}}</td>
+												</tr>
+											{{end}}
+										{{else}}
+											<tr>
+												<td colspan=100>No refunds found.</td>
+											</tr>
+										{{end}}
+									</tbody>
 								</table>
 							</div>
 						</div>

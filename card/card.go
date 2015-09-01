@@ -99,12 +99,13 @@ type CardList struct {
 
 //FOR BUILDING REPORTS
 type reportData struct{
-	UserData 		users.User 			`json:"user_data"`
-	StartDate 		time.Time			`json:"start_datetime"`
-	EndDate 		time.Time			`json:"end_datetime"`
-	Charges 		[]chargeutils.Data 	`json:"charges"`
-	TotalAmount 	string 				`json:"total_amount"`
-	NumCharges  	uint16				`json:"num_charges"`
+	UserData 		users.User 					`json:"user_data"`
+	StartDate 		time.Time					`json:"start_datetime"`
+	EndDate 		time.Time					`json:"end_datetime"`
+	Charges 		[]chargeutils.Data 			`json:"charges"`
+	Refunds 		[]chargeutils.RefundData 	`json:"refunds"`
+	TotalAmount 	string 						`json:"total_amount"`
+	NumCharges  	uint16						`json:"num_charges"`
 }
 
 //**********************************************************************
@@ -424,9 +425,9 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//add metadata to charge
+	chargeParams.AddMeta("customer_name", customerName)
 	chargeParams.AddMeta("datastore_id", datastoreId)
 	chargeParams.AddMeta("customer_id", custData.CustomerId)
-	chargeParams.AddMeta("customer_name", customerName)
 	chargeParams.AddMeta("invoice_num", invoice)
 	chargeParams.AddMeta("po_num", poNum)
 	chargeParams.AddMeta("charged_by", username)
@@ -467,7 +468,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 //results array of full stripe Charge objects
 func Report(w http.ResponseWriter, r *http.Request) {
 	//get form valuess
-	datastoreId := 		r.FormValue("customer-id")
+	datastoreId := 	r.FormValue("customer-id")
 	startString := 	r.FormValue("start-date")
 	endString := 	r.FormValue("end-date")
 	hoursToUTC := 	r.FormValue("timezone") 	//hour offset from UTC (EST is -4)
@@ -513,8 +514,8 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	endUnix := 		endDt.Unix()
 	
 	//init stripe
-	c := appengine.NewContext(r)
-	sc := createAppengineStripeClient(c)	
+	c := 	appengine.NewContext(r)
+	sc := 	createAppengineStripeClient(c)	
 
 	//retrieve data from stripe
 	//date is a range inclusive of the days the user chose
@@ -522,7 +523,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	params := &stripe.ChargeListParams{}
 	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
 	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
-	params.Filters.AddFilter("limit", "", "200")
+	params.Filters.AddFilter("limit", "", "100")
 
 	//check if we need to filter by a specific customer/card
 	//look up stripe customer id by the datastore id
@@ -558,6 +559,17 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//convert total amount to dollars
 	amountTotalDollars := strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
 
+	//retrieve refunds
+	//have to type assert everything b/c Stripe just returns a json aka map[string]interface{}...pain in the ass
+	eventParams := &stripe.EventListParams{}
+	eventParams.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
+	eventParams.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
+	eventParams.Filters.AddFilter("limit", "", "100")
+	eventParams.Filters.AddFilter("type", "", "charge.refunded")
+	
+	events := 	sc.Events.List(eventParams)
+	refunds := 	chargeutils.ExtractRefunds(events)
+
 	//get logged in user's data
 	//for determining if receipt/refund buttons need to be hidden
 	session := 		sessionutils.Get(r)
@@ -570,6 +582,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		StartDate: 		startDt,
 		EndDate: 		endDt,
 		Charges: 		data,
+		Refunds: 		refunds,
 		TotalAmount: 	amountTotalDollars,
 		NumCharges: 	numCharges,
 	}

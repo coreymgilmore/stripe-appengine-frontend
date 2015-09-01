@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/event"
 )
 
 type Data struct{
@@ -25,6 +26,20 @@ type Data struct{
 	LastFour 		string 		`json:"last4"`
 	Expiration 		string 		`json:"expiration"`
 	CardBrand 		string 		`json:"card_brand"`
+}
+
+type RefundData struct {
+	Refunded 		bool
+	AmountCents		uint64
+	AmountDollars	string
+	Timestamp 		string
+	Invoice 		string
+	Po 				string
+	LastFour 		string
+	Expiration 		string
+	Customer 		string
+	User 			string
+	Reason 			string
 }
 
 //**********************************************************************
@@ -91,4 +106,82 @@ func ExtractData(chg *stripe.Charge) Data {
 	}
 
 	return d
+}
+
+//EXTRACT REFUND DATA
+//kind of a pain in ass because Stripe returns this data as a json with no way to convert to a struct (at least easily)
+//have to type convert each field as needed
+//note: there can be many refunds for a single charge
+func ExtractRefunds(eventList *event.Iter) []RefundData {
+	//placeholder for returning data
+	output := make([]RefundData, 0, 10)
+
+	//loop through each refund event
+	//each event is a charge
+	//each charge can have one or more refunds
+	for eventList.Next() {
+		event := 		eventList.Event()
+		charge := 		event.Data.Obj
+
+		//get charge data
+		//*must* use mae[string]interface and then type assert to .(string)...go throws errors otherwise
+		card := 		charge["source"].(map[string]interface{})
+		lastFour := 	card["last4"].(string)
+		expMonth := 	strconv.FormatInt(int64(card["exp_month"].(float64)), 10)
+		expYear := 		strconv.FormatInt(int64(card["exp_year"].(float64)), 10)
+		expiration := 	expMonth + "/" + expYear
+		meta := 		charge["metadata"].(map[string]interface{})
+		custName := 	meta["customer_name"].(string)
+		invoice := 		meta["invoice_num"].(string)
+		po := 			meta["po_num"].(string)
+
+		//get refund data
+		//have to check forr "null" fields
+		refundData := 	charge["refunds"].(map[string]interface{})
+		refundList := 	refundData["data"].([]interface{})
+		for _, v := range refundList {
+			refund := 				v.(map[string]interface{})
+			refundedAmountInt := 	refund["amount"].(float64)
+			refundedTimestamp := 	refund["created"].(float64)
+			
+			refundReason := "unknown"
+			if refund["reason"] != nil {
+				refundReason = 	refund["reason"].(string)
+			}
+
+			refundedBy := "unknown"
+			if refund["metadata"] != nil {
+				rdMeta := refund["metadata"].(map[string]interface{})
+				if rdMeta["charged_by"] != nil {
+					refundedBy = rdMeta["charged_by"].(string)
+				}
+			}
+			
+			//get refunded amount in dollars
+			refundedDollars := 	strconv.FormatFloat((refundedAmountInt / 100), 'f', 2, 64)
+
+			//convert timestamp to datetime
+			datetime := 		time.Unix(int64(refundedTimestamp), 0).Format("2006-01-02T15:04:05.000Z")
+
+			//build struct to build template with
+			x := RefundData{
+				Refunded: 		true,
+				AmountCents: 	uint64(refundedAmountInt),
+				AmountDollars: 	refundedDollars,
+				Timestamp: 		datetime,
+				Invoice: 		invoice,
+				Po: 			po,
+				LastFour: 		lastFour,
+				Expiration: 	expiration,
+				Customer: 		custName,
+				User: 			refundedBy,
+				Reason: 		refundReason,
+			}
+
+			output = append(output, x)
+		}
+	}
+
+	//return list of refunds
+	return output
 }
