@@ -558,6 +558,11 @@ func Find(c appengine.Context, userId int64) (User, error) {
 			return User{}, err
 		}
 
+		//return error if no result exists
+		if len(result) == 0 {
+			return User{}, ErrUserDoesNotExist
+		}
+
 		//one result
 		userData := result[0]
 
