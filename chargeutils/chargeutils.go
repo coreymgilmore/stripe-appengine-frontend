@@ -53,6 +53,13 @@ func ExtractData(chg *stripe.Charge) Data {
 	capturedStr := 		strconv.FormatBool(captured)
 	timestamp := 		chg.Created
 
+	//skip the rest of this if captured is false
+	//this means the charge was not processed
+	//for example: the card was declined
+	if captured == false {
+		return Data{}
+	}
+
 	//metadata
 	meta := 			chg.Meta
 	customerName := 	meta["customer_name"]
