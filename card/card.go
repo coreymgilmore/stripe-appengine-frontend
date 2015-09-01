@@ -617,11 +617,18 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	}
 	amountCents := uint64(amountFloat * 100)
 
+	//get username of logged in user
+	session := 	sessionutils.Get(r)
+	username := session.Values["username"].(string)
+
 	//build refund
 	params := &stripe.RefundParams{
 		Charge: chargeId,
 		Amount: amountCents,
 	}
+
+	//add metadata to refund
+	params.AddMeta("charged_by", username)
 
 	//get reason code for refund
 	if reason == "duplicate" {
