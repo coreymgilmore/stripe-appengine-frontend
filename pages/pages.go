@@ -13,6 +13,10 @@ import (
 	"receipt"
 )
 
+//STRUCT USED FOR AUTOMATICALLY FILLING IN DATA IN THE "CHARGE" PANEL IF A USER IS LOGGED IN
+//user must already be logged in and session token/data is stored
+//this is what powers the api-like autofill of the form data
+//this struct is used to fill in the data when building the output template for the /main/ page
 type autoloader struct {
 	Amount 			float64 
 	Invoice 		string
@@ -92,7 +96,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 
 //PAGES THAT DO NOT EXIST
 func NotFound(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("This page cannot be found."))
+	notificationPage(w, "panel-danger", "Page Not Found", "This page does not exist. Please try logging in.", "btn-default", "/", "Log In")
 	return
 }
 
@@ -106,7 +110,12 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	var tempData autoloader
 
 	//get logged in user data
+	//catch instances where session is not working and redirect user to log in page
 	session := 		sessionutils.Get(r)
+	if session.IsNew == true {
+		notificationPage(w, "panel-danger", "Cannot Load Page", "Your session has expired or there is an error.  Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
+		return
+	}
 	userId := 		session.Values["user_id"].(int64)
 	c := 			appengine.NewContext(r)
 	user, err := 	users.Find(c, userId)
