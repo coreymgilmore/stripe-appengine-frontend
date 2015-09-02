@@ -230,6 +230,26 @@ hr {
 #charge-success-info dd {
 	margin-left: 				90px;
 }
+/*make dl horizontal on xs screens*/
+/*basically copy css from larger screen sizes*/
+@media(max-width: 767px) {
+	#charge-success-info dl {
+		display:  				block;
+		-webkit-margin-before: 	1em;
+		-webkit-margin-after: 	1em;
+	}
+	#charge-success-info dt {
+		float: 					left;
+		clear: 					left;
+		text-align: 			right;
+		overflow: 				hidden;
+		text-overflow: 			ellipsis;
+		white-space: 			nowrap;
+	}
+}
+
+
+
 #show-receipt {
 	margin-top: 				-10px; 	/*keep the spacing above the btn and below the same*/
 }
