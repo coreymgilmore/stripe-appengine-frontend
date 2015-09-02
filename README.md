@@ -56,7 +56,8 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
   - Stripe requires this for security and it makes absolute sense.
   - If you use this app with the *.appspot.com URL, your app can be accessed by HTTPS without any changes.
 - Only the basic company information and address are editable on the receipt.
-- You cannot view refunds within the app. You must use the Stripe Dashboard.
+- You can only store one credit card per customer.
+- This app *only* works on App Engine, not in a normal Golang environment.
 
 ####Install & Setup:
 - Please see the [wiki page](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Install-&-Setup) for more thorough instructions.
