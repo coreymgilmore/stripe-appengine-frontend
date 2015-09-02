@@ -166,6 +166,12 @@ $('#create-init-admin').submit(function (e) {
 	//then user can log in on main login page
 });
 
+//INIT TOOL TIPS
+$(function () {
+	$('[data-toggle="tooltip"]').tooltip();
+	return;
+});
+
 //*******************************************************************************
 //ADD USER
 

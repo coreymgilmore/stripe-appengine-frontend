@@ -5,11 +5,13 @@
 		<div class="row">
 			<div class="col-xs-12">
 				<div class="pull-left">
-					<h4>Charge Credit Cards</h4>
+					<h4 id="header-title">Charge Credit Cards</h4>
 				</div>
 				<div class="pull-right">
-					<p class="navbar-text" id="username">{{.UserData.Username}}</p>
-					<a class="btn btn-default navbar-btn" id="btn-logout" href="/logout/">Logout</a>
+					<div class="btn-group navbar-btn">
+						<button class="btn btn-default" id="username" data-toggle="tooltip" data-placement="bottom" data-trigger="hover click" title="{{.UserData.Username}}"><span class="glyphicon glyphicon-user"></span></button>
+						<a class="btn btn-default" id="btn-logout" href="/logout/">Logout</a>
+					</button>
 				</div>
 			</div>
 		</div>

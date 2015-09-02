@@ -103,14 +103,9 @@ header {
 
 /*SET LOGOUT BUTTON AND USERNAME MARGINS*/
 /*reduce overall height of header*/
-#username {
-	margin-top: 		15px;
-	margin-bottom: 		10px;
-	margin-right: 		5px;
-}
-#btn-logout {
-	margin-top: 		8px;
-	margin-bottom:  	8px;
+header .btn-group {
+	margin-top: 		7.5px;
+	margin-bottom: 		7.5px;
 }
 
 
@@ -173,6 +168,23 @@ hr {
 }
 #nav-buttons .btn:last-child {
 	border-top-right-radius: 	0;
+}
+
+/*MAKE HEADER AND NAV BAR SMALLER ON REALLY SMALL SCREENS*/
+/*to stop tiling of objects*/
+@media(max-width: 445px) {
+	#nav-buttons .btn {
+		padding-left: 			6.5px;
+		padding-right: 			6.5px;
+	}
+	#header-title {
+		font-size:  			20px;
+	}
+	#btn-logout,
+	#username {
+		padding-left:  			5px;
+		padding-right: 			5px;
+	}
 }
 
 /*TEXT IN MODALS AS SEPARATE BLOCKS*/
@@ -248,8 +260,6 @@ hr {
 	}
 }
 
-
-
 #show-receipt {
 	margin-top: 				-10px; 	/*keep the spacing above the btn and below the same*/
 }
@@ -285,4 +295,9 @@ a:visited:after {
 .table>tfoot>tr>td {
 	border-top: 				2px solid #DDD;
 	background-color: 			#F5F5F5
+}
+
+/*COLOR TOOLTIPS SO THEY ARE EASIER TO SEE*/
+.tooltip-inner {
+	background-color:  			#000;
 }
