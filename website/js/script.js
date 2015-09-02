@@ -842,6 +842,7 @@ function resetAddCardPanel() {
 //CLEAR THE FORM WHEN THE USER CLICKS THE CLEAR BTN
 $('#add-card').on('click', '.clear-form-btn', function() {
 	resetAddCardPanel();
+	$('#add-card .msg').html('');
 	return;
 });
 
