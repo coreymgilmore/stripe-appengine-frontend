@@ -74,3 +74,17 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 
 This app is 100% free to install and use.  However, the processing of credit cards and hosting are not free. There are two pricing considerations for this app. Stripe, and Google App Engine.  Please see the [wiki page](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki/Costs-of-Using-this-App) that details the costs to use this app.
 
+***
+
+This app uses the following:
+- [Boostrap](http://getbootstrap.com/) - Basic layout and html elements.
+- [jQuery](https://jquery.com/) - Javascript library.
+- [jQuery UI](http://jqueryui.com/) - Javascript library.
+- [Stripe](https://stripe.com/) - Payment processing.
+- [Google App Engine](https://cloud.google.com/appengine/docs) - Hosting platform.
+- [Golang](https://golang.org/) - Backend programming language, web server.
+- [Alice](https://github.com/justinas/alice) - Go middleware handler.
+- [Gorilla Mux](https://github.com/gorilla/mux) - Go http router.
+- [Gorilla Sessions](https://github.com/gorilla/sessions) - Secure sessions.
+- [Timestamps](https://github.com/coreymgilmore/timestamps) - Standardized timestamp creation.
+- [Pwds](https://github.com/coreymgilmore/pwds) - Simple wrapper functions to create/verify passwords.
