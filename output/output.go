@@ -30,15 +30,23 @@ type errorObj struct {
 //basic boilerplate function
 //returns data to client in a consistant json object that is easily checked for errors
 //ok is true on successful events, for false when an error occurs
-func returnData(ok bool, msgType string, msgData interface{}, w http.ResponseWriter) {
-	i := returnObj{
+func returnData(ok bool, msgType string, msgData interface{}, resCode int, w http.ResponseWriter) {
+	//build data to return as json
+	o := returnObj{
 		Ok: 		ok,
 		MsgType: 	msgType,
 		MsgData: 	msgData,
 		Datetime: 	timestamps.ISO8601(),
 	}
 
-	output, _ := json.Marshal(i)
+	//set content type
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	//set response code
+	w.WriteHeader(resCode)
+
+	//return json to client
+	output, _ := json.Marshal(o)
 	w.Write(output)
 	return
 }
@@ -56,18 +64,14 @@ func Error(title error, msg string, w http.ResponseWriter) {
 		Msg: 	msg,
 	}
 
-	//set http reponse code
-	w.WriteHeader(http.StatusBadRequest)
-
 	//send message to client
-	returnData(false, "error", d, w)
+	returnData(false, "error", d, http.StatusBadRequest, w)
 	return
 }
 
 //SUCCESS
 //when a task completed successfully
-func Success(msgType string, msgData interface{}, w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-	returnData(true, msgType, msgData, w)
+func Success(msgType string, msgData interface{}, w http.ResponseWriter) {	
+	returnData(true, msgType, msgData, http.StatusOK, w)
 	return
 }
