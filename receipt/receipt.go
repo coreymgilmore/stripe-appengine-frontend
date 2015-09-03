@@ -1,13 +1,13 @@
-package receipt 
+package receipt
 
 import (
-	"net/http"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"appengine"
-	"appengine/urlfetch"
 	"appengine/memcache"
+	"appengine/urlfetch"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
@@ -19,27 +19,27 @@ import (
 
 const (
 	PATH_COMPANY_NAME = "config/receipt/company-name.txt"
-	PATH_STREET = 		"config/receipt/street.txt"
-	PATH_CITY = 		"config/receipt/city.txt"
-	PATH_STATE = 		"config/receipt/state.txt"
-	PATH_POSTAL = 		"config/receipt/postal-code.txt"
-	PATH_COUNTRY = 		"config/receipt/country.txt"
-	PATH_PHONE_NUM = 	"config/receipt/phone-num.txt"
+	PATH_STREET       = "config/receipt/street.txt"
+	PATH_CITY         = "config/receipt/city.txt"
+	PATH_STATE        = "config/receipt/state.txt"
+	PATH_POSTAL       = "config/receipt/postal-code.txt"
+	PATH_COUNTRY      = "config/receipt/country.txt"
+	PATH_PHONE_NUM    = "config/receipt/phone-num.txt"
 )
 
 var (
-	companyName = 	""
-	street = 		""
-	city = 			""
-	state = 		""
-	postal = 		""
-	country = 		""
-	phoneNum = 		""
+	companyName = ""
+	street      = ""
+	city        = ""
+	state       = ""
+	postal      = ""
+	country     = ""
+	phoneNum    = ""
 
-	initError 		error
+	initError error
 )
 
-type templateData struct{
+type templateData struct {
 	CompanyName,
 	Street,
 	City,
@@ -127,9 +127,9 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 	//try looking up charge data in memcache
 	var chg *stripe.Charge
-	c := 		appengine.NewContext(r)
-	_, err := 	memcache.Gob.Get(c, chargeId, &chg)
-	
+	c := appengine.NewContext(r)
+	_, err := memcache.Gob.Get(c, chargeId, &chg)
+
 	//charge not found in memcache
 	//look up charge data from stripe
 	if err == memcache.ErrCacheMiss {
@@ -154,23 +154,23 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 	//display receipt
 	output := templateData{
-		CompanyName: 	companyName,
-		Street: 		street,
-		City: 			city,
-		State: 			state,
-		Postal: 		postal,
-		Country: 		country,
-		PhoneNum: 		phoneNum,
-		Customer: 		d.Customer,
-		Cardholder: 	d.Cardholder,
-		CardBrand: 		d.CardBrand,
-		LastFour: 		d.LastFour,
-		Expiration: 	d.Expiration,
-		Captured: 		d.CapturedStr,
-		Timestamp: 		d.Timestamp,
-		Amount: 		d.AmountDollars,
-		Invoice: 		d.Invoice,
-		Po: 			d.Po,
+		CompanyName: companyName,
+		Street:      street,
+		City:        city,
+		State:       state,
+		Postal:      postal,
+		Country:     country,
+		PhoneNum:    phoneNum,
+		Customer:    d.Customer,
+		Cardholder:  d.Cardholder,
+		CardBrand:   d.CardBrand,
+		LastFour:    d.LastFour,
+		Expiration:  d.Expiration,
+		Captured:    d.CapturedStr,
+		Timestamp:   d.Timestamp,
+		Amount:      d.AmountDollars,
+		Invoice:     d.Invoice,
+		Po:          d.Po,
 	}
 	templates.Load(w, "receipt", output)
 	return

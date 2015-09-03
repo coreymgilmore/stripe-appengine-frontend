@@ -1,9 +1,9 @@
 package output
 
 import (
-	"net/http"
 	"encoding/json"
-	
+	"net/http"
+
 	"github.com/coreymgilmore/timestamps"
 )
 
@@ -11,17 +11,17 @@ import (
 //Ok is used to tell if an error occured
 //MsgData is an interface because it could be a struct of any type
 type returnObj struct {
-	Ok 			bool 		`json:"ok"`
-	MsgType		string 		`json:"type"`
-	MsgData		interface{}	`json:"data"`
-	Datetime 	string 		`json:"datetime"`
+	Ok       bool        `json:"ok"`
+	MsgType  string      `json:"type"`
+	MsgData  interface{} `json:"data"`
+	Datetime string      `json:"datetime"`
 }
 
 //OBJECT FOR MSGDATA WHEN AN ERROR OCCURS
 //shows info on the error
 type errorObj struct {
-	Title 	string 		`json:"error_type"`
-	Msg 	string	`json:"error_msg"`
+	Title string `json:"error_type"`
+	Msg   string `json:"error_msg"`
 }
 
 //**********************************************************************
@@ -33,10 +33,10 @@ type errorObj struct {
 func returnData(ok bool, msgType string, msgData interface{}, resCode int, w http.ResponseWriter) {
 	//build data to return as json
 	o := returnObj{
-		Ok: 		ok,
-		MsgType: 	msgType,
-		MsgData: 	msgData,
-		Datetime: 	timestamps.ISO8601(),
+		Ok:       ok,
+		MsgType:  msgType,
+		MsgData:  msgData,
+		Datetime: timestamps.ISO8601(),
 	}
 
 	//set content type
@@ -60,8 +60,8 @@ func Error(title error, msg string, w http.ResponseWriter) {
 
 	//error obj
 	d := errorObj{
-		Title: 	titleStr,
-		Msg: 	msg,
+		Title: titleStr,
+		Msg:   msg,
 	}
 
 	//send message to client
@@ -71,7 +71,7 @@ func Error(title error, msg string, w http.ResponseWriter) {
 
 //SUCCESS
 //when a task completed successfully
-func Success(msgType string, msgData interface{}, w http.ResponseWriter) {	
+func Success(msgType string, msgData interface{}, w http.ResponseWriter) {
 	returnData(true, msgType, msgData, http.StatusOK, w)
 	return
 }
