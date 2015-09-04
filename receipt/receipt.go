@@ -17,6 +17,8 @@ import (
 	"templates"
 )
 
+//PATHS TO FILES THAT STORE CONFIGURATION DATA
+//files store plain text on one line
 const (
 	PATH_COMPANY_NAME = "config/receipt/company-name.txt"
 	PATH_STREET       = "config/receipt/street.txt"
@@ -27,6 +29,8 @@ const (
 	PATH_PHONE_NUM    = "config/receipt/phone-num.txt"
 )
 
+//STORAGE FOR TEXT READ FROM FILES
+//used to build templates for receipts
 var (
 	companyName = ""
 	street      = ""
@@ -39,6 +43,8 @@ var (
 	initError error
 )
 
+//FOR SHOWING THE RECEIPT IN HTML
+//used for building a template
 type templateData struct {
 	CompanyName,
 	Street,
@@ -63,6 +69,8 @@ type templateData struct {
 //INIT
 //read company and address data from files to display in receipts
 //save to variables
+//results in an error if any file is missing
+//files could be empty/blank
 func Init() error {
 	r, err := ioutil.ReadFile(PATH_COMPANY_NAME)
 	if err != nil {
@@ -121,6 +129,9 @@ func Init() error {
 
 //SHOW THE RECEIPT
 //just a plain text page for easy printing and reading
+//need to get data on the charge from stripe
+//if this charge was just processed, it should be saved in memcache
+//otherwise, get the charge data from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
 	//get charge id from form value
 	chargeId := r.FormValue("chg_id")

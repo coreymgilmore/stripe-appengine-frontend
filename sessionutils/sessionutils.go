@@ -25,28 +25,28 @@ const (
 )
 
 var (
-	//storage for auth and encryption keys
+	//STORAGE FOR AUTH AND ENCRYPTION KEYS
 	AUTH_KEY    []byte
 	ENCRYPT_KEY []byte
 
-	//global store for session data
+	//GLOBAL STORE FOR SESSION DATA
 	Store *sessions.CookieStore
 
-	//setup options for sessions
+	//OPTIONS FOR SESSIONS
+	//standarized
+	//cookie for session expires in 7 days
 	options = &sessions.Options{
 		Domain:   SESSION_COOKIE_DOMAIN,
 		Path:     "/",
-		MaxAge:   60 * 60 * 24 * 7, //7 days
+		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: false,
 		Secure:   false,
 	}
 
-	//save errors from Init() for use when checking if the session is set up correctly
+	//INIT FUNC ERRORS
 	initError error
-
-	//errors when checking Init() for errors and keys are correct size
-	ErrAuthKeyWrongSize   = errors.New("Secure session auth key ('session-auth-key.txt') is not the correct length. Must by 64 bytes long.")
-	ErrEncyptKeyWrongSize = errors.New("Secure session encrypt key ('session-encrypt-key.txt') is not the correct length. Must be 32 bytes long.")
+	ErrAuthKeyWrongSize   = errors.New("Secure session auth key 'session-auth-key.txt' is not the correct length. Must by 64 bytes long.")
+	ErrEncyptKeyWrongSize = errors.New("Secure session encrypt key 'session-encrypt-key.txt' is not the correct length. Must be 32 bytes long.")
 )
 
 //*********************************************************************************************************************************
@@ -55,6 +55,7 @@ var (
 //set auth and encrypt keys so that session id stored in cookie must come from this server
 //also makes the session id not human readable
 //the auth and encrypt keys are read from files b/c these files are more easily edited than editing code
+//throw errors so app is not usable if auth or encrypt keys are missing
 func Init() error {
 	//get the auth and encypt keys from files
 	aKey, err0 := ioutil.ReadFile(AUTH_KEY_PATH)
@@ -68,7 +69,6 @@ func Init() error {
 	}
 
 	//assign to global variables
-	//used to make sure cookiestore keys are correct before app can be used
 	AUTH_KEY = aKey
 	ENCRYPT_KEY = eKey
 

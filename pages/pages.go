@@ -1,16 +1,16 @@
-package pages 
+package pages
 
 import (
 	"net/http"
 	"strconv"
-	
+
 	"appengine"
 
-	"templates"
-	"sessionutils"
 	"card"
-	"users"
 	"receipt"
+	"sessionutils"
+	"templates"
+	"users"
 )
 
 //STRUCT USED FOR AUTOMATICALLY FILLING IN DATA IN THE "CHARGE" PANEL IF A USER IS LOGGED IN
@@ -18,17 +18,17 @@ import (
 //this is what powers the api-like autofill of the form data
 //this struct is used to fill in the data when building the output template for the /main/ page
 type autoloader struct {
-	Amount 			float64 
-	Invoice 		string
-	Po 				string
-	UserData 		users.User
-	CardData 		card.CustomerDatastore
-	Error 			interface{}
+	Amount   float64
+	Invoice  string
+	Po       string
+	UserData users.User
+	CardData card.CustomerDatastore
+	Error    interface{}
 }
 
 const (
-	SESSION_INIT_ERR_TITLE = 	"Session Initialization Error"
-	ADMIN_INIT_ERR_TITLE = 		"Admin. Setup Error"
+	SESSION_INIT_ERR_TITLE = "Session Initialization Error"
+	ADMIN_INIT_ERR_TITLE   = "Admin. Setup Error"
 )
 
 //MAIN ROOT PAGE
@@ -67,9 +67,9 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	//if user is already logged in, redirect to /main/ page
 	session := sessionutils.Get(r)
 	if session.IsNew == false {
-		uId := 		session.Values["user_id"].(int64)
-		c := 		appengine.NewContext(r)
-		u, err := 	users.Find(c, uId)
+		uId := session.Values["user_id"].(int64)
+		c := appengine.NewContext(r)
+		u, err := users.Find(c, uId)
 		if err != nil {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Autologin Error", "There was an issue looking up your user account. Please go back and try logging in.", "btn-default", "/", "Go Back")
@@ -95,36 +95,41 @@ func Root(w http.ResponseWriter, r *http.Request) {
 }
 
 //PAGES THAT DO NOT EXIST
+//404s
 func NotFound(w http.ResponseWriter, r *http.Request) {
 	notificationPage(w, "panel-danger", "Page Not Found", "This page does not exist. Please try logging in.", "btn-default", "/", "Log In")
 	return
 }
 
 //MAIN LOGGED IN PAGE
-//load the page and only show buttons/panels a user can access
-//also used as an api endpoint: a link to this page with a "customer id" (provided when creating a customer) will automatically load the customer into the charge panel
-//url can have "customer_id" and then other fields such as "amount" (cents), "invoice", and "po"
-//card is not charged automatically but data is autofilled
+//load the page and show only the nav buttons & panels that a user has access rights to
+//templating hides everything else
+//also use url to autofil data into charge panel
+//if a link to the page has a "customer_id" form value, this will automatically find the customer's card data and show it in the panel
+//if "amount", "invoice", and/or "po" form values are given, these will also automatically be filled into the charge panel's form
+//if "customer_id" is not given, no autofilling will occur of any fields
+//"amount" must be in cents
+//card is no automatically charged, user must still click charge button
 func Main(w http.ResponseWriter, r *http.Request) {
 	//placeholder for sending data back to template
 	var tempData autoloader
 
 	//get logged in user data
 	//catch instances where session is not working and redirect user to log in page
-	session := 		sessionutils.Get(r)
+	session := sessionutils.Get(r)
 	if session.IsNew == true {
 		notificationPage(w, "panel-danger", "Cannot Load Page", "Your session has expired or there is an error.  Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
 		return
 	}
-	userId := 		session.Values["user_id"].(int64)
-	c := 			appengine.NewContext(r)
-	user, err := 	users.Find(c, userId)
+	userId := session.Values["user_id"].(int64)
+	c := appengine.NewContext(r)
+	user, err := users.Find(c, userId)
 	if err != nil {
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
-		return;
+		return
 	}
-	
-	//check for url form values for api style page loading
+
+	//check for url form values for autofilling charge panel
 	//if data in url does not exist, just load the page with user data only
 	custId := r.FormValue("customer_id")
 	if len(custId) == 0 {
@@ -135,30 +140,34 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 	//data in url does exist
 	//look up card data by customer id
+	//get the card data to show in the panel so user can visually confirm they are charging the correct card
 	//if an error occurs, just load the page normally
 	custData, err := card.FindByCustId(c, custId)
 	if err != nil {
-		tempData.Error = 	"The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
+		tempData.Error = "The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
 		tempData.UserData = user
 		templates.Load(w, "main", tempData)
 		return
 	}
 
-	//if amount was given it is in cents, display it in input as dollars
+	//if amount was given, it is in cents
+	//display it in input as dollars
 	//check for other form values and build template
-	amountUrl := 			r.FormValue("amount")
-	amountFloat, _ := 		strconv.ParseFloat(amountUrl, 64)
-	amountDollars := 		amountFloat / 100
-	tempData.Amount = 		amountDollars
-	tempData.Invoice = 		r.FormValue("invoice")
-	tempData.Po = 			r.FormValue("po")
-	tempData.CardData = 	custData
-	tempData.UserData = 	user
+	amountUrl := r.FormValue("amount")
+	amountFloat, _ := strconv.ParseFloat(amountUrl, 64)
+	amountDollars := amountFloat / 100
+	tempData.Amount = amountDollars
+	tempData.Invoice = r.FormValue("invoice")
+	tempData.Po = r.FormValue("po")
+	tempData.CardData = custData
+	tempData.UserData = user
 	templates.Load(w, "main", tempData)
-	return	
+	return
 }
 
 //LOAD THE PAGE TO CREATE THE INITIAL ADMIN USER
+//this is loaded upon the "first run" of the app and that should be it
+//first run is when administrator user does not exist in datastore
 func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 	//check if the admin user already exists
 	//no need to show this page if it does exist

@@ -1,17 +1,16 @@
-package memcacheutils 
+package memcacheutils
 
-import(
+import (
 	"appengine"
 	"appengine/memcache"
 )
-
 
 //SAVE TO MEMCACHE
 //key is actually an int as a string (the intID of a key)
 func Save(c appengine.Context, key string, value interface{}) error {
 	//build memcache item to store
 	item := &memcache.Item{
-		Key: 	key,
+		Key:    key,
 		Object: value,
 	}
 

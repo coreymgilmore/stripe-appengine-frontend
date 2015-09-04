@@ -1,15 +1,15 @@
 package middleware
 
 import (
-	"net/http"
 	"errors"
-	
+	"net/http"
+
 	"appengine"
-	
-	"sessionutils"
-	"users"
-	"templates"
+
 	"output"
+	"sessionutils"
+	"templates"
+	"users"
 )
 
 var ErrNotAuthorized = errors.New("userDoesNotHavePermission")
@@ -17,10 +17,10 @@ var ErrNotAuthorized = errors.New("userDoesNotHavePermission")
 //MIDDLEWARE TO CHECK IF A USER IS LOGGED IN
 //checks if user is logged in on every page
 func Auth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get use data from session
 		session := sessionutils.Get(r)
-		
+
 		//session data does not exist yet
 		//this is a new session
 		//redirect user to log in page
@@ -30,16 +30,16 @@ func Auth(next http.Handler) http.Handler {
 		}
 
 		//check if user id is given
-		userId, ok := 	session.Values["user_id"].(int64)
+		userId, ok := session.Values["user_id"].(int64)
 		if ok == false {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Session Expired", "Your session has expired. Please log back in or contact an administrator if this problem persists.", "btn-default", "/", "Log In")
 			return
 		}
-		
+
 		//look up user in memcache and/or datastore
-		c := 			appengine.NewContext(r)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Application Error", "The app encountered an error in the middleware while trying to authenticate you as a legitimate user. Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
@@ -56,7 +56,7 @@ func Auth(next http.Handler) http.Handler {
 		//okay
 		//extend expirtation of session cookie
 		sessionutils.ExtendExpiration(session, w, r)
-		
+
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
 	})
@@ -64,14 +64,14 @@ func Auth(next http.Handler) http.Handler {
 
 //CHECK ACCESS RIGHTS
 func AddCards(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := 			appengine.NewContext(r)
-		userId := 		session.Values["user_id"].(int64)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		userId := session.Values["user_id"].(int64)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			output.Error(err, "An error occured in the middleware.", w)
 			return
@@ -89,14 +89,14 @@ func AddCards(next http.Handler) http.Handler {
 }
 
 func RemoveCards(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := 			appengine.NewContext(r)
-		userId := 		session.Values["user_id"].(int64)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		userId := session.Values["user_id"].(int64)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			output.Error(err, "An error occured in the middleware.", w)
 			return
@@ -114,14 +114,14 @@ func RemoveCards(next http.Handler) http.Handler {
 }
 
 func ChargeCards(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := 			appengine.NewContext(r)
-		userId := 		session.Values["user_id"].(int64)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		userId := session.Values["user_id"].(int64)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			output.Error(err, "An error occured in the middleware.", w)
 			return
@@ -139,14 +139,14 @@ func ChargeCards(next http.Handler) http.Handler {
 }
 
 func ViewReports(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := 			appengine.NewContext(r)
-		userId := 		session.Values["user_id"].(int64)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		userId := session.Values["user_id"].(int64)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			output.Error(err, "An error occured in the middleware.", w)
 			return
@@ -164,14 +164,14 @@ func ViewReports(next http.Handler) http.Handler {
 }
 
 func Administrator(next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := 			appengine.NewContext(r)
-		userId := 		session.Values["user_id"].(int64)
-		data, err := 	users.Find(c, userId)
+		c := appengine.NewContext(r)
+		userId := session.Values["user_id"].(int64)
+		data, err := users.Find(c, userId)
 		if err != nil {
 			output.Error(err, "An error occured in the middleware.", w)
 			return
