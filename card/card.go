@@ -238,15 +238,15 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(cardToken) == 0 {
-		output.Error(ErrMissingCardToken, "A serious error occured; the card token is missing. Please contact an administrator.", w)
+		output.Error(ErrMissingCardToken, "A serious error occured; the card token is missing. Please refresh the page and try again.", w)
 		return
 	}
 	if len(cardExp) == 0 {
-		output.Error(ErrMissingExpiration, "The card's expiration date is missing.", w)
+		output.Error(ErrMissingExpiration, "The card's expiration date is missing from Stripe. Please refresh the page and try again.", w)
 		return
 	}
 	if len(cardLast4) == 0 {
-		output.Error(ErrMissingLast4, "The card's last four digits are missing.", w)
+		output.Error(ErrMissingLast4, "The card's last four digits are missing from Stripe. Please refresh the page and try again.", w)
 		return
 	}
 
@@ -341,7 +341,11 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//delete customer from memcache
 	//delete list of cards in memcache since this list is stale
 	memcache.Delete(c, datastoreId)
-	memcache.Delete(c, LIST_OF_CARDS_KEYNAME)
+	err = memcache.Delete(c, LIST_OF_CARDS_KEYNAME)
+	if err != nil {
+		output.Error(err, "There was an error flushing the cached list of cards.", w)
+		return
+	}
 
 	//delete custome from datastore
 	completeKey := getCustomerKeyFromId(c, datastoreIdInt)
