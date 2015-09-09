@@ -186,7 +186,20 @@
 									{{/*defaults to 0 (zero) but do not want to show this since there is a placeholder*/}}
 									{{/*only show amount, invoice, and po inputs as "disabled=false" customer data is send back to template....this means the customer was found in the datastore*/}}
 									{{/*disable the inputs if the customer was not found*/}}
-									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .CardData.CustomerName}}{{if .Amount}}value="{{.Amount}}"{{end}}{{else}}disabled{{end}}>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .CardData.CustomerName}}{{if .Amount}}value="{{.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
+									
+									{{/*FORMAT AMOUNT WITH TWO DECIMAL PLACES*/}}
+									{{/*input type=number removes trailing zeros*/}}
+									{{if .CardData.CustomerName}}{{if .Amount}}
+										<script>
+											//get autofilled value
+											//set value formatted to two decimal places
+											var elem = 		document.getElementById("autofilled-charge-amount");
+											var val = 		elem.value;
+											elem.value = 	parseFloat(val).toFixed(2);
+										</script>
+									{{end}}{{end}}
+
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
