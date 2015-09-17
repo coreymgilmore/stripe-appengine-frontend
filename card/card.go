@@ -872,18 +872,6 @@ func createAppengineStripeClient(c appengine.Context) *client.API {
 	//create http client
 	httpClient := urlfetch.Client(c)
 
-	//create backends for http client
-	//these are the stripe api backends that we need to communicate with
-	backends := stripe.Backends{
-		API:     stripe.BackendConfiguration{stripe.APIBackend, "https://api.stripe.com/v1", httpClient},
-		Uploads: stripe.BackendConfiguration{stripe.UploadsBackend, "https://uploads.stripe.com/v1", httpClient},
-	}
-
-	//initialize the client
-	//this creates a client that uses our per-request httpclient
-	sc := &client.API{}
-	sc.Init(stripePrivateKey, &backends)
-
-	//return the client to use in making charges, adding customer, getting data, etc.
-	return sc
+	//returns "sc" stripe client
+	return client.New(stripePrivateKey, stripe.NewBackends(httpClient))
 }
