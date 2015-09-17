@@ -1345,12 +1345,13 @@ $('#modal-change-company-info').on('show.bs.modal', function() {
 					//company data does not exist yet, 
 					//show alert telling user to set it
 					showModalMessage("You do have any company info set. Your recipts will show up blank without setting the fields above.", "info", msg);					return;
+					$('#company-info-submit').prop('disabled', false);
 					return;
 				}
 
 				//another error occured
 				showModalMessage("An error occured and your company data could not be loaded.  Please try again.", "danger", msg);
-				$('#company-info-submit').prop('disabled', false);
+				$('#company-info-submit').prop('disabled', true);
 				return;
 			}
 		},
