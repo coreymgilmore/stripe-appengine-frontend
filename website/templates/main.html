@@ -34,6 +34,10 @@
 							<label class="btn btn-default action-btn active" data-action="panel-charge-card">
 								<input type="radio" checked>Charge
 							</label>
+							{{else}}
+							<label class="btn btn-default action-btn active" data-action="panel-charge-card">
+								<input type="radio" checked>View
+							</label>
 							{{end}}
 							{{if .UserData.ViewReports}}
 							<label class="btn btn-default action-btn" data-action="panel-reports">
@@ -251,12 +255,38 @@
 
 					{{else}}
 					{{/*need this panel as an "else" because this is the default panel*/}}
-					<div class="panel panel-default action-panels show charge-card-no-access" id="panel-charge-card">
+					{{/*this lets users who cannot charge cards the ability to at least see what card is on file*/}}
+					<div class="panel panel-default action-panels show" id="panel-charge-card">
 						<div class="panel-heading">
-							<h3 class="panel-title">Task Selector</h3>
+							<h3 class="panel-title">View a Card</h3>
 						</div>
 						<div class="panel-body">
-							<p>Please choose a task from the navigation bar above.  If you do not see any options under the grey header, then the administrator did not give you access to add, remove, or charge cards.  Please contact an administrator and ask them to give you the correct permissions.</p>
+							<form id="charge-card">
+								<div class="form-group">
+									<label class="control-label">Customer Name: </label>
+									<div class="input-group">
+										<input class="form-control customer-name" type="list" list="customer-list" required>
+										<span class="input-group-btn">
+											<button class="btn btn-primary" type="button">Go</button>
+										</span>
+									</div>
+								</div>
+								<div class="form-group">
+									<label class="control-label">Cardholder: </label>
+									<input class="form-control customer-cardholder" readonly tabindex="-1">
+								</div>
+								<div class="form-group">
+									<label class="control-label">Last Four: </label>
+									<input class="form-control card-last-four" readonly tabindex="-1">
+								</div>
+								<div class="form-group">
+									<label class="control-label">Expiration: </label>
+									<input class="form-control card-expiration" readonly tabindex="-1">
+								</div>
+								<div class="form-group">
+									<button class="btn btn-default clear-form-btn" type="button">Clear</button>
+								</div>
+							</form>
 						</div>
 					</div>
 					{{end}}
