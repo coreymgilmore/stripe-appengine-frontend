@@ -67,6 +67,7 @@ type CustomerDatastore struct {
 	CardLast4           string `json:"card_last4"`
 	StripeCustomerToken string `json:"-"`
 	DatetimeCreated     string `json:"-"`
+	AddedByUser 		string `json:"added_by"`
 }
 
 //CONFIRMING CUSTOMER WAS SAVED
@@ -284,16 +285,22 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get username of logged in user
+	//used for tracking who added a card
+	session := 	sessionutils.Get(r)
+	username := session.Values["username"].(string)
+
 	//save customer & card data to datastore
 	newCustKey := createNewCustomerKey(c)
 	newCustomer := CustomerDatastore{
-		CustomerId:          customerId,
-		CustomerName:        customerName,
-		Cardholder:          cardholder,
-		CardExpiration:      cardExp,
-		CardLast4:           cardLast4,
-		StripeCustomerToken: cust.ID,
-		DatetimeCreated:     timestamps.ISO8601(),
+		CustomerId:          	customerId,
+		CustomerName:       	customerName,
+		Cardholder:          	cardholder,
+		CardExpiration:      	cardExp,
+		CardLast4:           	cardLast4,
+		StripeCustomerToken: 	cust.ID,
+		DatetimeCreated:     	timestamps.ISO8601(),
+		AddedByUser: 			username,
 	}
 	_, err = save(c, newCustKey, newCustomer)
 	if err != nil {
@@ -666,7 +673,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 }
 
 //**********************************************************************
-//DATASTORE KEYS
+//DATASTORE
 
 //CREATE INCOMPLETE KEY
 func createNewCustomerKey(c appengine.Context) *datastore.Key {
@@ -677,25 +684,6 @@ func createNewCustomerKey(c appengine.Context) *datastore.Key {
 //get the full complete key from just the ID of a key
 func getCustomerKeyFromId(c appengine.Context, id int64) *datastore.Key {
 	return datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
-}
-
-//**********************************************************************
-//FUNCS
-
-//CHECK IF STRIPE KEY WAS READ CORRECTLY
-func CheckStripe() error {
-	//check if reading key from file returned an error
-	if initError != nil {
-		return initError
-	}
-
-	//check if there was actually some text read
-	if len(stripePrivateKey) == 0 {
-		return ErrStripeKeyTooShort
-	}
-
-	//private key read correctly
-	return nil
 }
 
 //SAVE CARD
@@ -798,6 +786,25 @@ func datastoreFindOne(c appengine.Context, filterField string, filterValue inter
 
 	//get one result
 	return r[0], nil
+}
+
+//**********************************************************************
+//FUNCS
+
+//CHECK IF STRIPE KEY WAS READ CORRECTLY
+func CheckStripe() error {
+	//check if reading key from file returned an error
+	if initError != nil {
+		return initError
+	}
+
+	//check if there was actually some text read
+	if len(stripePrivateKey) == 0 {
+		return ErrStripeKeyTooShort
+	}
+
+	//private key read correctly
+	return nil
 }
 
 //FORMAT STATEMENT DESCRIPTOR
