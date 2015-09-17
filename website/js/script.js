@@ -1112,7 +1112,7 @@ $('#charge-card').submit(function (e) {
 			$('#panel-charge-success .cardholder').text(data['cardholder_name']);
 			$('#panel-charge-success .card-last4').text(data['card_last4']);
 			$('#panel-charge-success .card-exp').text(data['card_expiration']);
-			$('#panel-charge-success .amount').text(data['amount']);
+			$('#panel-charge-success .amount').text("$" + parseFloat(data['amount']).toFixed(2));
 			$('#panel-charge-success .invoice').text(data['invoice']);
 			$('#panel-charge-success .po').text(data['po']);
 
