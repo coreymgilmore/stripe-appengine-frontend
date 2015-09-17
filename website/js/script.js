@@ -1322,3 +1322,134 @@ $('#form-refund').submit(function (e) {
 
 	return false;
 });
+
+//*******************************************************************************
+//GET AND SET COMPANY INFO
+//in modal in settings panel
+
+//GET INFO
+$('#modal-change-company-info').on('show.bs.modal', function() {
+	var msg = $('#modal-change-company-info .msg');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/company/get/",
+		beforeSend: function() {
+			showModalMessage("Loading company information...", "info", msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				if (j['data']['error_type'] === "companyInfoDoesNotExist") {
+					//company data does not exist yet, 
+					//show alert telling user to set it
+					showModalMessage("You do have any company info set. Your recipts will show up blank without setting the fields above.", "info", msg);					return;
+					return;
+				}
+
+				//another error occured
+				showModalMessage("An error occured and your company data could not be loaded.  Please try again.", "danger", msg);
+				$('#company-info-submit').prop('disabled', false);
+				return;
+			}
+		},
+		dataType: "json",
+		success: function (j) {
+			//load data into fields
+			var data = j['data'];
+			$('#modal-change-company-info .company-name').val(data['company_name']);
+			$('#modal-change-company-info .company-street').val(data['street']);
+			$('#modal-change-company-info .company-suite').val(data['suite']);
+			$('#modal-change-company-info .company-city').val(data['city']);
+			$('#modal-change-company-info .company-state').val(data['state']);
+			$('#modal-change-company-info .company-postal').val(data['postal_code']);
+			$('#modal-change-company-info .company-country').val(data['country']);
+			$('#modal-change-company-info .company-phone').val(data['phone_num']);
+
+			//hide the alert message
+			msg.html('');
+
+			//enable the submit btn
+			$('#company-info-submit').prop('disabled', false);
+			return;
+		}
+	});
+
+	return;
+});
+
+//RESET MODAL TO DEFAULTS ON CLOSE
+$('#modal-change-company-info').on('hidden.bs.modal', function() {
+	$('#modal-change-company-info .msg').html('');
+	$('#company-info-submit').prop('disabled', true);
+	$('#modal-change-company-info input').val('');
+	return;
+});
+
+//SAVE COMPANY INFO
+$('#form-change-company-info').submit( function (e) {
+	//prevent form submission
+	e.preventDefault();
+
+	//gather input values
+	var name = 		$('#modal-change-company-info .company-name').val();
+	var street = 	$('#modal-change-company-info .company-street').val();
+	var suite = 	$('#modal-change-company-info .company-suite').val();
+	var city = 		$('#modal-change-company-info .company-city').val();
+	var state = 	$('#modal-change-company-info .company-state').val();
+	var postal = 	$('#modal-change-company-info .company-postal').val();
+	var country = 	$('#modal-change-company-info .company-country').val();
+	var phone = 	$('#modal-change-company-info .company-phone').val();
+	var msg = 		$('#modal-change-company-info .msg');
+	var btn = 		$('#company-info-submit');
+
+	//validation
+	if (state.length > 2) {
+		showModalMessage("State must be a two character abbreviation.", "danger", msg);
+		return;
+	}
+	if (postal.length > 6) {
+		showModalMessage("Postal code must be 5 or 6 alphanumeric characters.", "danger", msg);
+		return;
+	}
+	if (country.length > 3) {
+		showModalMessage("Country must be a 2 or 3 character abbreviation.", "danger", msg);
+		return;
+	}
+
+	//use ajax to update datastore
+	$.ajax({
+		type: 	"POST",
+		url: 	"/company/set/",
+		data: {
+			name: name,
+			street: street,
+			suite: suite,
+			city: city,
+			state: state,
+			postal: postal,
+			country: country,
+			phone: phone
+		},
+		beforeSend: function() {
+			showModalMessage("Saving company information...", "info", msg);
+			btn.prop("disabled", true);
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage("An error occured and your company info could not be saved.", "danger", msg);
+				console.log(j);
+				return;
+			}
+		},
+		dataType: "json",
+		success: function (j) {
+			showModalMessage("Company information was saved!", "success", msg);
+			return;
+		}
+	});
+
+	return false;
+});

@@ -28,9 +28,6 @@ func init() {
 	//INIT STRIPE
 	card.Init()
 
-	//INIT RECEIPTS
-	receipt.Init()
-
 	//**********************************************************************
 	//MIDDLEWARE
 	a := alice.New(middleware.Auth)
@@ -70,6 +67,8 @@ func init() {
 	cardsReceipt := http.HandlerFunc(receipt.Show)
 	cardsReports := http.HandlerFunc(card.Report)
 	cardsRefund := http.HandlerFunc(card.Refund)
+	companyGetInfo := http.HandlerFunc(receipt.GetCompanyInfo)
+	companySetInfo := http.HandlerFunc(receipt.SaveCompanyInfo)
 
 	//users
 	u := r.PathPrefix("/users").Subrouter()
@@ -89,6 +88,11 @@ func init() {
 	c.Handle("/receipt/", a.Then(cardsReceipt)).Methods("GET")
 	c.Handle("/report/", reports.Then(cardsReports)).Methods("GET")
 	c.Handle("/refund/", charge.Then(cardsRefund)).Methods("POST")
+
+	//company info
+	comp := r.PathPrefix("/company").Subrouter()
+	comp.Handle("/get/", a.Then(companyGetInfo)).Methods("GET")
+	comp.Handle("/set/", admin.Then(companySetInfo)).Methods("POST")
 
 	//PAGES THAT DO NOT EXIST
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)
