@@ -7,8 +7,10 @@
 
 {{end}}
 
+
 {{define "stripe-js"}}
 {{/*ONLY USED ON PAGES THAT REQUIRE STRIPE.js*/}}
+{{/*so stripe.js isn't loaded everywhere*/}}
 
 <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
 <script src="/js/stripe-public-key.js"></script>

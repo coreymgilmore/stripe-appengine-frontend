@@ -348,6 +348,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//delete customer from memcache
 	//delete list of cards in memcache since this list is stale
 	memcache.Delete(c, datastoreId)
+	memcache.Delete(c, custData.CustomerId)
 	err = memcache.Delete(c, LIST_OF_CARDS_KEYNAME)
 	if err != nil {
 		output.Error(err, "There was an error flushing the cached list of cards.", w)
