@@ -44,7 +44,7 @@ var (
 	}
 
 	//INIT FUNC ERRORS
-	initError error
+	initError             error
 	ErrAuthKeyWrongSize   = errors.New("Secure session auth key 'session-auth-key.txt' is not the correct length. Must by 64 bytes long.")
 	ErrEncyptKeyWrongSize = errors.New("Secure session encrypt key 'session-encrypt-key.txt' is not the correct length. Must be 32 bytes long.")
 )
