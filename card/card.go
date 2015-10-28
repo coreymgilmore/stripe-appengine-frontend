@@ -67,7 +67,7 @@ type CustomerDatastore struct {
 	CardLast4           string `json:"card_last4"`
 	StripeCustomerToken string `json:"-"`
 	DatetimeCreated     string `json:"-"`
-	AddedByUser 		string `json:"added_by"`
+	AddedByUser         string `json:"added_by"`
 }
 
 //CONFIRMING CUSTOMER WAS SAVED
@@ -287,20 +287,20 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//get username of logged in user
 	//used for tracking who added a card
-	session := 	sessionutils.Get(r)
+	session := sessionutils.Get(r)
 	username := session.Values["username"].(string)
 
 	//save customer & card data to datastore
 	newCustKey := createNewCustomerKey(c)
 	newCustomer := CustomerDatastore{
-		CustomerId:          	customerId,
-		CustomerName:       	customerName,
-		Cardholder:          	cardholder,
-		CardExpiration:      	cardExp,
-		CardLast4:           	cardLast4,
-		StripeCustomerToken: 	cust.ID,
-		DatetimeCreated:     	timestamps.ISO8601(),
-		AddedByUser: 			username,
+		CustomerId:          customerId,
+		CustomerName:        customerName,
+		Cardholder:          cardholder,
+		CardExpiration:      cardExp,
+		CardLast4:           cardLast4,
+		StripeCustomerToken: cust.ID,
+		DatetimeCreated:     timestamps.ISO8601(),
+		AddedByUser:         username,
 	}
 	_, err = save(c, newCustKey, newCustomer)
 	if err != nil {
@@ -364,15 +364,15 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	err1 := memcache.Delete(c, datastoreId)
 	err2 := memcache.Delete(c, custData.CustomerId)
 	err3 := memcache.Delete(c, LIST_OF_CARDS_KEYNAME)
-	if err1 != nil && err1 != memcache.ErrCacheMiss{
+	if err1 != nil && err1 != memcache.ErrCacheMiss {
 		output.Error(err1, "There was an error flushing this card's data from the cache (by datastore id). Please contact an administrator and have them flush the cache manually.", w)
-		return;
+		return
 	}
-	if err2 != nil && err2 != memcache.ErrCacheMiss{
+	if err2 != nil && err2 != memcache.ErrCacheMiss {
 		output.Error(err2, "There was an error flushing this card's data from the cache (by customer id). Please contact an administrator and have them flush the cache manually.", w)
 		return
 	}
-	if err3 != nil && err3 != memcache.ErrCacheMiss{
+	if err3 != nil && err3 != memcache.ErrCacheMiss {
 		output.Error(err3, "There was an error flushing the cached list of cards.", w)
 		return
 	}
@@ -402,14 +402,12 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get amount as a integer in cents
-	//stripe requires charges to be in cents
-	amountFloat, err := strconv.ParseFloat(amount, 64)
+	//get amount as cents
+	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
 		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
 		return
 	}
-	amountCents := uint64(amountFloat * 100)
 
 	//check if amount is greater than the minimum charge
 	//min charge may be greater than 0 because of transactions costs
@@ -640,12 +638,11 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//convert refund amount to cents
 	//stripe requires cents
-	amountFloat, err := strconv.ParseFloat(amount, 64)
+	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
-		output.Error(err, "The amount you provided for this refund could not be converted to cents.", w)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
 		return
 	}
-	amountCents := uint64(amountFloat * 100)
 
 	//get username of logged in user
 	//for tracking who processed this refund
@@ -889,4 +886,33 @@ func createAppengineStripeClient(c appengine.Context) *client.API {
 
 	//returns "sc" stripe client
 	return client.New(stripePrivateKey, stripe.NewBackends(httpClient))
+}
+
+//CONVERT AMOUNT FROM FORM VALUE INTO AN INT VALUE FOR STRING
+//stripe requires unit64 for amount
+//amount must be in cents (100, not $1.00)
+//need to make sure value doesn't add or lose decimal places during type conversions
+//returns error if amount cannot be converted
+func getAmountAsIntCents(amount string) (uint64, error) {
+	//convert string to float
+	//catch errors if number can not be converted
+	amountFloat, err := strconv.ParseFloat(amount, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	//multiply float to get amount in cents
+	//may return value short one penny but with .99999 fraction of a cent
+	//i.e.: 32.55 -> 3254.9999999999995
+	amountFloatCents := amountFloat * 100
+
+	//round up to get whole number in cents
+	//gets rid of .99999 fraction of a cent
+	amountFloatCentsRounded := math.Floor(amountFloatCents + 0.5)
+
+	//convert float to uint64
+	amountIntCents := uint64(amountFloatCentsRounded)
+
+	//done
+	return amountIntCents, nil
 }
