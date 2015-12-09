@@ -953,10 +953,12 @@ $('#remove-card').submit(function (e) {
 			var j = JSON.parse(r['responseText']);
 			if (j['ok'] === false) {
 				btn.prop('disabled', false);
-				showPanelMessage('An error occured while removing this card. Please contact an administrator.', 'danger', msg);
-				console.log(j);
-				return;
+				showPanelMessage('An error occured while removing this card. Do not refresh or leave this screen! Please contact an administrator.', 'danger', msg);
 			}
+
+			console.log(r);
+			console.log(j);
+			return;
 		},
 		dataType: 'json',
 		success: function (j) {
