@@ -1,13 +1,13 @@
 package memcacheutils
 
 import (
-	"appengine"
-	"appengine/memcache"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine/memcache"
 )
 
 //SAVE TO MEMCACHE
 //key is actually an int as a string (the intID of a key)
-func Save(c appengine.Context, key string, value interface{}) error {
+func Save(c context.Context, key string, value interface{}) error {
 	//build memcache item to store
 	item := &memcache.Item{
 		Key:    key,
@@ -25,7 +25,7 @@ func Save(c appengine.Context, key string, value interface{}) error {
 }
 
 //DELETE FROM MEMCACHE
-func Delete(c appengine.Context, key string) error {
+func Delete(c context.Context, key string) error {
 	err := memcache.Delete(c, key)
 	if err == memcache.ErrCacheMiss {
 		//key does not exist
