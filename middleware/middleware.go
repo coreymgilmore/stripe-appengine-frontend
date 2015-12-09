@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"appengine"
+	"google.golang.org/appengine"
 
 	"output"
 	"sessionutils"

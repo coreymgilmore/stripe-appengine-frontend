@@ -2,20 +2,16 @@ package users
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"appengine"
-	"appengine/datastore"
-	"appengine/memcache"
-
-	"github.com/coreymgilmore/pwds"
-	"github.com/coreymgilmore/timestamps"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/memcache"
 
 	"memcacheutils"
 	"output"
-	"sessionutils"
 	"templates"
 )
 

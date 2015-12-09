@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"appengine"
+	"google.golang.org/appengine"
 
 	"card"
 	"receipt"

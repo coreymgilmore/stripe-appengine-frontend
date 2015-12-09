@@ -12,22 +12,19 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
+	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/datastore"
 
-	"appengine"
-	"appengine/datastore"
-	"appengine/memcache"
-	"appengine/urlfetch"
-
-	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"github.com/stripe/stripe-go/refund"
 
 	"chargeutils"
 	"memcacheutils"
 	"output"
-	"sessionutils"
-	"templates"
 	"users"
 )
 

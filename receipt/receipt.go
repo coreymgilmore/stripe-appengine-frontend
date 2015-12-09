@@ -6,10 +6,10 @@ import (
 	"errors"
 	"strings"
 
-	"appengine"
-	"appengine/datastore"
-	"appengine/memcache"
-	"appengine/urlfetch"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
+	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/datastore"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
