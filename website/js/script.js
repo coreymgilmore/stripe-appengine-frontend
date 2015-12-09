@@ -112,17 +112,17 @@ $('body').on('click', '.action-btn', function() {
 	//width changes bases on browser window size
 	var containerWidth = 	$('#action-panels-container').outerWidth()
 
-	//slide the current panel out to the left
-	//slide the new panel in to the right
+	//fade out the current panel
+	//fade in the new panel
 	//disabled all the buttons when sliding is occuring
 	var allBtns = $('.action-btn');
-	allBtns.attr("disabled", true).children('input').attr("disabled", true);
-	showingPanel.toggle('slide', {distance: containerWidth}, 600, function() {
-		showingPanel.removeClass('show');
+	allBtns.attr("disabled", true).children("input").attr("disabled", true);
+	showingPanel.fadeOut(200, function() {
+		showingPanel.removeClass("show");
 
-		newPanelElem.toggle('slide', 600, function() {
-			newPanelElem.addClass('show');
-			allBtns.attr("disabled", false);
+		newPanelElem.fadeIn(200, function() {
+			newPanelElem.addClass("show");
+			allBtns.attr("disabled", false).children("input").attr("disabled", false);
 		});
 	});
 
