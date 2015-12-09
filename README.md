@@ -80,7 +80,6 @@ This app is 100% free to install and use.  However, the processing of credit car
 This app uses the following:
 - [Boostrap](http://getbootstrap.com/) - Basic layout and html elements.
 - [jQuery](https://jquery.com/) - Javascript library.
-- [jQuery UI](http://jqueryui.com/) - Javascript library.
 - [Stripe](https://stripe.com/) - Payment processing.
 - [Google App Engine](https://cloud.google.com/appengine/docs) - Hosting platform.
 - [Golang](https://golang.org/) - Backend programming language, web server.
