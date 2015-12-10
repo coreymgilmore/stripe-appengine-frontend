@@ -1125,14 +1125,14 @@ $('#charge-card').submit(function (e) {
 			var containerWidth = 	$('#action-panels-container').outerWidth()
 			var chargeCardPanel = 	$('#panel-charge-card');
 			var successPanel = 		$('#panel-charge-success');
-			var navBtns = 			$('.action-btn');
+			var allBtns = 			$('.action-btn');
+			allBtns.attr("disabled", true).children("input").attr("disabled", true);
+			chargeCardPanel.fadeOut(200, function() {
+				chargeCardPanel.removeClass("show");
 
-			navBtns.attr("disabled", true).children('input').attr("disabled", true);
-			chargeCardPanel.toggle('slide', {distance: containerWidth}, 600, function() {
-				chargeCardPanel.removeClass('show');
-				successPanel.toggle('slide', 600, function() {
-					successPanel.addClass('show');
-					navBtns.attr("disabled", false);
+				successPanel.fadeIn(200, function() {
+					successPanel.addClass("show");
+					allBtns.attr("disabled", false).children("input").attr("disabled", false);
 				});
 			});
 
