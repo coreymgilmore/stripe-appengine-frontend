@@ -7,9 +7,9 @@
 package users
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"fmt"
 
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -18,9 +18,9 @@ import (
 	"github.com/coreymgilmore/pwds"
 	"github.com/coreymgilmore/timestamps"
 
-	"sessionutils"
 	"memcacheutils"
 	"output"
+	"sessionutils"
 )
 
 //SAVE THE INITIAL ADMIN USER

@@ -21,8 +21,8 @@ import (
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
 
-	"output"
 	"memcacheutils"
+	"output"
 	"sessionutils"
 )
 
@@ -33,12 +33,12 @@ import (
 //the customer name is used to look up the stripe customer token that is used to charge the card
 func Add(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	customerId := r.FormValue("customerId") 	//a unique key, not the datastore id or stripe customer id
+	customerId := r.FormValue("customerId")     //a unique key, not the datastore id or stripe customer id
 	customerName := r.FormValue("customerName") //user provided, could be company name/client name/may be same as cardholder
-	cardholder := r.FormValue("cardholder") 	//name on card as it appears
-	cardToken := r.FormValue("cardToken")  		//from stripejs
-	cardExp := r.FormValue("cardExp")      		//from stripejs, not from html input
-	cardLast4 := r.FormValue("cardLast4") 		//from stripejs, not from html input
+	cardholder := r.FormValue("cardholder")     //name on card as it appears
+	cardToken := r.FormValue("cardToken")       //from stripejs
+	cardExp := r.FormValue("cardExp")           //from stripejs, not from html input
+	cardLast4 := r.FormValue("cardLast4")       //from stripejs, not from html input
 
 	//make sure all form values were given
 	if len(customerName) == 0 {

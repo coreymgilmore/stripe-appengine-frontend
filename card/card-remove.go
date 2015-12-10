@@ -11,9 +11,9 @@ import (
 	"strconv"
 
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/memcache"
 
 	"output"
 )
@@ -55,7 +55,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//delete list of cards in memcache since this list is stale
 	//all memcache.Delete operations are listed first so error handling doesn't return if one fails...each call does not depend on another so this is safe
 	//obviously, if the card is not in the cache it cannot be removed
-	
+
 	//*****
 	//bunch of err handling here to figure out why sometimes a card is not deleted from memcahce
 	//user can remove card, but cannot add a card to the same Account ID (customerId)
@@ -64,7 +64,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	err1 := memcache.Delete(c, datastoreId)
 	err2 := memcache.Delete(c, custData.CustomerId)
 	err3 := memcache.Delete(c, LIST_OF_CARDS_KEYNAME)
-	
+
 	//*****
 	//still getting errors when adding a card for a customer after just removing a card
 	//aka the card for a customer changed
@@ -73,7 +73,6 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	log.Debugf(c, "Flush memcache by customer id | ", err2)
 	log.Debugf(c, "Flush memcache list of cards | ", err3)
 	//*****
-
 
 	if err1 != nil && err1 != memcache.ErrCacheMiss {
 		output.Error(err1, "There was an error flushing this card's data from the cache (by datastore id). Please contact an administrator and have them flush the cache manually.", w)

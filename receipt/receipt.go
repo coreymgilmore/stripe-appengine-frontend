@@ -1,32 +1,32 @@
 package receipt
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"errors"
 	"strings"
 
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/urlfetch"
-	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/memcache"
+	"google.golang.org/appengine/urlfetch"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 
 	"chargeutils"
 	"memcacheutils"
-	"templates"
 	"output"
+	"templates"
 )
 
 const (
-	MEMCACHE_KEY_COMP_INFO = 	"company-info-memcache-key"
-	DATASTORE_KIND = 			"companyInfo"
+	MEMCACHE_KEY_COMP_INFO = "company-info-memcache-key"
+	DATASTORE_KIND         = "companyInfo"
 )
 
 var (
-	initError error
+	initError                  error
 	ErrCompanyDataDoesNotExist = errors.New("companyInfoDoesNotExist")
 )
 
@@ -54,15 +54,15 @@ type templateData struct {
 }
 
 //FOR GETTING DATA FROM DATASTORE
-type companyInfo struct{
-	CompanyName 	string 	`json:"company_name"`
-	Street 			string 	`json:"street"`
-	Suite 			string 	`json:"suite"`
-	City 			string 	`json:"city"`
-	State 			string 	`json:"state"`
-	PostalCode 		string 	`json:"postal_code"`
-	Country 		string 	`json:"country"`
-	PhoneNum 		string 	`json:"phone_num"`
+type companyInfo struct {
+	CompanyName string `json:"company_name"`
+	Street      string `json:"street"`
+	Suite       string `json:"suite"`
+	City        string `json:"city"`
+	State       string `json:"state"`
+	PostalCode  string `json:"postal_code"`
+	Country     string `json:"country"`
+	PhoneNum    string `json:"phone_num"`
 }
 
 //**********************************************************************
@@ -126,7 +126,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	output := templateData{
 		CompanyName: name,
 		Street:      street,
-		Suite: 		 suite,
+		Suite:       suite,
 		City:        city,
 		State:       state,
 		Postal:      postal,
@@ -201,7 +201,7 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 
 	//generate entity key from id if this entity already exists
 	//otherwise generate a new key
-	var key *datastore.Key 
+	var key *datastore.Key
 	if intId != 0 {
 		key = datastore.NewKey(c, DATASTORE_KIND, "", intId, nil)
 	} else {
@@ -211,14 +211,14 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	//build entity to save
 	//no real validation is needed since this info isnt used for much
 	insert := companyInfo{
-		CompanyName: 	name,
-		Street: 		street,
-		Suite: 			suite,
-		City: 			city,
-		State: 			strings.ToUpper(state),
-		PostalCode: 	postal,
-		Country: 		strings.ToUpper(country),
-		PhoneNum: 		phone,
+		CompanyName: name,
+		Street:      street,
+		Suite:       suite,
+		City:        city,
+		State:       strings.ToUpper(state),
+		PostalCode:  postal,
+		Country:     strings.ToUpper(country),
+		PhoneNum:    phone,
 	}
 
 	//save company info
@@ -249,11 +249,11 @@ func getCompanyInfo(r *http.Request) (int64, companyInfo, error) {
 	_, err := memcache.Gob.Get(c, MEMCACHE_KEY_COMP_INFO, &result)
 	if err == nil {
 		return 0, result, nil
-	
+
 	} else if err == memcache.ErrCacheMiss {
 		//look up data in datastore
 		q := datastore.NewQuery(DATASTORE_KIND).Limit(1)
-		r := make([]companyInfo, 0 , 1)
+		r := make([]companyInfo, 0, 1)
 
 		keys, err := q.GetAll(c, &r)
 		if err != nil {

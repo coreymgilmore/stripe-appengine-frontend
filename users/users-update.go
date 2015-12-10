@@ -14,8 +14,8 @@ import (
 
 	"github.com/coreymgilmore/pwds"
 
-	"output"
 	"memcacheutils"
+	"output"
 	"sessionutils"
 )
 

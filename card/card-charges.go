@@ -16,8 +16,8 @@ import (
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/refund"
 
-	"output"
 	"memcacheutils"
+	"output"
 	"sessionutils"
 )
 
