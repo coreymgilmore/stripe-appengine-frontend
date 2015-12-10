@@ -1,0 +1,25 @@
+<html>
+	<style>
+		.key {
+			padding-right: 10px;
+			border-right: 1px solid black;
+		}
+		.value {
+			padding-left: 10px;
+		}
+
+	</style>
+
+	<body>
+		
+		<table>
+			{{ range $key, $value := . }}
+				<tr>
+					<td class="key">{{ $key }}</td>
+					<td class="value">{{ $value }}</td>
+				</tr>
+			{{ end }}
+		</table>
+			
+	</body>
+</html>

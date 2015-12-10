@@ -191,3 +191,20 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 	templates.Load(w, "notifications", templates.NotificationPage{panelType, title, err, btnType, btnPath, btnText})
 	return
 }
+
+//GET DIAGNOSTICS FOR APP
+func Diagnostics(w http.ResponseWriter, r * http.Request) {
+	c := appengine.NewContext(r)
+
+	out := map[string]interface{}{
+		"App ID": appengine.AppID(c),
+		"Instance ID": appengine.InstanceID(),
+		"Version ID": appengine.VersionID(c),
+		"Datacenter": appengine.Datacenter(c),
+		"Module Name": appengine.ModuleName(c),
+		"Server Software": appengine.ServerSoftware(),
+	}
+
+	templates.Load(w, "diagnostics", out)
+	return
+}

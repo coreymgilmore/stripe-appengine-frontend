@@ -49,6 +49,9 @@ func init() {
 	r.HandleFunc("/login/", users.Login)
 	r.HandleFunc("/logout/", users.Logout)
 
+	//diagnostics page
+	r.HandleFunc("/diagnostics/", pages.Diagnostics)
+
 	//logged in
 	main := http.HandlerFunc(pages.Main)
 	r.Handle("/main/", a.Then(main))
