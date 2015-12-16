@@ -193,16 +193,17 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 }
 
 //GET DIAGNOSTICS FOR APP
-func Diagnostics(w http.ResponseWriter, r * http.Request) {
+func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	out := map[string]interface{}{
-		"App ID": appengine.AppID(c),
-		"Instance ID": appengine.InstanceID(),
-		"Version ID": appengine.VersionID(c),
-		"Datacenter": appengine.Datacenter(c),
-		"Module Name": appengine.ModuleName(c),
-		"Server Software": appengine.ServerSoftware(),
+		"App ID":                   appengine.AppID(c),
+		"Instance ID":              appengine.InstanceID(),
+		"Default Version Hostname": appengine.DefaultVersionHostname(c),
+		"Version ID":               appengine.VersionID(c),
+		"Datacenter":               appengine.Datacenter(c),
+		"Module Name":              appengine.ModuleName(c),
+		"Server Software":          appengine.ServerSoftware(),
 	}
 
 	templates.Load(w, "diagnostics", out)
