@@ -9,8 +9,10 @@ package card
 import (
 	"net/http"
 	"strconv"
+	"reflect"
 
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
@@ -101,11 +103,31 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
 	if err != nil {
+		//debugging b/c of issue here on 12/16/15
+		//error in appengine logs: "panic: interface conversion: error is *url.Error, not *stripe.Error"
+		//never had this issue before
+		//but apparently the charge went through successfully
+		//user noticed error b/c GUI did not update to "charge successful" or "error" panel
+		log.Debugf(c, "typeof error - ", reflect.TypeOf(err))
+		log.Debugf(c, "error - ", err)
+
+
+
+		/*
 		stripeErr := err.(*stripe.Error)
 		stripeErrMsg := stripeErr.Msg
-		output.Error(ErrStripe, stripeErrMsg, w)
+		*/
+
+		//send back generic error message since we are testing the return types above and logging to appengine logs
+		errorMsg :=  "There was an error processing this charge. Please check the Report to see if this charge was successful."
+
+		output.Error(ErrStripe, errorMsg, w)
 		return
 	}
+
+	//debugging
+	log.Debugf(c, "wasChargeCaptured - ", chg.Captured)
+	log.Debugf(c, "chargeId - ", chg.ID)
 
 	//charge successful
 	//save charge to memcache
