@@ -108,6 +108,13 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		//get each charges data
 		chg := charges.Charge()
 		d := chargeutils.ExtractData(chg)
+
+		//make sure this charge was captured
+		//do not count charges that failed
+		if d.Captured == false {
+			continue
+		}
+
 		data = append(data, d)
 
 		//increment totals
