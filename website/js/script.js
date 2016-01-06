@@ -1137,7 +1137,7 @@ $('#charge-card').submit(function (e) {
 			});
 
 			//set the "charge" nav button to "unselected"
-			navBtns.removeClass('active');
+			allBtns.removeClass('active');
 
 			//clear the charge card panel
 			resetChargeCardPanel(true);
