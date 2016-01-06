@@ -8,9 +8,12 @@ package card
 
 import (
 	"net/http"
-	"strconv"
+	"net/url"
 	"reflect"
+	"strconv"
+	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 
@@ -57,8 +60,15 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//look up stripe customer id from datastore
+	//create context
+	//need to adjust deadline in case stripe takes longer than 5 seconds
+	//default timeout for a urlfetch is 5 seconds
+	//sometimes charging a card through stripe api takes longer
+	//increase timeout to 10 seconds b/c we don't want this too be too long or too short
 	c := appengine.NewContext(r)
+	c, _ = context.WithTimeout(c, 10*time.Second)
+
+	//look up stripe customer id from datastore
 	datastoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
 	custData, err := findByDatastoreId(c, datastoreIdInt)
 	if err != nil {
@@ -102,32 +112,30 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
+
+	//handle errors
+	//*url.Error can be thrown if urlfetch reaches timeout (request took too long to complete)
+	//*stripe.Error is a error with the stripe api and should return a human readable error message
 	if err != nil {
-		//debugging b/c of issue here on 12/16/15
-		//error in appengine logs: "panic: interface conversion: error is *url.Error, not *stripe.Error"
-		//never had this issue before
-		//but apparently the charge went through successfully
-		//user noticed error b/c GUI did not update to "charge successful" or "error" panel
 		log.Debugf(c, "typeof error - ", reflect.TypeOf(err))
 		log.Debugf(c, "error - ", err)
+		errorMsg := ""
 
-
-
-		/*
-		stripeErr := err.(*stripe.Error)
-		stripeErrMsg := stripeErr.Msg
-		*/
-
-		//send back generic error message since we are testing the return types above and logging to appengine logs
-		errorMsg :=  "There was an error processing this charge. Please check the Report to see if this charge was successful."
+		switch err.(type) {
+		default:
+			errorMsg = "There was an error processing this charge. Please check the Report to see if this charge was successful."
+			break
+		case *url.Error:
+			errorMsg = "Charging this card timed out.  The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
+			break
+		case *stripe.Error:
+			stripeErr := err.(*stripe.Error)
+			errorMsg = stripeErr.Msg
+		}
 
 		output.Error(ErrStripe, errorMsg, w)
 		return
 	}
-
-	//debugging
-	log.Debugf(c, "wasChargeCaptured - ", chg.Captured)
-	log.Debugf(c, "chargeId - ", chg.ID)
 
 	//charge successful
 	//save charge to memcache
