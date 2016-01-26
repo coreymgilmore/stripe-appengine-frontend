@@ -131,7 +131,7 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 		charge := event.Data.Obj
 
 		//get charge data
-		//*must* use mae[string]interface and then type assert to .(string)...go throws errors otherwise
+		//*must* use map[string]interface and then type assert to .(string)...go throws errors otherwise
 		card := charge["source"].(map[string]interface{})
 		lastFour := card["last4"].(string)
 		expMonth := strconv.FormatInt(int64(card["exp_month"].(float64)), 10)

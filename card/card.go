@@ -18,6 +18,7 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
+	"google.golang.org/appengine/log"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
@@ -260,12 +261,16 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 //customer id is the value provided during "add a new card" and is unique to the company processing credit cards
 //this is used when making an api-like request to load the /main/ page with the card's data automatically
 func FindByCustId(c context.Context, customerId string) (CustomerDatastore, error) {
+	log.Debugf(c, "Finding data by customer ID - ", customerId)
+
 	//find data in memcache
 	//if it does exist, return the data
 	//if not, find the data in the datastore and save the data to memcache
 	var r CustomerDatastore
 	_, err := memcache.Gob.Get(c, customerId, &r)
 	if err == nil {
+		log.Debugf(c, "Data found in memcache")
+		log.Debugf(c, "Memcache data - ", r)
 		return r, nil
 
 	} else if err == memcache.ErrCacheMiss {
@@ -276,6 +281,8 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 			return data, err
 		}
 
+		log.Debugf(c, "Data found in datastore")
+		
 		//save to memcache
 		memcacheutils.Save(c, customerId, data)
 

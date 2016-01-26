@@ -72,6 +72,8 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	log.Debugf(c, "Flush memcache by datastore id - ", err1)
 	log.Debugf(c, "Flush memcache by customer id - ", err2)
 	log.Debugf(c, "Flush memcache list of cards - ", err3)
+	log.Debugf(c, "Datastore ID of removed card - ", datastoreId) 			//appengine cloud datastore id (int)
+	log.Debugf(c, "Customer ID of removed card - ", custData.CustomerId) 	//id provided by user when adding the card
 	//*****
 
 	if err1 != nil && err1 != memcache.ErrCacheMiss {

@@ -72,7 +72,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		_, err := FindByCustId(c, customerId)
 		if err == nil {
 			//customer already exists
-			log.Debugf(c, "Customer ID already exists | ", err)
+			log.Debugf(c, "Customer ID already exists | Customer ID - ", customerId)
 
 			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w)
 			return
