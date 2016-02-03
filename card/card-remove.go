@@ -69,11 +69,11 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//still getting errors when adding a card for a customer after just removing a card
 	//aka the card for a customer changed
 	//log out data
+	log.Debugf(c, "Datastore id - ", datastoreId) //appengine cloud datastore id (int)
 	log.Debugf(c, "Flush memcache by datastore id - ", err1)
+
+	log.Debugf(c, "Customer id - ", custData.CustomerId) //id provided by user when adding the card
 	log.Debugf(c, "Flush memcache by customer id - ", err2)
-	log.Debugf(c, "Flush memcache list of cards - ", err3)
-	log.Debugf(c, "Datastore ID of removed card - ", datastoreId) 			//appengine cloud datastore id (int)
-	log.Debugf(c, "Customer ID of removed card - ", custData.CustomerId) 	//id provided by user when adding the card
 	//*****
 
 	if err1 != nil && err1 != memcache.ErrCacheMiss {

@@ -16,9 +16,9 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-	"google.golang.org/appengine/log"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
@@ -242,7 +242,7 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 	} else if err == memcache.ErrCacheMiss {
 		//look up data in datastore
 		key := getCustomerKeyFromId(c, datastoreId)
-		data, err := datastoreFindOne(c, "__key__ =", key, []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
+		data, err := datastoreFindOne(c, "__key__ =", key, []string{"CustomerId, CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
 		if err != nil {
 			return data, err
 		}
@@ -269,8 +269,7 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 	var r CustomerDatastore
 	_, err := memcache.Gob.Get(c, customerId, &r)
 	if err == nil {
-		log.Debugf(c, "Data found in memcache")
-		log.Debugf(c, "Memcache data - ", r)
+		log.Debugf(c, "Data found in memcache.")
 		return r, nil
 
 	} else if err == memcache.ErrCacheMiss {
@@ -281,8 +280,8 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 			return data, err
 		}
 
-		log.Debugf(c, "Data found in datastore")
-		
+		log.Debugf(c, "Data found in datastore.")
+
 		//save to memcache
 		memcacheutils.Save(c, customerId, data)
 

@@ -16,7 +16,6 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
@@ -72,8 +71,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		_, err := FindByCustId(c, customerId)
 		if err == nil {
 			//customer already exists
-			log.Debugf(c, "Customer ID already exists | Customer ID - ", customerId)
-
 			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w)
 			return
 		} else if err != ErrCustomerNotFound {
