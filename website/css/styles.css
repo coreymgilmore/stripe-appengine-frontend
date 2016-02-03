@@ -45,7 +45,7 @@ input[type=text].form-control,
 input[type=email].form-control,
 input[type=password].form-control,
 textarea.form-control {
-	border: 				1px solid #ddd;
+	border: 				1px solid #DDD;
 	border-radius:  		3px; 				/*same as btns*/
 	padding-left: 			5px;
 	border-bottom-width: 	1px;
@@ -64,10 +64,10 @@ textarea.form-control:focus {
 }
 .form-control[readonly],
 .form-control[readonly]:focus {
-	border: 				1px dotted #ddd !important;
+	border: 				1px dotted #DDD !important;
 }
 .form-control[disabled] {
-	border: 				1px solid #ddd !important;
+	border: 				1px solid #DDD !important;
 }
 
 /*FIX INPUT SPINNER BUTTONS*/
@@ -190,7 +190,7 @@ hr {
 /*TEXT IN MODALS AS SEPARATE BLOCKS*/
 /*shows a border under the text to separate it from the rest of the panel*/
 .panel-body .info {
-	border-bottom: 				1px solid #ddd;
+	border-bottom: 				1px solid #DDD;
 	margin-left: 				-15px;
 	margin-right: 				-15px;
 	margin-bottom: 				10px;
