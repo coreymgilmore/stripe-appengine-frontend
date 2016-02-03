@@ -242,7 +242,7 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 	} else if err == memcache.ErrCacheMiss {
 		//look up data in datastore
 		key := getCustomerKeyFromId(c, datastoreId)
-		data, err := datastoreFindOne(c, "__key__ =", key, []string{"CustomerId, CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
+		data, err := datastoreFindOne(c, "__key__ =", key, []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
 		if err != nil {
 			return data, err
 		}
