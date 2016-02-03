@@ -1,5 +1,5 @@
-application: stripe-gae-frontend
-version: 9
+application: stripe-appengine-frontend
+version: 10
 runtime: go
 api_version: go1
 
