@@ -13,15 +13,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/client"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/client"
 
 	"chargeutils"
 	"memcacheutils"
@@ -30,23 +28,34 @@ import (
 )
 
 const (
-	//PATH TO PRIVATE KEY AND STATEMENT DESCRIPTOR
+	//path to private key and statement descriptor
 	//stored in separate text files so they are easily changed without having to edit code
 	//values are read into the app upon initializing
-	STRIPE_PRIVATE_KEY_PATH    = "config/stripe-secret-key.txt"
-	STRIPE_STATEMENT_DESC_PATH = "config/statement-descriptor.txt"
+	stripePriateKeyPath     = "config/stripe-secret-key.txt"
+	stripeStatementDescPath = "config/statement-descriptor.txt"
 
-	DATASTORE_KIND        = "card"
-	LIST_OF_CARDS_KEYNAME = "list-of-cards"
-	CURRENCY              = "usd"
-	MIN_CHARGE            = 50 //cents
+	//this is the "collection" or "table" that stores cards
+	//defined as a constant so that the name can be changed if necessary and only changed in one place
+	datastoreKind = "card"
+
+	//this stores the list of cards in memcache
+	//need a special key name so we can get this data out
+	listOfCardsKey = "list-of-cards"
+
+	//defaults
+	currency  = "usd"
+	minCharge = 50 //cents
 )
 
 var (
+	//text from files gets read into these variables
 	stripePrivateKey          = ""
 	stripeStatementDescriptor = ""
-	initError                 error
 
+	//for reporting errors upon app initialization
+	initError error
+
+	//desctiption of errors
 	ErrStripeKeyTooShort    = errors.New("The Stripe private key ('stripe-secret-key.txt') file was empty. Please provide your Stripe secret key.")
 	ErrStatementDescMissing = errors.New("The statement descriptor ('statement-descriptor.txt') file was empty. Please provide a statement descriptor.")
 	ErrMissingCustomerName  = errors.New("missingCustomerName")
@@ -118,7 +127,7 @@ type reportData struct {
 //save values to variable for use in other functions
 func Init() error {
 	//stripe private key
-	apikey, err := ioutil.ReadFile(STRIPE_PRIVATE_KEY_PATH)
+	apikey, err := ioutil.ReadFile(stripePriateKeyPath)
 	if err != nil {
 		initError = err
 		return err
@@ -130,7 +139,7 @@ func Init() error {
 	stripe.Key = stripePrivateKey
 
 	//statement descriptor
-	descriptor, err := ioutil.ReadFile(STRIPE_STATEMENT_DESC_PATH)
+	descriptor, err := ioutil.ReadFile(stripeStatementDescPath)
 	if err != nil {
 		initError = err
 		return err
@@ -153,8 +162,11 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//check if list of cards are in memcache
 	//send back results if they are found
 	result := make([]CardList, 0, 50)
-	c := appengine.NewContext(r)
-	_, err := memcache.Gob.Get(c, LIST_OF_CARDS_KEYNAME, &result)
+	c := appengine.NewContext(r) //this stores the list of cards in memcache
+	//need a special key name so we can get this data out
+	_, err := memcache.Gob.Get(c, listOfCardsKey, &result)
+
+	//defaults)
 	if err == nil {
 		output.Success("cardlist-cached", result, w)
 		return
@@ -164,7 +176,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//get list from datastore
 	//only need to get entity keys and customer names: cuts down on datastore usage
 	if err == memcache.ErrCacheMiss {
-		q := datastore.NewQuery(DATASTORE_KIND).Order("CustomerName").Project("CustomerName")
+		q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
 		cards := make([]CustomerDatastore, 0, 50)
 		keys, err := q.GetAll(c, &cards)
 		if err != nil {
@@ -182,8 +194,11 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//save list of cards to memcache
-		//ignore errors since we already got results
-		memcacheutils.Save(c, LIST_OF_CARDS_KEYNAME, idAndNames)
+		//ignore errors since we already got	//this stores the list of cards in memcache
+		//need a special key name so we can get this data out results
+		memcacheutils.Save(c, listOfCardsKey, idAndNames)
+
+		//defaults
 
 		//return data to client
 		output.Success("cardList-datastore", idAndNames, w)
@@ -224,7 +239,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 //CREATE COMPLETE KEY FOR USER
 //get the full complete key from just the ID of a key
 func getCustomerKeyFromId(c context.Context, id int64) *datastore.Key {
-	return datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
+	return datastore.NewKey(c, datastoreKind, "", id, nil)
 }
 
 //GET CARD DATA BY THE DATASTORE ID
@@ -261,15 +276,12 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 //customer id is the value provided during "add a new card" and is unique to the company processing credit cards
 //this is used when making an api-like request to load the /main/ page with the card's data automatically
 func FindByCustId(c context.Context, customerId string) (CustomerDatastore, error) {
-	log.Debugf(c, "Finding data by customer ID - ", customerId)
-
 	//find data in memcache
 	//if it does exist, return the data
 	//if not, find the data in the datastore and save the data to memcache
 	var r CustomerDatastore
 	_, err := memcache.Gob.Get(c, customerId, &r)
 	if err == nil {
-		log.Debugf(c, "Data found in memcache.")
 		return r, nil
 
 	} else if err == memcache.ErrCacheMiss {
@@ -279,8 +291,6 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 		if err != nil {
 			return data, err
 		}
-
-		log.Debugf(c, "Data found in datastore.")
 
 		//save to memcache
 		memcacheutils.Save(c, customerId, data)
@@ -297,7 +307,7 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 //only the fields listed in project will be returned
 //less fields is more efficient
 func datastoreFindOne(c context.Context, filterField string, filterValue interface{}, project []string) (CustomerDatastore, error) {
-	q := datastore.NewQuery(DATASTORE_KIND).Filter(filterField, filterValue).Limit(1).Project(project...)
+	q := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
 	r := make([]CustomerDatastore, 0, 1)
 
 	_, err := q.GetAll(c, &r)

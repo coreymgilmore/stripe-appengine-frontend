@@ -9,25 +9,27 @@ import (
 )
 
 const (
-	SESSION_COOKIE_NAME   = "session_id"
-	SESSION_COOKIE_DOMAIN = "."
+	sessionCookieName   = "session_id"
+	sessionCookieDomain = "."
 
 	//PATH TO FILES WHERE KEYS ARE STORED IN TEXT
 	//keys are stored in files instead of code so they are easily changed
 	//session requires two keys, authentication and encryption, for session token
 	//these keys are read from files and are not published (ignored with .gitignore)
-	AUTH_KEY_PATH    = "config/session-auth-key.txt"
-	ENCRYPT_KEY_PATH = "config/session-encrypt-key.txt"
+	//these files must exist for app to boot and initialize
+	authKeyPath    = "config/session-auth-key.txt"
+	encryptKeyPath = "config/session-encrypt-key.txt"
 
 	//keys are a fixed and required size
-	AUTH_KEY_LENGTH    = 64
-	ENCRYPT_KEY_LENGTH = 32
+	//this is the strongest settings as defined by gorilla/sessions
+	authKeyLength   = 64
+	encyptKeyLength = 32
 )
 
 var (
 	//STORAGE FOR AUTH AND ENCRYPTION KEYS
-	AUTH_KEY    []byte
-	ENCRYPT_KEY []byte
+	authKey    []byte
+	encryptKey []byte
 
 	//GLOBAL STORE FOR SESSION DATA
 	Store *sessions.CookieStore
@@ -36,7 +38,7 @@ var (
 	//standarized
 	//cookie for session expires in 7 days
 	options = &sessions.Options{
-		Domain:   SESSION_COOKIE_DOMAIN,
+		Domain:   sessionCookieDomain,
 		Path:     "/",
 		MaxAge:   60 * 60 * 24 * 7,
 		HttpOnly: false,
@@ -58,8 +60,8 @@ var (
 //throw errors so app is not usable if auth or encrypt keys are missing
 func Init() error {
 	//get the auth and encypt keys from files
-	aKey, err0 := ioutil.ReadFile(AUTH_KEY_PATH)
-	eKey, err1 := ioutil.ReadFile(ENCRYPT_KEY_PATH)
+	aKey, err0 := ioutil.ReadFile(authKeyPath)
+	eKey, err1 := ioutil.ReadFile(encryptKeyPath)
 	if err0 != nil {
 		initError = err0
 		return err0
@@ -69,13 +71,13 @@ func Init() error {
 	}
 
 	//assign to global variables
-	AUTH_KEY = aKey
-	ENCRYPT_KEY = eKey
+	authKey = aKey
+	encryptKey = eKey
 
 	//init the session store
 	s := sessions.NewCookieStore(
-		AUTH_KEY,
-		ENCRYPT_KEY,
+		authKey,
+		encryptKey,
 	)
 
 	//set session options
@@ -93,7 +95,7 @@ func Init() error {
 //otherwise creates a new session
 //the field IsNew will be true if this session was just created
 func Get(r *http.Request) *sessions.Session {
-	session, _ := Store.Get(r, SESSION_COOKIE_NAME)
+	session, _ := Store.Get(r, sessionCookieName)
 	return session
 }
 
@@ -144,10 +146,10 @@ func CheckSession() error {
 	}
 
 	//check that auth key is correct length
-	if len(AUTH_KEY) != AUTH_KEY_LENGTH {
+	if len(authKey) != authKeyLength {
 		return ErrAuthKeyWrongSize
 	}
-	if len(ENCRYPT_KEY) != ENCRYPT_KEY_LENGTH {
+	if len(encryptKey) != encyptKeyLength {
 		return ErrEncyptKeyWrongSize
 	}
 

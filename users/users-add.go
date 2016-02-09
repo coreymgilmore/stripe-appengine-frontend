@@ -11,12 +11,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/pwds"
+	"github.com/coreymgilmore/timestamps"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-
-	"github.com/coreymgilmore/pwds"
-	"github.com/coreymgilmore/timestamps"
 
 	"memcacheutils"
 	"output"
@@ -47,8 +46,8 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//make sure the password is long enough
-	if len(pass1) < MIN_PASSWORD_LENGTH {
-		notificationPage(w, "panel-danger", "Error", "The password you provided is too short. It must me at least "+strconv.FormatInt(MIN_PASSWORD_LENGTH, 10)+" characters.", "btn-default", "/setup/", "Try Again")
+	if len(pass1) < minPwdLength {
+		notificationPage(w, "panel-danger", "Error", "The password you provided is too short. It must me at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", "btn-default", "/setup/", "Try Again")
 		return
 	}
 
@@ -57,7 +56,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//create the user
 	u := User{
-		Username:      ADMIN_USERNAME,
+		Username:      adminUsername,
 		Password:      hashedPwd,
 		AddCards:      true,
 		RemoveCards:   true,
@@ -85,7 +84,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 		notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
 		return
 	}
-	sessionutils.AddValue(session, "username", ADMIN_USERNAME)
+	sessionutils.AddValue(session, "username", adminUsername)
 	sessionutils.AddValue(session, "user_id", completeKey.IntID())
 	sessionutils.Save(session, w, r)
 
@@ -127,8 +126,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//make sure password is long enough
-	if len(password1) < MIN_PASSWORD_LENGTH {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(MIN_PASSWORD_LENGTH, 10)+" characters.", w)
+	if len(password1) < minPwdLength {
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w)
 		return
 	}
 
@@ -157,7 +156,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//clear list of users saved in memcache since a new user was added
-	memcacheutils.Delete(c, LIST_OF_USERS_KEYNAME)
+	memcacheutils.Delete(c, listOfUsersKey)
 
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
@@ -166,7 +165,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 //CREATE INCOMPLETE KEY TO SAVE NEW USER
 func createNewUserKey(c context.Context) *datastore.Key {
-	return datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
+	return datastore.NewIncompleteKey(c, datastoreKind, nil)
 }
 
 //SAVE A USER TO THE DATASTORE

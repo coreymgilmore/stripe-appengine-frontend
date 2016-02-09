@@ -13,12 +13,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/timestamps"
+	"github.com/stripe/stripe-go"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-
-	"github.com/coreymgilmore/timestamps"
-	"github.com/stripe/stripe-go"
 
 	"memcacheutils"
 	"output"
@@ -125,7 +124,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//resave list of cards in memcache
 	//since a card was added, memcache is stale
 	//clients will retreive new list when refreshing page/app
-	memcacheutils.Delete(c, LIST_OF_CARDS_KEYNAME)
+	memcacheutils.Delete(c, listOfCardsKey)
 	return
 }
 
@@ -134,7 +133,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 //CREATE INCOMPLETE KEY
 func createNewCustomerKey(c context.Context) *datastore.Key {
-	return datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
+	return datastore.NewIncompleteKey(c, datastoreKind, nil)
 }
 
 //SAVE CARD

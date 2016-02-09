@@ -1,6 +1,16 @@
-package stripeappenginefrontent
+/*
+Main entry point for the app.
+This just handles setup for the app and routing for http endpoints to other packages.
+*/
+
+package stripeappenginefrontend
 
 import (
+	//imports are organized as follows
+	//  stdlib
+	//  github.com, golang.org, etc.
+	//  local packages for this app
+
 	"net/http"
 
 	"github.com/gorilla/mux"

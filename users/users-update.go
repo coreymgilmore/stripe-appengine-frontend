@@ -10,9 +10,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"google.golang.org/appengine"
-
 	"github.com/coreymgilmore/pwds"
+	"google.golang.org/appengine"
 
 	"memcacheutils"
 	"output"
@@ -34,8 +33,8 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//make sure password is long enough
-	if len(password1) < MIN_PASSWORD_LENGTH {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(MIN_PASSWORD_LENGTH, 10)+" characters.", w)
+	if len(password1) < minPwdLength {
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w)
 		return
 	}
 
@@ -118,7 +117,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//check iF user is editing the super admin user
-	if userData.Username == ADMIN_USERNAME {
+	if userData.Username == adminUsername {
 		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w)
 		return
 	}

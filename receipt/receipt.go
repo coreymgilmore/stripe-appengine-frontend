@@ -6,13 +6,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/charge"
 
 	"chargeutils"
 	"memcacheutils"
@@ -21,8 +20,10 @@ import (
 )
 
 const (
-	MEMCACHE_KEY_COMP_INFO = "company-info-memcache-key"
-	DATASTORE_KIND         = "companyInfo"
+	//for referencing when looking up or setting data in datastore or memcache
+	//so we don't need to type in key names anywhere
+	companyInfoKeyName = "company-info-memcache-key"
+	datastoreKind      = "companyInfo"
 )
 
 var (
@@ -203,9 +204,9 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	//otherwise generate a new key
 	var key *datastore.Key
 	if intId != 0 {
-		key = datastore.NewKey(c, DATASTORE_KIND, "", intId, nil)
+		key = datastore.NewKey(c, datastoreKind, "", intId, nil)
 	} else {
-		key = datastore.NewIncompleteKey(c, DATASTORE_KIND, nil)
+		key = datastore.NewIncompleteKey(c, datastoreKind, nil)
 	}
 
 	//build entity to save
@@ -229,7 +230,7 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save company into to memcache
-	memcacheutils.Save(c, MEMCACHE_KEY_COMP_INFO, insert)
+	memcacheutils.Save(c, companyInfoKeyName, insert)
 
 	//done
 	output.Success("dataSaved", insert, w)
@@ -246,13 +247,13 @@ func getCompanyInfo(r *http.Request) (int64, companyInfo, error) {
 
 	//check memcached
 	var result companyInfo
-	_, err := memcache.Gob.Get(c, MEMCACHE_KEY_COMP_INFO, &result)
+	_, err := memcache.Gob.Get(c, companyInfoKeyName, &result)
 	if err == nil {
 		return 0, result, nil
 
 	} else if err == memcache.ErrCacheMiss {
 		//look up data in datastore
-		q := datastore.NewQuery(DATASTORE_KIND).Limit(1)
+		q := datastore.NewQuery(datastoreKind).Limit(1)
 		r := make([]companyInfo, 0, 1)
 
 		keys, err := q.GetAll(c, &r)
@@ -269,7 +270,7 @@ func getCompanyInfo(r *http.Request) (int64, companyInfo, error) {
 		info := r[0]
 
 		//save to memcache
-		memcacheutils.Save(c, MEMCACHE_KEY_COMP_INFO, info)
+		memcacheutils.Save(c, companyInfoKeyName, info)
 
 		//done
 		return keys[0].IntID(), info, nil

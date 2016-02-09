@@ -1,3 +1,9 @@
+/*
+This file stored the common and most used functionality for working with users.
+Anything regarding a lookup in the datastore should be done through a function on this page.
+This allows for a central location for functions and reduces retyping/recoding things.
+*/
+
 package users
 
 import (
@@ -16,10 +22,21 @@ import (
 )
 
 const (
-	ADMIN_USERNAME        = "administrator"
-	DATASTORE_KIND        = "users"
-	MIN_PASSWORD_LENGTH   = 8
-	LIST_OF_USERS_KEYNAME = "list-of-users"
+	//default "super admin" username
+	//this is created the first time the app is run and no datastore data exists yet
+	adminUsername = "administrator"
+
+	//the name for the "collection" or "table" of users
+	//defined once so that we can change the name in one place if needed
+	datastoreKind = "users"
+
+	//require a min password length for security concerns
+	//this should be changed before any users are added
+	//this seems like a "reasonable" requirement
+	minPwdLength = 8
+
+	//used in memcache for storing a list of users
+	listOfUsersKey = "list-of-users"
 )
 
 var (
@@ -69,7 +86,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//check if list of users is saved in memcache
 	result := make([]userList, 0, 5)
 	c := appengine.NewContext(r)
-	_, err := memcache.Gob.Get(c, LIST_OF_USERS_KEYNAME, &result)
+	_, err := memcache.Gob.Get(c, listOfUsersKey, &result)
 	if err == nil {
 		//return results
 		output.Success("userList-cached", result, w)
@@ -79,7 +96,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//list of users not found in memcache
 	//look up users in datastore
 	if err == memcache.ErrCacheMiss {
-		q := datastore.NewQuery(DATASTORE_KIND).Order("Username").Project("Username")
+		q := datastore.NewQuery(datastoreKind).Order("Username").Project("Username")
 		users := make([]User, 0, 5)
 		keys, err := q.GetAll(c, &users)
 		if err != nil {
@@ -100,7 +117,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 		//save the list of users to memcache
 		//ignore errors since we still retrieved the data
-		memcacheutils.Save(c, LIST_OF_USERS_KEYNAME, idsAndNames)
+		memcacheutils.Save(c, listOfUsersKey, idsAndNames)
 
 		//return data to clinet
 		output.Success("userList", idsAndNames, w)
@@ -140,7 +157,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 //CREATE COMPLETE KEY FOR USER
 //get the full complete key from just the IntID of a key
 func getUserKeyFromId(c context.Context, id int64) *datastore.Key {
-	return datastore.NewKey(c, DATASTORE_KIND, "", id, nil)
+	return datastore.NewKey(c, datastoreKind, "", id, nil)
 }
 
 //**********************************************************************
@@ -154,7 +171,7 @@ func DoesAdminExist(r *http.Request) error {
 	//query for admin user
 	var user []User
 	c := appengine.NewContext(r)
-	q := datastore.NewQuery(DATASTORE_KIND).Filter("Username = ", ADMIN_USERNAME).KeysOnly()
+	q := datastore.NewQuery(datastoreKind).Filter("Username = ", adminUsername).KeysOnly()
 	keys, err := q.GetAll(c, &user)
 	if err != nil {
 		return err
@@ -203,7 +220,7 @@ func Find(c context.Context, userId int64) (User, error) {
 		//data not found in memcache
 		//look in datastore
 		key := getUserKeyFromId(c, userId)
-		q := datastore.NewQuery(DATASTORE_KIND).Filter("__key__ =", key).Limit(1)
+		q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
 		result := make([]User, 0, 1)
 		_, err := q.GetAll(c, &result)
 		if err != nil {
@@ -235,7 +252,7 @@ func Find(c context.Context, userId int64) (User, error) {
 //returns error if a user by the username 'username' does not exist
 //error returned when a user cannot be found
 func exists(c context.Context, username string) (int64, User, error) {
-	q := datastore.NewQuery(DATASTORE_KIND).Filter("Username = ", username).Limit(1)
+	q := datastore.NewQuery(datastoreKind).Filter("Username = ", username).Limit(1)
 	result := make([]User, 0, 1)
 	keys, _ := q.GetAll(c, &result)
 

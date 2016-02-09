@@ -8,7 +8,6 @@ import (
 )
 
 //DIRECTORY STORING TEMPLATES
-//path needs to be absolute so program works from anywhere in OS when "go install"-ed
 const templateDir = "website/templates/"
 
 //VAR FOR STORING BUILT TEMPLATES

@@ -8,9 +8,8 @@ package users
 import (
 	"net/http"
 
-	"google.golang.org/appengine"
-
 	"github.com/coreymgilmore/pwds"
+	"google.golang.org/appengine"
 
 	"sessionutils"
 )

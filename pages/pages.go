@@ -27,8 +27,11 @@ type autoloader struct {
 }
 
 const (
-	SESSION_INIT_ERR_TITLE = "Session Initialization Error"
-	ADMIN_INIT_ERR_TITLE   = "Admin. Setup Error"
+	//text to display when certain errors occur
+	//defined as constants in case they need to be changed in the future
+	//or reused for other purposes
+	sessionInitError = "Session Initialization Error"
+	adminInitError   = "Admin. Setup Error"
 )
 
 //MAIN ROOT PAGE
@@ -36,13 +39,13 @@ const (
 func Root(w http.ResponseWriter, r *http.Request) {
 	//check that session store was initialized correctly
 	if err := sessionutils.CheckSession(); err != nil {
-		notificationPage(w, "panel-danger", SESSION_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
+		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
 	}
 
 	//check that stripe private key and statement desecriptor were read correctly
 	if err := card.CheckStripe(); err != nil {
-		notificationPage(w, "panel-danger", SESSION_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
+		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
 	}
 
@@ -59,7 +62,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/setup/", http.StatusFound)
 		return
 	} else if err != nil {
-		notificationPage(w, "panel-danger", ADMIN_INIT_ERR_TITLE, err, "btn-default", "/", "Go Back")
+		notificationPage(w, "panel-danger", adminInitError, err, "btn-default", "/", "Go Back")
 		return
 	}
 
@@ -193,6 +196,7 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 }
 
 //GET DIAGNOSTICS FOR APP
+//for figuring out which version of an app is serving from app engine
 func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
