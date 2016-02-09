@@ -9,17 +9,14 @@ package card
 import (
 	"net/http"
 	"net/url"
-	"reflect"
 	"strconv"
 	"time"
-
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/refund"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
 
 	"memcacheutils"
 	"output"
@@ -55,8 +52,8 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//check if amount is greater than the minimum charge
 	//min charge may be greater than 0 because of transactions costs
 	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
-	if amountCents < MIN_CHARGE {
-		output.Error(ErrChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(MIN_CHARGE, 10)+" cents.", w)
+	if amountCents < minCharge {
+		output.Error(ErrChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w)
 		return
 	}
 
@@ -64,7 +61,9 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//need to adjust deadline in case stripe takes longer than 5 seconds
 	//default timeout for a urlfetch is 5 seconds
 	//sometimes charging a card through stripe api takes longer
-	//increase timeout to 10 seconds b/c we don't want this too be too long or too short
+	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (old deadline)
+	//the call might still complete via stripe but appengine will return to the gui that it failed
+	//10 secodns is a bit over generous but covers even really strange senarios
 	c := appengine.NewContext(r)
 	c, _ = context.WithTimeout(c, 10*time.Second)
 
@@ -96,7 +95,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	chargeParams := &stripe.ChargeParams{
 		Customer:  custData.StripeCustomerToken,
 		Amount:    amountCents,
-		Currency:  CURRENCY,
+		Currency:  currency,
 		Desc:      "Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
 		Statement: formatStatementDescriptor(),
 	}
@@ -117,8 +116,6 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//*url.Error can be thrown if urlfetch reaches timeout (request took too long to complete)
 	//*stripe.Error is a error with the stripe api and should return a human readable error message
 	if err != nil {
-		log.Debugf(c, "typeof error - ", reflect.TypeOf(err))
-		log.Debugf(c, "error - ", err)
 		errorMsg := ""
 
 		switch err.(type) {
