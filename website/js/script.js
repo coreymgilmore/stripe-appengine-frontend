@@ -86,47 +86,43 @@ function showModalMessage (msg, type, elem) {
 
 //SHOW SPECIFIC ACTION PANEL WHEN NAV BUTTONS ARE CLICKED
 $('body').on('click', '.action-btn', function() {
-	//get data attribute which tells us which panel to show
-	var btn = 			$(this);
-	var dataAction = 	btn.data("action");
+	//SPEED AT WHICH TO HIDE AND SHOW PANELS
+	const PANEL_TRANSITION_SPEED = 'fast';
 
-	//make sure buttons arent disabled
-	if (btn.attr("disabled") !== undefined) {
-		console.log("btn disabled");
+	//GET TARGET PANEL TO OPEN
+	var dataAction = 	$(this).data("action");
+
+	//NEW PANEL ELEMENT
+	//the containing div for the entire panel
+	var panelToShow = 	$('#' + dataAction);
+
+	//CHECK IF TARGET PANEL IS ALREADY OPEN
+	//if it is visible to the user
+	//don't do anything if the correct panel is already visible
+	if (panelToShow.hasClass('show')) {
 		return;
 	}
 
-	//make sure the button clicked isn't already showing the correct panel
-	var showingPanel = 		$('.action-panels.show');
-	var showingPanelId = 	showingPanel.attr('id');
-	if (showingPanelId === dataAction) {
-		return;
-	}
+	//CURRENTLY VISIBLE PANEL
+	//this is the panel that will be hidden
+	var panelToHide = 	$('.action-panels.show');
 
-	//generate selector of new panel to show
-	var newPanel = 			"#" + dataAction;
-	var newPanelElem = 		$(newPanel);
-
-	//get width of action-panel container to define slide in/out distance
-	//so the panel slides completely out of view before new panel slides in
-	//width changes bases on browser window size
-	var containerWidth = 	$('#action-panels-container').outerWidth()
-
+	//TRANSITION
 	//fade out the current panel
 	//fade in the new panel
-	//disabled all the buttons when sliding is occuring
-	var allBtns = $('.action-btn');
-	allBtns.attr("disabled", true).children("input").attr("disabled", true);
-	showingPanel.fadeOut(200, function() {
-		showingPanel.removeClass("show");
+	//using callbacks so that the fade out is completed before the fade in occurs
+	panelToHide.fadeOut(PANEL_TRANSITION_SPEED, function() {
+		panelToHide.removeClass('show');
 
-		newPanelElem.fadeIn(200, function() {
-			newPanelElem.addClass("show");
-			allBtns.attr("disabled", false).children("input").attr("disabled", false);
+		panelToShow.fadeIn(PANEL_TRANSITION_SPEED, function() {
+			panelToShow.addClass('show');
+			return;
 		});
+
+		return;
 	});
 
-	//clear all the panels to default options
+	//CLEAR ALL THE PANELS TO DEFAULT OPTIONS
 	resetAddCardPanel();
 	resetChargeCardPanel(true)
 });
