@@ -10,10 +10,12 @@
 	<body>
 
 {{/*MUST NOT HAVE ANY TABS OR SPACING IN FRONT OF TEXT TO ALIGN ALL TEXT TO LEFT SIDE OF BROWSER WINDOW*/}}
+{{/*since <pre> uses any formatting you give it since it assumes you want the text styles as such*/}}
+{{/*NOTICE: the "if .Suite" block is on the same line as ".Street".  This is done to make sure an empty line isn't displayed when no suite is provided*/}}
 <pre>
 {{.CompanyName}}
-{{.Street}}
-{{.Suite}}
+{{.Street}}{{if .Suite}}
+{{.Suite}}{{end}}
 {{.City}}, {{.State}} {{.Postal}}
 {{.Country}}
 {{.PhoneNum}}
