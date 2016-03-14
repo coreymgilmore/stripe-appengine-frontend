@@ -1418,14 +1418,14 @@ $('#form-change-company-info').submit( function (e) {
 		type: 	"POST",
 		url: 	"/company/set/",
 		data: {
-			name: name,
-			street: street,
-			suite: suite,
-			city: city,
-			state: state,
-			postal: postal,
-			country: country,
-			phone: phone
+			name: 		name,
+			street: 	street,
+			suite: 		suite,
+			city: 		city,
+			state: 		state,
+			postal: 	postal,
+			country: 	country,
+			phone: 		phone
 		},
 		beforeSend: function() {
 			showModalMessage("Saving company information...", "info", msg);
