@@ -1,17 +1,13 @@
 {{define "html_scripts"}}
-
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-<script src="/js/script.js"></script>
-
+<script src="/js/script.min.js"></script>
 {{end}}
 
 
 {{define "stripe-js"}}
 {{/*ONLY USED ON PAGES THAT REQUIRE STRIPE.js*/}}
 {{/*so stripe.js isn't loaded everywhere*/}}
-
 <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
 <script src="/js/stripe-public-key.js"></script>
-
 {{end}}
