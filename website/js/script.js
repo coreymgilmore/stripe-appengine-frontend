@@ -20,18 +20,6 @@ const MIN_CHARGE = 0.5;
 //*******************************************************************************
 //COMMON FUNCS
 
-//ESCAPE STRINGS
-//remove HTML characters/tags from strings used for saving data to db
-//http://stackoverflow.com/questions/6234773/can-i-escape-html-special-chars-in-javascript
-function escapeHTML(string) {
-	return string
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
-}
-
 //REGEX MATCH EMAIL
 //true if input is a valid email
 function validateEmail(email) {
@@ -162,11 +150,157 @@ $('#create-init-admin').submit(function (e) {
 	//then user can log in on main login page
 });
 
-//INIT TOOL TIPS
+//ON PAGE LOAD
 $(function () {
+	//ENABLE TOOLTIPS
 	$('[data-toggle="tooltip"]').tooltip();
+
+	//SET AJAX DEFAULT DATA TYPE
+	$.ajaxSetup({
+		dataType: 'json'
+	});
+
 	return;
 });
+
+//GET LIST OF CARDS
+//gets a list of cards by customer name and customer id
+//this is used to build the datalist of autocompletion in remove, charge, and reports
+//the datalist element is right after the header of the page (before the main body elements)
+//the customer id is the appengine datastore id and is used to look up the full customer details when a charge is performed
+function getCards() {
+	var customerList = $('#customer-list');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/card/get/all/",
+		beforeSend: function() {
+			console.log("Loading cards...");
+			customerList.html('<option value="Loading...">');
+			return;
+		},
+		error: function (r) {
+			console.log(r);
+			console.log(JSON.parse(r['responseText']));
+			customerList.html('<option value="Could Not Load">');
+			return;
+		},
+		success: function (j) {
+			console.log("Loading cards...done!")
+
+			//put results in data list
+			var data = j['data'];
+			customerList.html('');
+			
+			//check if no cards exist
+			if (data.length === 0) {
+				customerList.html('<option value="None exist yet!" data-id="0">');
+				return;
+			}
+
+			//list each card
+			//store the datastore id for looking up data on just this one card
+			data.forEach(function (elem, index) {
+				var name = 	elem['customer_name'];
+				var id = 	elem['id'];
+
+				customerList.append('<option value="' + name + '" data-id="' + id + '">');
+			});
+			return;
+		}
+	});
+}
+
+//GET VALUE OF CARD SELECTED FROM INPUT AUTOCOMPLETE LIST
+//gets the id from the data- attribute of the selected option in the datalist
+//does not use value b/c value is the customer name
+//in: autocompleteElement: an html input element that used a datalist
+//out: the id of the chosen customer
+function getCardIdFromDataList(autocompleteElement) {
+	var selectedOptionValue = 	autocompleteElement.val();
+	var options = 				$('#customer-list option');
+	var id = 					"";
+
+	options.each(function() {
+		var elemValue = $(this).val();
+		var elemId = 	$(this).data('id');
+
+		if (selectedOptionValue === elemValue) {
+			id = elemId;
+			return false;
+		}
+	});
+
+	return id;
+}
+
+//GENERATE LIST OF YEARS FOR CARD EXPIRATION
+//displays a list of future years for credit card expirations
+//done programmatically so a list of years does not have to be updated as years change
+//done on page load (code is in the html file)
+//fills in a <select> with <options>
+function generateExpirationYears() {
+	console.log("Loading expiration years...");
+
+	//element to displays years in
+	var elem = $('#card-exp-year');
+	elem.html('');
+
+	//get current year
+	var d = 	new Date()
+	var year = 	d.getFullYear();
+
+	//default first value
+	elem.append('<option value="0">Please choose.</option>');
+
+	//options for years
+	for (var i = year; i < year + 11; i ++) {
+		elem.append('<option value=' + i + '>' + i + '</option>');
+	}
+
+	console.log('Loading expiration years...done!');
+	return;
+}
+
+//GET LIST OF USERNAMES AND IDS
+//fill in the drop downs for editing users and changing passwords
+function getUsers() {
+	//there are two of these selects (change pwd & update user)
+	var userList = $('.user-list');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/users/get/all/",
+		beforeSend: function() {
+			userList.html('<option value="0">Loading...</option>').attr('disabled', true);
+			return;
+		},
+		error: function (r) {
+			userList.html('<option value="0">Error (please see dev tools)</option>');
+			console.log(r);
+			return;
+		},
+		success: function (r) {
+			//clear options
+			userList.html('');
+			userList.append("<option value='0'>Please choose...</option>").attr('disabled', false);
+
+			//display list of users in selects
+			//do not show 'administrator' user in list so it cannot be updates
+			var users = r['data'];
+			users.forEach(function (u, index) {
+				if (u['username'] === "administrator") {
+					return;
+				}
+
+				userList.append('<option value="' + u['id'] + '">' + u['username'] + '</option>');
+				return;
+			});
+
+			return;
+		}
+	});
+}
 
 //*******************************************************************************
 //ADD USER
