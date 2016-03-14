@@ -301,6 +301,9 @@ a:visited:after {
 .tooltip-inner {
 	background-color:  			#000;
 }
+.tooltip.bottom .tooltip-arrow {
+	border-bottom-color:  		#000;
+}
 
 /*LINK IN FOOTER STYLES*/
 footer a,
