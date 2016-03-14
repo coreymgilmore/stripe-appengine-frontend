@@ -5,11 +5,20 @@
 		<div class="row">
 			<div class="col-xs-12">
 				<center>
-					<p><a href="https://github.com/coreymgilmore/stripe-appengine-frontend" target="_blank">&copy; Charge Credit Cards - 2015</a></p>
+					<p><a href="https://github.com/coreymgilmore/stripe-appengine-frontend" target="_blank">&copy; Charge Credit Cards - <span id="copyright-year"></span></a></p>
 				</center>
 			</div>
 		</div>
 	</div>
 </footer>
+
+<!-- DISPLAY YEAR IN FOOTER FOR COPYRIGHT -->
+<!-- this makes the year always the current year instead of this getting stale -->
+<!-- and stops the need to update the year manually -->
+<script>
+	var d = new Date();
+	var y = d.getUTCFullYear();
+	document.getElementById('copyright-year').innerHTML = y;
+</script>
 
 {{end}}
