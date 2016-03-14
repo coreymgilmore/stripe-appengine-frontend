@@ -324,7 +324,7 @@ $('#form-new-user').submit(function (e) {
 	//check if username is an email
 	if (validateEmail(username) === false) {
 		e.preventDefault();
-		showModalMessage("You must provide an email address as a username.", "danger", msgElem);
+		showModalMessage('You must provide an email address as a username.', 'danger', msgElem);
 		return false;
 	}
 
@@ -332,21 +332,21 @@ $('#form-new-user').submit(function (e) {
 	//check if passwords match
 	if (doWordsMatch(password1, password2) === false) {
 		e.preventDefault();
-		showModalMessage("The passwords do not match.", "danger", msgElem);
+		showModalMessage('The passwords do not match.', 'danger', msgElem);
 		return false;
 	}
 
 	//make sure the password is long enough
 	if (isLongPassword(password1) === false) {
 		e.preventDefault();
-		showModalMessage("Your password is too short. It must be at least " + MIN_PASSWORD_LENGTH + " characters.", "danger", msgElem);
+		showModalMessage('Your password is too short. It must be at least ' + MIN_PASSWORD_LENGTH + ' characters.', 'danger', msgElem);
 		return false;
 	}
 
 	//make sure the passwords are not very easy to guess
 	if (isSimplePassword(password1) === true) {
 		e.preventDefault();
-		showModalMessage("Your password too simple. Choose a more complex password.", "danger", msgElem);
+		showModalMessage('Your password too simple. Choose a more complex password.', 'danger', msgElem);
 		return false;
 	}
 
@@ -356,8 +356,8 @@ $('#form-new-user').submit(function (e) {
 	//add user via ajax call
 	e.preventDefault();
 	$.ajax({
-		type: 	"POST",
-		url: 	"/users/add/",
+		type: 	'POST',
+		url: 	'/users/add/',
 		data: {
 			username: 		username,
 			password1: 		password1,
@@ -402,9 +402,7 @@ $('#form-new-user').submit(function (e) {
 
 //RESET NEW USER MODAL TO DEFAULT VALUES
 function resetAddUserModal() {
-	$('#form-new-user .username').val('');
-	$('#form-new-user .password1').val('');
-	$('#form-new-user .password2').val('');
+	$('#form-new-user .username, #form-new-user .password1, #form-new-user .password2').val('');
 	$('#form-new-user .default').attr("checked", true).parent('label').addClass('active').siblings('label').removeClass('active')
 	$('.msg').html('');
 	return;
@@ -424,47 +422,6 @@ $('#modal-change-pwd, #modal-update-user').on('show.bs.modal', function() {
 	getUsers()
 	return;
 });
-
-//GET LIST OF USERNAMES AND IDS
-//fill in the drop downs for editing users and changing passwords
-function getUsers() {
-	//there are two of these selects (change pwd & update user)
-	var userList = $('.user-list');
-
-	$.ajax({
-		type: 	"GET",
-		url: 	"/users/get/all/",
-		dataType: "json",
-		beforeSend: function() {
-			userList.html('<option value="0">Loading...</option>').attr('disabled', true);
-			return;
-		},
-		error: function (r) {
-			userList.html('<option value="0">Error (please see dev tools)</option>');
-			console.log(r);
-			return;
-		},
-		success: function (r) {
-			//clear options
-			userList.html('');
-			userList.append("<option value='0'>Please choose...</option>").attr('disabled', false);
-
-			//display list of users in selects
-			//do not show 'administrator' user in list so it cannot be updates
-			var users = r['data'];
-			users.forEach(function (u, index) {
-				if (u['username'] === "administrator") {
-					return;
-				}
-
-				userList.append('<option value="' + u['id'] + '">' + u['username'] + '</option>');
-				return;
-			});
-
-			return;
-		}
-	});
-}
 
 //CHANGE A USERS PASSWORD
 //validate before submitting ajax
@@ -597,7 +554,6 @@ $('#form-update-user').on('change', '.user-list', function() {
 			console.log(r);
 			return;
 		},
-		dataType: "json",
 		success: function (j) {
 			//hide the alert msg
 			msgElem.html('');
@@ -711,7 +667,6 @@ $('#form-update-user').submit(function (e) {
 			}
 			return;
 		},
-		dataType: "json",
 		success: function (j) {
 			//user updated successfully
 			//show success message
@@ -731,28 +686,6 @@ $('#form-update-user').submit(function (e) {
 
 //*******************************************************************************
 //ADD A NEW CARD
-
-//GENERATE LIST OF YEARS FOR CARD EXPIRATION
-//done on page load
-//fills in a <select> with <options>
-function generateExpirationYears() {
-	var elem = $('#card-exp-year');
-	elem.html("");
-
-	//get current year
-	var d = 	new Date()
-	var year = 	d.getFullYear();
-
-	//default first value
-	elem.append("<option value='0'>Please choose.</option>");
-
-	//options for years
-	for (var i = year; i < year + 11; i ++) {
-		elem.append("<option value='" + i + "'>" + i + "</option>");
-	}
-
-	console.log("Loading expiration years...done!");
-}
 
 //HIDE "THIS YEAR" IF USER CHOOSES AN EXPIRATION MONTH IN THE PAST
 //user cannot choose an expiration in a past month for this year
@@ -978,73 +911,6 @@ $('#add-card').on('click', '.clear-form-btn', function() {
 
 //*******************************************************************************
 //REMOVE A CARD
-
-//GET LIST OF CARDS
-function getCards() {
-	var customerList = $('#customer-list');
-
-	$.ajax({
-		type: 	"GET",
-		url: 	"/card/get/all/",
-		beforeSend: function() {
-			console.log("Loading cards...");
-			customerList.html('<option value="Loading...">');
-			return;
-		},
-		error: function (r) {
-			console.log(r);
-			console.log(JSON.parse(r['responseText']));
-			customerList.html('<option value="Could Not Load">');
-			return;
-		},
-		dataType: "json",
-		success: function (j) {
-			console.log("Loading cards...done!")
-
-			//put results in data list
-			var data = j['data'];
-			customerList.html('');
-			
-			//check if no cards exist
-			if (data.length === 0) {
-				customerList.html('<option value="None exist yet!" data-id="0">');
-				return;
-			}
-
-			//list each card
-			//store the datastore id for looking up data on just this one card
-			data.forEach(function (elem, index) {
-				var name = 	elem['customer_name'];
-				var id = 	elem['id'];
-
-				customerList.append('<option value="' + name + '" data-id="' + id + '">');
-			});
-			return;
-		}
-	});
-}
-
-//GET VALUE OF CARD SELECTED FROM INPUT AUTOCOMPLETE LIST
-//gets the id from the data- attribute of the selected option in the datalist
-function getCardIdFromDataList(autocompleteElement) {
-	var selectedOptionValue = 	autocompleteElement.val();
-	var options = 				$('#customer-list option');
-	var id = 					"";
-
-	options.each(function() {
-		var elemValue = $(this).val();
-		var elemId = 	$(this).data('id');
-
-		if (selectedOptionValue === elemValue) {
-			id = elemId;
-			return false;
-		}
-	});
-
-	return id;
-}
-
-//REMOVE A CARD
 $('#remove-card').submit(function (e) {
 	//get value of autocomplete list
 	var input = 	$('#remove-card .customer-name');
@@ -1090,7 +956,6 @@ $('#remove-card').submit(function (e) {
 			console.log(j);
 			return;
 		},
-		dataType: 'json',
 		success: function (j) {
 			//card was removed
 			//show success message
@@ -1133,7 +998,6 @@ $('#charge-card').on('change', '.customer-name', function() {
 		return;
 	}
 
-
 	//get customer card data to fill into panel
 	$.ajax({
 		type: 	"GET",
@@ -1143,9 +1007,7 @@ $('#charge-card').on('change', '.customer-name', function() {
 		},
 		beforeSend: function() {
 			//show loading in readonly inputs
-			$('#charge-card .customer-cardholder').val("Loading...");
-			$('#charge-card .card-last-four').val("Loading...");
-			$('#charge-card .card-expiration').val("Loading...");
+			$('#charge-card .customer-cardholder, #charge-card .card-last-four, #charge-card .card-expiration').val("Loading...");
 			return;
 		},
 		error: function(r) {
@@ -1154,7 +1016,6 @@ $('#charge-card').on('change', '.customer-name', function() {
 			console.log(r);
 			return;
 		},
-		dataType: "json",
 		success: function (j) {
 			//put data into readonly form inputs
 			//so a user can verify card information and see some basic data before charging card
@@ -1164,9 +1025,7 @@ $('#charge-card').on('change', '.customer-name', function() {
 			$('#charge-card .card-expiration').val(data['card_expiration']);
 
 			//enable amount, invoice, po inputs
-			$('#charge-card .charge-amount').prop('disabled', false);
-			$('#charge-card .charge-invoice').prop('disabled', false);
-			$('#charge-card .charge-po').prop('disabled', false);
+			$('#charge-card .charge-amount, #charge-card .charge-invoice, #charge-card .charge-po').prop('disabled', false);
 
 			return;
 		}
@@ -1236,7 +1095,6 @@ $('#charge-card').submit(function (e) {
 			}
 			return;
 		},
-		dataType: "json",
 		success: function (j) {
 			//load data into the success panel
 			var data = j['data'];
@@ -1279,7 +1137,9 @@ $('#charge-card').submit(function (e) {
 });
 
 //RESET THE CHARGE CARD PANEL TO DEFAULTS
+//in: msgRemove: bool, Should the status message be removed
 function resetChargeCardPanel(msgRemove) {
+	//clear elements
 	$('#charge-card .customer-name').val('').prop('disabled', false);
 	$('#charge-card .customer-cardholder').val('');
 	$('#charge-card .card-last-four').val('');
@@ -1440,7 +1300,6 @@ $('#form-refund').submit(function (e) {
 			}
 			return;
 		},
-		dataType: "json",
 		success: function (j) {
 			showModalMessage("Refund successful!", "success", msg);
 			btn.prop('disabled', false);
@@ -1487,7 +1346,6 @@ $('#modal-change-company-info').on('show.bs.modal', function() {
 				return;
 			}
 		},
-		dataType: "json",
 		success: function (j) {
 			//load data into fields
 			var data = j['data'];
