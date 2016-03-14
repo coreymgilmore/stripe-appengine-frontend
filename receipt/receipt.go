@@ -1,29 +1,26 @@
+/*
+This file deals with receipts for charges.  Receipts are built using data from Stripe
+on the charge and data for the company.  The company data just makes the receipt look legit.
+
+This file specifically deals with showing the receipt for a charge.
+*/
+
 package receipt
 
 import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 
 	"chargeutils"
 	"memcacheutils"
-	"output"
 	"templates"
-)
-
-const (
-	//for referencing when looking up or setting data in datastore or memcache
-	//so we don't need to type in key names anywhere
-	companyInfoKeyName = "company-info-memcache-key"
-	datastoreKind      = "companyInfo"
 )
 
 var (
@@ -52,18 +49,6 @@ type templateData struct {
 	Amount,
 	Invoice,
 	Po string
-}
-
-//FOR GETTING DATA FROM DATASTORE
-type companyInfo struct {
-	CompanyName string `json:"company_name"`
-	Street      string `json:"street"`
-	Suite       string `json:"suite"`
-	City        string `json:"city"`
-	State       string `json:"state"`
-	PostalCode  string `json:"postal_code"`
-	Country     string `json:"country"`
-	PhoneNum    string `json:"phone_num"`
 }
 
 //**********************************************************************
@@ -107,7 +92,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 	//get company info from datastore
 	//might also be in memcache
-	_, info, err := getCompanyInfo(r)
+	info, err := getCompanyInfo(r)
 	name, street, suite, city, state, postal, country, phone := "", "", "", "", "", "", "", ""
 	if err == ErrCompanyDataDoesNotExist {
 		name = "**Company info has not been set yet.**"
@@ -146,135 +131,4 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	}
 	templates.Load(w, "receipt", output)
 	return
-}
-
-//**********************************************************************
-//CHECK IF FILES WERE READ CORRECTLY
-func Check() error {
-	if initError != nil {
-		return initError
-	}
-
-	return nil
-}
-
-//**********************************************************************
-//GET AND SET RECEIPT/COMPANY INFO
-
-//GET COMPANY INFO
-//done when loading the change company info modal
-//or when building the receipt page
-func GetCompanyInfo(w http.ResponseWriter, r *http.Request) {
-	_, info, err := getCompanyInfo(r)
-
-	if err != nil {
-		output.Error(err, "", w)
-		return
-	}
-
-	output.Success("dataFound", info, w)
-	return
-
-}
-
-//SAVE COMPANY INFO
-func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
-	//get form values
-	name := r.FormValue("name")
-	street := r.FormValue("street")
-	suite := r.FormValue("suite")
-	city := r.FormValue("city")
-	state := r.FormValue("state")
-	postal := r.FormValue("postal")
-	country := r.FormValue("country")
-	phone := r.FormValue("phone")
-
-	//init context
-	c := appengine.NewContext(r)
-
-	//get key from entity if this info is already saved
-	//aka user is updating the company data
-	intId, _, err := getCompanyInfo(r)
-	if err != nil && err != ErrCompanyDataDoesNotExist {
-		output.Error(err, "", w)
-		return
-	}
-
-	//generate entity key from id if this entity already exists
-	//otherwise generate a new key
-	var key *datastore.Key
-	if intId != 0 {
-		key = datastore.NewKey(c, datastoreKind, "", intId, nil)
-	} else {
-		key = datastore.NewIncompleteKey(c, datastoreKind, nil)
-	}
-
-	//build entity to save
-	//no real validation is needed since this info isnt used for much
-	insert := companyInfo{
-		CompanyName: name,
-		Street:      street,
-		Suite:       suite,
-		City:        city,
-		State:       strings.ToUpper(state),
-		PostalCode:  postal,
-		Country:     strings.ToUpper(country),
-		PhoneNum:    phone,
-	}
-
-	//save company info
-	_, err = datastore.Put(c, key, &insert)
-	if err != nil {
-		output.Error(err, "", w)
-		return
-	}
-
-	//save company into to memcache
-	memcacheutils.Save(c, companyInfoKeyName, insert)
-
-	//done
-	output.Success("dataSaved", insert, w)
-	return
-}
-
-//**********************************************************************
-//FUNCS
-
-//GET COMPNAY INFO
-//internal use
-func getCompanyInfo(r *http.Request) (int64, companyInfo, error) {
-	c := appengine.NewContext(r)
-
-	//check memcached
-	var result companyInfo
-	_, err := memcache.Gob.Get(c, companyInfoKeyName, &result)
-	if err == nil {
-		return 0, result, nil
-
-	} else if err == memcache.ErrCacheMiss {
-		//look up data in datastore
-		q := datastore.NewQuery(datastoreKind).Limit(1)
-		r := make([]companyInfo, 0, 1)
-
-		keys, err := q.GetAll(c, &r)
-		if err != nil {
-			return 0, companyInfo{}, err
-		}
-
-		//check if one result exists
-		if len(r) == 0 {
-			return 0, companyInfo{}, ErrCompanyDataDoesNotExist
-		}
-
-		//result does exist and was found
-		info := r[0]
-
-		//save to memcache
-		memcacheutils.Save(c, companyInfoKeyName, info)
-
-		//done
-		return keys[0].IntID(), info, nil
-	} else {
-		return 0, companyInfo{}, err
-	}
 }
