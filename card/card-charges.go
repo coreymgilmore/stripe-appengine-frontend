@@ -143,7 +143,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//save count of card types
 	//done in goroutine to stop blocking returning data to user
-	go saveChargeDetails(c, chg)
+	saveChargeDetails(c, chg)
 
 	//return to client
 	//build struct to output a success message to the client
@@ -238,8 +238,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	//each card type is the total per card type
 	//list of card types from https://github.com/stripe/stripe-go/blob/6e49b4ff8c8b6fd2b32499ccad12f3e2fc302a87/card.go
 	type cardCounts struct {
-		Total int
-
+		Total           int
 		Unknown         int
 		Visa            int
 		AmericanExpress int
@@ -271,8 +270,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		r := new(cardCounts)
 		err := datastore.Get(c, key, r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
-			log.Errorf(c, "%v", "Error looking up card brand count.")
-			log.Errorf(c, "%v", err)
+			log.Errorf(c, "%v", "Error looking up card brand count.", err)
 		}
 
 		//INCREMENT COUNTER FOR TOTAL
@@ -294,15 +292,14 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 			r.DinersClub++
 		default:
 			r.Unknown++
-			log.Debugf(c, "%v", "Unknown card type:", brand)
+			log.Warningf(c, "%v", "%v", "Unknown card type:", brand)
 		}
 
 		//SAVE DATA BACK TO DB
 		//perform "update"
 		_, err = datastore.Put(c, key, r)
 		if err != nil {
-			log.Errorf(c, "%v", "Error saving card brand count.")
-			log.Errorf(c, "%v", err)
+			log.Errorf(c, "%v", "Error saving card brand count.", err)
 		}
 
 		//done
@@ -310,11 +307,10 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		return err
 	}, nil)
 	if err != nil {
-		log.Errorf(c, "%v", "Error during card brand count transaction.")
-		log.Errorf(c, "%v", err)
+		log.Errorf(c, "%v", "Error during card brand count transaction.", err)
 	}
 
 	//done
-	log.Debugf(c, brand)
+	log.Infof(c, "%v", brand)
 	return
 }
