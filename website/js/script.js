@@ -1149,6 +1149,10 @@ function resetChargeCardPanel(msgRemove) {
 	$('#charge-card .charge-po').val('');
 	$('#charge-card-submit').prop('disabled', false);
 
+	//disable inputs
+	$('#charge-card .charge-amount, #charge-card .charge-invoice, #charge-card .charge-po').prop('disabled', true);
+
+	//remove status message if needed
 	if (msgRemove) {
 		$('#charge-card .msg').html('');
 	}
