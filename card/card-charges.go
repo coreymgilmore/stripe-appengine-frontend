@@ -251,7 +251,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 
 	//DATASTORE KIND TO SAVE DETAILS UNDER
 	//separate kind that holds just this data
-	const kind = "charge-details"
+	const kind = "chargeDetails"
 
 	//KEY NAME
 	//so we don't have to keep track of a random integer
