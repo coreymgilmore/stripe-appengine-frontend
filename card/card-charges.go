@@ -17,6 +17,8 @@ import (
 	"github.com/stripe/stripe-go/refund"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
 
 	"memcacheutils"
 	"output"
@@ -139,6 +141,10 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//less data to get from stripe if receipt is needed
 	memcacheutils.Save(c, chg.ID, chg)
 
+	//save count of card types
+	//done in goroutine to stop blocking returning data to user
+	go saveChargeDetails(c, chg)
+
 	//return to client
 	//build struct to output a success message to the client
 	out := chargeSuccessful{
@@ -218,5 +224,97 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("refund-done", nil, w)
+	return
+}
+
+//SAVE COUNT OF CARD CHARGED AND CARD TYPES CHARGED
+//this is used to keep track of how many charges are processed and for what card types
+//use this info to negotiate better rates with Stripe (not saying Stripe isn't honest, but this gives you accurate data)
+//this just increments some counters in a transaction
+//this should be run in a goroutine so that the parent http calls response is sent back to user faster
+func saveChargeDetails(c context.Context, chg *stripe.Charge) {
+	//FORMAT OF DATA IN DATASTORE
+	//total is the total number for charges performed
+	//each card type is the total per card type
+	//list of card types from https://github.com/stripe/stripe-go/blob/6e49b4ff8c8b6fd2b32499ccad12f3e2fc302a87/card.go
+	type cardCounts struct {
+		Total int
+
+		Unknown         int
+		Visa            int
+		AmericanExpress int
+		MasterCard      int
+		Discover        int
+		JCB             int
+		DinersClub      int
+	}
+
+	//DATASTORE KIND TO SAVE DETAILS UNDER
+	//separate kind that holds just this data
+	const kind = "charge-details"
+
+	//KEY NAME
+	//so we don't have to keep track of a random integer
+	//this replaces the IntID
+	const keyName = "card-count"
+
+	//GET CARD BRAND FROM CHARGE
+	brand := string(chg.Source.Card.Brand)
+
+	//GET COMPLETE DATASTORE KEY TO LOOKUP AND UPDATE
+	//this is the key of the entity that store the card count data
+	key := datastore.NewKey(c, kind, keyName, 0, nil)
+
+	//TRANSACTION
+	err := datastore.RunInTransaction(c, func(c context.Context) error {
+		//LOOK UP DATA FROM DATASTORE
+		r := new(cardCounts)
+		err := datastore.Get(c, key, r)
+		if err != nil && err != datastore.ErrNoSuchEntity {
+			log.Errorf(c, "%v", "Error looking up card brand count.")
+			log.Errorf(c, "%v", err)
+		}
+
+		//INCREMENT COUNTER FOR TOTAL
+		r.Total++
+
+		//INCREMENT COUNTER FOR CARD BRAND
+		switch brand {
+		case "Visa":
+			r.Visa++
+		case "American Express":
+			r.AmericanExpress++
+		case "MasterCard":
+			r.MasterCard++
+		case "Discover":
+			r.Discover++
+		case "JCB":
+			r.JCB++
+		case "Diners Club":
+			r.DinersClub++
+		default:
+			r.Unknown++
+			log.Debugf(c, "%v", "Unknown card type:", brand)
+		}
+
+		//SAVE DATA BACK TO DB
+		//perform "update"
+		_, err = datastore.Put(c, key, r)
+		if err != nil {
+			log.Errorf(c, "%v", "Error saving card brand count.")
+			log.Errorf(c, "%v", err)
+		}
+
+		//done
+		//returns nill if everything is ok and update was performed
+		return err
+	}, nil)
+	if err != nil {
+		log.Errorf(c, "%v", "Error during card brand count transaction.")
+		log.Errorf(c, "%v", err)
+	}
+
+	//done
+	log.Debugf(c, brand)
 	return
 }
