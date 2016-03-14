@@ -746,7 +746,7 @@ $('#add-card').submit(function (e) {
 
 	//card number
 	var cardNumLength = cardNum.length;
-	if (cardNumLength < 15 || cardNumLength > 16) {
+	if (cardNumLength < 14 || cardNumLength > 16) {
 		e.preventDefault();
 		showPanelMessage('The card number you provided is ' + cardNumLength + ' digits long, however, it must be exactly 15 or 16 digits.', 'danger', msg);
 		return false;
