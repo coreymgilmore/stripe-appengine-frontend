@@ -1439,9 +1439,19 @@ $('#form-change-company-info').submit( function (e) {
 				return;
 			}
 		},
-		dataType: "json",
 		success: function (j) {
+			//show success message
 			showModalMessage("Company information was saved!", "success", msg);
+			
+			//re-enable button to allow further changes
+			btn.prop('disabled', false);
+
+			//hide the message after a few seconds
+			setTimeout(function() {
+				msg.html('');
+				return;
+			}, 3000);
+			
 			return;
 		}
 	});
