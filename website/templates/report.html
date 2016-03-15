@@ -40,7 +40,7 @@
 													<tr>
 														<td>{{.Customer}}</td>
 														<td>{{.LastFour}}</td>
-														<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
+														<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
 														<td>{{.Invoice}}</td>
 														<td>{{.User}}
 														<td>{{.Timestamp}}</td>
@@ -56,7 +56,7 @@
 											{{end}}
 										{{else}}
 											<tr>
-												<td colspan=100>No charges found.</td>
+												<td colspan="100">No charges found.</td>
 											</tr>
 										{{end}}
 									</tbody>
@@ -66,7 +66,7 @@
 										<tr>
 											<td><b>Total Amount Charged:</b><br>({{.NumCharges}} Charges)</td>
 											<td></td>
-											<td><b>${{.TotalAmount}}</b></td>
+											<td><b>$<span class="amount format-number-commas">{{.TotalAmount}}</span></b></td>
 											<td></td>
 											<td></td>
 											<td></td>
@@ -108,7 +108,7 @@
 												<tr>
 													<td>{{.Customer}}</td>
 													<td>{{.LastFour}}</td>
-													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount">{{.AmountDollars}}</span></td>
+													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
 													<td>{{.Invoice}}</td>
 													<td>{{.User}}
 													<td>{{.Timestamp}}</td>
@@ -117,7 +117,7 @@
 											{{end}}
 										{{else}}
 											<tr>
-												<td colspan=100>No refunds found.</td>
+												<td colspan="100">No refunds found.</td>
 											</tr>
 										{{end}}
 									</tbody>
@@ -173,5 +173,23 @@
 		{{end}}
 
 		{{template "html_scripts"}}
+
+		<!-- FORMAT ALL NUMBERS WITH COMMAS -->
+		<!-- aka thousands separators -->
+		<script>
+			$('.format-number-commas').each(function() {
+				//GET VALUE FROM SPAN
+				var value = parseFloat($(this).text());
+
+				//FORMAT
+				var commaString = value.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+				//SET TEXT WITH NEW FORMAT
+				$(this).text(commaString);
+
+				return;
+			});
+		</script>
+
 	<body>
 </body>
