@@ -383,7 +383,7 @@ $('#form-new-user').submit(function (e) {
 				return;
 			}
 
-			submit.attr("disabled", true);
+			submit.attr("disabled", false);
 			return;
 		},
 		success: function (r) {
