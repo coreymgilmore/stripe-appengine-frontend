@@ -28,13 +28,13 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//make sure passwords match
 	if doStringsMatch(password1, password2) == false {
-		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w)
+		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w, r)
 		return
 	}
 
 	//make sure password is long enough
 	if len(password1) < minPwdLength {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w)
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w, r)
 		return
 	}
 
@@ -45,7 +45,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	userData, err := Find(c, userIdInt)
 	if err != nil {
-		output.Error(err, "Error while retreiving user data to update user's password.", w)
+		output.Error(err, "Error while retreiving user data to update user's password.", w, r)
 		return
 	}
 
@@ -56,10 +56,10 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	err = memcacheutils.Delete(c, userId)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
-		output.Error(err, "Error clearing cache for user id.", w)
+		output.Error(err, "Error clearing cache for user id.", w, r)
 		return
 	} else if err1 != nil {
-		output.Error(err1, "Error clearing cache for username.", w)
+		output.Error(err1, "Error clearing cache for username.", w, r)
 		return
 	}
 
@@ -69,7 +69,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//save user
 	_, err = saveUser(c, fullKey, userData)
 	if err != nil {
-		output.Error(err, "Error saving user to database after password change.", w)
+		output.Error(err, "Error saving user to database after password change.", w, r)
 		return
 	}
 
@@ -97,7 +97,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//failsafe/second check since non-admins would not see the settings panel anyway
 	session := sessionutils.Get(r)
 	if session.IsNew {
-		output.Error(ErrSessionMismatch, "An error occured. Please log out and log back in.", w)
+		output.Error(ErrSessionMismatch, "An error occured. Please log out and log back in.", w, r)
 		return
 	}
 
@@ -105,20 +105,20 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	userData, err := Find(c, userIdInt)
 	if err != nil {
-		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w)
+		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w, r)
 		return
 	}
 
 	//check if the logged in user is trying to update their own permissions
 	//you cannot edit your own permissions no matter what
 	if session.Values["username"].(string) == userData.Username {
-		output.Error(ErrCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w)
+		output.Error(ErrCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w, r)
 		return
 	}
 
 	//check iF user is editing the super admin user
 	if userData.Username == adminUsername {
-		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w)
+		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w, r)
 		return
 	}
 
@@ -134,10 +134,10 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	err = memcacheutils.Delete(c, userId)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
-		output.Error(err, "Error clearing cache for user id.", w)
+		output.Error(err, "Error clearing cache for user id.", w, r)
 		return
 	} else if err1 != nil {
-		output.Error(err1, "Error clearing cache for username.", w)
+		output.Error(err1, "Error clearing cache for username.", w, r)
 		return
 	}
 
@@ -149,7 +149,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//save user
 	_, err = saveUser(c, completeKey, userData)
 	if err != nil {
-		output.Error(err, "Error saving user to database after updating permission.", w)
+		output.Error(err, "Error saving user to database after updating permission.", w, r)
 		return
 	}
 

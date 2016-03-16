@@ -33,15 +33,15 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get report data form stripe
 	//make sure inputs are given
 	if len(startString) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'start-date'.", w)
+		output.Error(ErrMissingInput, "You must supply a 'start-date'.", w, r)
 		return
 	}
 	if len(endString) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'end-date'.", w)
+		output.Error(ErrMissingInput, "You must supply a 'end-date'.", w, r)
 		return
 	}
 	if len(hoursToUTC) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'timezone'.", w)
+		output.Error(ErrMissingInput, "You must supply a 'timezone'.", w, r)
 		return
 	}
 
@@ -53,12 +53,12 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get datetimes from provided strings
 	startDt, err := time.Parse("2006-01-02 -0700", startString+" "+tzOffset)
 	if err != nil {
-		output.Error(err, "Could not convert start date to a time.Time datetime.", w)
+		output.Error(err, "Could not convert start date to a time.Time datetime.", w, r)
 		return
 	}
 	endDt, err := time.Parse("2006-01-02 -0700", endString+" "+tzOffset)
 	if err != nil {
-		output.Error(err, "Could not convert end date to a time.Time datetime.", w)
+		output.Error(err, "Could not convert end date to a time.Time datetime.", w, r)
 		return
 	}
 
@@ -89,7 +89,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		datastoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
 		custData, err := findByDatastoreId(c, datastoreIdInt)
 		if err != nil {
-			output.Error(err, "An error occured and this report could not be generated.", w)
+			output.Error(err, "An error occured and this report could not be generated.", w, r)
 			return
 		}
 

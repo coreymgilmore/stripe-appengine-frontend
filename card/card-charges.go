@@ -36,18 +36,18 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//validation
 	if len(datastoreId) == 0 {
-		output.Error(ErrMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w)
+		output.Error(ErrMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(ErrMissingInput, "No amount was provided. You cannot charge a card nothing!", w)
+		output.Error(ErrMissingInput, "No amount was provided. You cannot charge a card nothing!", w, r)
 		return
 	}
 
 	//get amount as cents
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
-		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
 		return
 	}
 
@@ -55,7 +55,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//min charge may be greater than 0 because of transactions costs
 	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
 	if amountCents < minCharge {
-		output.Error(ErrChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w)
+		output.Error(ErrChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
 		return
 	}
 
@@ -73,14 +73,14 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	datastoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
 	custData, err := findByDatastoreId(c, datastoreIdInt)
 	if err != nil {
-		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
+		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
 		return
 	}
 
 	//make sure customer name matches
 	//just another catch in case of strange errors and mismatched data
 	if customerName != custData.CustomerName {
-		output.Error(err, "The customer name did not match the data for the customer ID. Please log out and try again.", w)
+		output.Error(err, "The customer name did not match the data for the customer ID. Please log out and try again.", w, r)
 		return
 	}
 
@@ -132,7 +132,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 			errorMsg = stripeErr.Msg
 		}
 
-		output.Error(ErrStripe, errorMsg, w)
+		output.Error(ErrStripe, errorMsg, w, r)
 		return
 	}
 
@@ -171,11 +171,11 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//make sure inputs were given
 	if len(chargeId) == 0 {
-		output.Error(ErrMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w)
+		output.Error(ErrMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(ErrMissingInput, "No amount was given to refund.", w)
+		output.Error(ErrMissingInput, "No amount was given to refund.", w, r)
 		return
 	}
 
@@ -183,7 +183,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	//stripe requires cents
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
-		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
 		return
 	}
 
@@ -218,7 +218,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		stripeErr := err.(*stripe.Error)
 		stripeErrMsg := stripeErr.Msg
-		output.Error(ErrStripe, stripeErrMsg, w)
+		output.Error(ErrStripe, stripeErrMsg, w, r)
 		return
 	}
 
@@ -311,6 +311,6 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	}
 
 	//done
-	log.Infof(c, "%v", brand)
+	log.Infof(c, "%v", "Card Brand:", brand)
 	return
 }

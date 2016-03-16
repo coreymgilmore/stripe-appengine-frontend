@@ -40,23 +40,23 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//make sure all form values were given
 	if len(customerName) == 0 {
-		output.Error(ErrMissingCustomerName, "You did not provide the customer's name.", w)
+		output.Error(ErrMissingCustomerName, "You did not provide the customer's name.", w, r)
 		return
 	}
 	if len(cardholder) == 0 {
-		output.Error(ErrMissingCustomerName, "You did not provide the cardholer's name.", w)
+		output.Error(ErrMissingCustomerName, "You did not provide the cardholer's name.", w, r)
 		return
 	}
 	if len(cardToken) == 0 {
-		output.Error(ErrMissingCardToken, "A serious error occured; the card token is missing. Please refresh the page and try again.", w)
+		output.Error(ErrMissingCardToken, "A serious error occured; the card token is missing. Please refresh the page and try again.", w, r)
 		return
 	}
 	if len(cardExp) == 0 {
-		output.Error(ErrMissingExpiration, "The card's expiration date is missing from Stripe. Please refresh the page and try again.", w)
+		output.Error(ErrMissingExpiration, "The card's expiration date is missing from Stripe. Please refresh the page and try again.", w, r)
 		return
 	}
 	if len(cardLast4) == 0 {
-		output.Error(ErrMissingLast4, "The card's last four digits are missing from Stripe. Please refresh the page and try again.", w)
+		output.Error(ErrMissingLast4, "The card's last four digits are missing from Stripe. Please refresh the page and try again.", w, r)
 		return
 	}
 
@@ -70,10 +70,10 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		_, err := FindByCustId(c, customerId)
 		if err == nil {
 			//customer already exists
-			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w)
+			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w, r)
 			return
 		} else if err != ErrCustomerNotFound {
-			output.Error(err, "An error occured while verifying this customer ID does not already exist. Please try again or leave the customer ID blank.", w)
+			output.Error(err, "An error occured while verifying this customer ID does not already exist. Please try again or leave the customer ID blank.", w, r)
 			return
 		}
 	}
@@ -90,7 +90,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		stripeErr := err.(*stripe.Error)
 		stripeErrMsg := stripeErr.Msg
-		output.Error(ErrStripe, stripeErrMsg, w)
+		output.Error(ErrStripe, stripeErrMsg, w, r)
 		return
 	}
 
@@ -113,7 +113,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = save(c, newCustKey, newCustomer)
 	if err != nil {
-		output.Error(err, "There was an error while saving this customer. Please try again.", w)
+		output.Error(err, "There was an error while saving this customer. Please try again.", w, r)
 		return
 	}
 

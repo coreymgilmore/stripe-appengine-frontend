@@ -73,13 +73,13 @@ func AddCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w)
+			output.Error(err, "An error occured in the middleware.", w, r)
 			return
 		}
 
 		//check if user can add cards
 		if data.AddCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to add new cards.", w)
+			output.Error(ErrNotAuthorized, "You do not have permission to add new cards.", w, r)
 			return
 		}
 
@@ -98,13 +98,13 @@ func RemoveCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w)
+			output.Error(err, "An error occured in the middleware.", w, r)
 			return
 		}
 
 		//check if user can add cards
 		if data.RemoveCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to remove cards.", w)
+			output.Error(ErrNotAuthorized, "You do not have permission to remove cards.", w, r)
 			return
 		}
 
@@ -123,13 +123,13 @@ func ChargeCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w)
+			output.Error(err, "An error occured in the middleware.", w, r)
 			return
 		}
 
 		//check if user can add cards
 		if data.ChargeCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to charge or refund cards.", w)
+			output.Error(ErrNotAuthorized, "You do not have permission to charge or refund cards.", w, r)
 			return
 		}
 
@@ -148,13 +148,13 @@ func ViewReports(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w)
+			output.Error(err, "An error occured in the middleware.", w, r)
 			return
 		}
 
 		//check if user can add cards
 		if data.ViewReports == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to view reports.", w)
+			output.Error(ErrNotAuthorized, "You do not have permission to view reports.", w, r)
 			return
 		}
 
@@ -173,13 +173,13 @@ func Administrator(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w)
+			output.Error(err, "An error occured in the middleware.", w, r)
 			return
 		}
 
 		//check if user can add cards
 		if data.Administrator == false {
-			output.Error(ErrNotAuthorized, "You are not an administrator therefore you cannot access this page.", w)
+			output.Error(ErrNotAuthorized, "You are not an administrator therefore you cannot access this page.", w, r)
 			return
 		}
 

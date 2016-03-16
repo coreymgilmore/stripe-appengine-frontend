@@ -100,7 +100,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		users := make([]User, 0, 5)
 		keys, err := q.GetAll(c, &users)
 		if err != nil {
-			output.Error(err, "Error retrieving list of users from datastore.", w)
+			output.Error(err, "Error retrieving list of users from datastore.", w, r)
 			return
 		}
 
@@ -124,7 +124,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 
 	} else if err != nil {
-		output.Error(err, "Unknown error retreiving list of users.", w)
+		output.Error(err, "Unknown error retreiving list of users.", w, r)
 		return
 	}
 
@@ -142,7 +142,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	data, err := Find(c, userIdInt)
 	if err != nil {
-		output.Error(err, "Cannot look up user data.", w)
+		output.Error(err, "Cannot look up user data.", w, r)
 		return
 	}
 

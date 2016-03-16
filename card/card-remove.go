@@ -26,7 +26,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 
 	//make sure an id was given
 	if len(datastoreId) == 0 {
-		output.Error(ErrMissingInput, "A customer's datastore ID must be given but was missing. This value is different from your \"Customer ID\" and should have been submitted automatically.", w)
+		output.Error(ErrMissingInput, "A customer's datastore ID must be given but was missing. This value is different from your \"Customer ID\" and should have been submitted automatically.", w, r)
 		return
 	}
 
@@ -37,7 +37,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//delete customer on stripe
 	custData, err := findByDatastoreId(c, datastoreIdInt)
 	if err != nil {
-		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w)
+		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w, r)
 	}
 	stripeCustId := custData.StripeCustomerToken
 	sc.Customers.Del(stripeCustId)
@@ -46,7 +46,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	completeKey := getCustomerKeyFromId(c, datastoreIdInt)
 	err = datastore.Delete(c, completeKey)
 	if err != nil {
-		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w)
+		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w, r)
 		return
 	}
 
@@ -58,15 +58,15 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	err2 := memcache.Delete(c, custData.CustomerId)
 	err3 := memcache.Delete(c, listOfCardsKey)
 	if err1 != nil && err1 != memcache.ErrCacheMiss {
-		output.Error(err1, "There was an error flushing this card's data from the cache (by datastore id). Please contact an administrator and have them flush the cache manually.", w)
+		output.Error(err1, "There was an error flushing this card's data from the cache (by datastore id). Please contact an administrator and have them flush the cache manually.", w, r)
 		return
 	}
 	if err2 != nil && err2 != memcache.ErrCacheMiss {
-		output.Error(err2, "There was an error flushing this card's data from the cache (by customer id). Please contact an administrator and have them flush the cache manually.", w)
+		output.Error(err2, "There was an error flushing this card's data from the cache (by customer id). Please contact an administrator and have them flush the cache manually.", w, r)
 		return
 	}
 	if err3 != nil && err3 != memcache.ErrCacheMiss {
-		output.Error(err3, "There was an error flushing the cached list of cards.", w)
+		output.Error(err3, "There was an error flushing the cached list of cards.", w, r)
 		return
 	}
 

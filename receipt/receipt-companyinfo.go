@@ -47,7 +47,7 @@ func GetCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	info, err := getCompanyInfo(r)
 
 	if err != nil {
-		output.Error(err, "", w)
+		output.Error(err, "", w, r)
 		return
 	}
 
@@ -73,7 +73,7 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	//may return a blank struct if this data does not exist yet
 	data, err := getCompanyInfo(r)
 	if err != nil && err != ErrCompanyDataDoesNotExist {
-		output.Error(err, "", w)
+		output.Error(err, "", w, r)
 		return
 	}
 
@@ -98,7 +98,7 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	//SAVE COMPANY INFO
 	_, err = datastore.Put(c, key, &data)
 	if err != nil {
-		output.Error(err, "", w)
+		output.Error(err, "", w, r)
 		return
 	}
 

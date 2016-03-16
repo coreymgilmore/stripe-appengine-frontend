@@ -115,19 +115,19 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		//user already exists
 		//notify client
-		output.Error(ErrUserAlreadyExists, "This username already exists. Please choose a different username.", w)
+		output.Error(ErrUserAlreadyExists, "This username already exists. Please choose a different username.", w, r)
 		return
 	}
 
 	//make sure passwords match
 	if doStringsMatch(password1, password2) == false {
-		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w)
+		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w, r)
 		return
 	}
 
 	//make sure password is long enough
 	if len(password1) < minPwdLength {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w)
+		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w, r)
 		return
 	}
 

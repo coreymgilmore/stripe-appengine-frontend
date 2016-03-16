@@ -180,7 +180,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		cards := make([]CustomerDatastore, 0, 50)
 		keys, err := q.GetAll(c, &cards)
 		if err != nil {
-			output.Error(err, "Error retrieving list of cards from datastore.", w)
+			output.Error(err, "Error retrieving list of cards from datastore.", w, r)
 			return
 		}
 
@@ -205,7 +205,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 
 	} else if err != nil {
-		output.Error(err, "Unknown error retrieving list of cards.", w)
+		output.Error(err, "Unknown error retrieving list of cards.", w, r)
 		return
 	}
 
@@ -224,7 +224,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	data, err := findByDatastoreId(c, datstoreIdInt)
 	if err != nil {
-		output.Error(err, "Could not find this customer's data.", w)
+		output.Error(err, "Could not find this customer's data.", w, r)
 		return
 	}
 

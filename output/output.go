@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+
 	"github.com/coreymgilmore/timestamps"
 )
 
@@ -54,7 +57,8 @@ func returnData(ok bool, msgType string, msgData interface{}, resCode int, w htt
 //ERRORS
 //when an error occurs, data object has error message and info
 //sets an http status of error so client does not get a '200'
-func Error(title error, msg string, w http.ResponseWriter) {
+//logs to appengine logs so that we can diagnose any reoccuring client side errors
+func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	//get error as a string
 	titleStr := title.Error()
 
@@ -63,6 +67,10 @@ func Error(title error, msg string, w http.ResponseWriter) {
 		Title: titleStr,
 		Msg:   msg,
 	}
+
+	//log errors into appengine log
+	c := appengine.NewContext(r)
+	log.Errorf(c, "%+v", "output.Error:", d)
 
 	//send message to client
 	returnData(false, "error", d, http.StatusBadRequest, w)
