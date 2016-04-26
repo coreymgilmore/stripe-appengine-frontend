@@ -34,7 +34,6 @@ type RefundData struct {
 	AmountDollars string
 	Timestamp     string
 	Invoice       string
-	Po            string
 	LastFour      string
 	Expiration    string
 	Customer      string
@@ -137,10 +136,10 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 		expMonth := strconv.FormatInt(int64(card["exp_month"].(float64)), 10)
 		expYear := strconv.FormatInt(int64(card["exp_year"].(float64)), 10)
 		expiration := expMonth + "/" + expYear
+
 		meta := charge["metadata"].(map[string]interface{})
 		custName := meta["customer_name"].(string)
 		invoice := meta["invoice_num"].(string)
-		po := meta["po_num"].(string)
 
 		//get refund data
 		//have to check forr "null" fields
@@ -177,7 +176,6 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 				AmountDollars: refundedDollars,
 				Timestamp:     datetime,
 				Invoice:       invoice,
-				Po:            po,
 				LastFour:      lastFour,
 				Expiration:    expiration,
 				Customer:      custName,
