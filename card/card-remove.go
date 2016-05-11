@@ -1,24 +1,21 @@
 /*
-	This file is part of the card package.
-	This specifically deals with removing cards/customers from the datastore and Stripe.
-	This is broken into a separate file for organization.
+File card-remove.go implements functionality for removing a card from the app and stripe.
+This is done when a card changes for a customer (we can only store one card per customer) or
+the card on file is no longer being used.
 */
 
 package card
 
 import (
-	"net/http"
-	"strconv"
-
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
-
+	"net/http"
 	"output"
+	"strconv"
 )
 
-//REMOVE A CARD
-//remove from memcache, datastore, and stripe
+//Remove removes a card from the datastore, memcache, and stripe
 func Remove(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	datastoreId := r.FormValue("customerId")

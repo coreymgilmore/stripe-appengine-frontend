@@ -1,31 +1,26 @@
 /*
-	This file is part of the card package.
-	This specifically deals with processing charges (and refunding charges).
-	These functions are broken out into a separate file for organizational purposes.
+File card-charge.go implements functionality to charge a card.
 */
 
 package card
 
 import (
-	"net/http"
-	"net/url"
-	"strconv"
-	"time"
-
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/refund"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
-
 	"memcacheutils"
+	"net/http"
+	"net/url"
 	"output"
 	"sessionutils"
+	"strconv"
+	"time"
 )
 
-//CHARGE A CARD
+//Charge charges a credit card
 func Charge(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	datastoreId := r.FormValue("datastoreId")
@@ -125,7 +120,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 			errorMsg = "There was an error processing this charge. Please check the Report to see if this charge was successful."
 			break
 		case *url.Error:
-			errorMsg = "Charging this card timed out.  The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
+			errorMsg = "Charging this card timed out. The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
 			break
 		case *stripe.Error:
 			stripeErr := err.(*stripe.Error)
@@ -139,13 +134,13 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//charge successful
 	//save charge to memcache
 	//less data to get from stripe if receipt is needed
+	//errors are ignores since if we can't save this data to memcache we can always get it from the datastore/stripe
 	memcacheutils.Save(c, chg.ID, chg)
 
 	//save count of card types
-	//done in goroutine to stop blocking returning data to user
+	//used for negotiating rates with Stripe and just extra info
 	saveChargeDetails(c, chg)
 
-	//return to client
 	//build struct to output a success message to the client
 	out := chargeSuccessful{
 		CustomerName:   customerName,
@@ -162,80 +157,12 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//REFUND A CHARGE
-func Refund(w http.ResponseWriter, r *http.Request) {
-	//get form values
-	chargeId := r.FormValue("chargeId")
-	amount := r.FormValue("amount")
-	reason := r.FormValue("reason")
-
-	//make sure inputs were given
-	if len(chargeId) == 0 {
-		output.Error(ErrMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
-		return
-	}
-	if len(amount) == 0 {
-		output.Error(ErrMissingInput, "No amount was given to refund.", w, r)
-		return
-	}
-
-	//convert refund amount to cents
-	//stripe requires cents
-	amountCents, err := getAmountAsIntCents(amount)
-	if err != nil {
-		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
-		return
-	}
-
-	//get username of logged in user
-	//for tracking who processed this refund
-	session := sessionutils.Get(r)
-	username := session.Values["username"].(string)
-
-	//build refund
-	params := &stripe.RefundParams{
-		Charge: chargeId,
-		Amount: amountCents,
-	}
-
-	//add metadata to refund
-	//same field name as when creating a charge
-	params.AddMeta("charged_by", username)
-
-	//get reason code for refund
-	if reason == "duplicate" {
-		params.Reason = refund.RefundDuplicate
-	} else if reason == "requested_by_customer" {
-		params.Reason = refund.RefundRequestedByCustomer
-	}
-
-	//init stripe
-	c := appengine.NewContext(r)
-	sc := createAppengineStripeClient(c)
-
-	//create refund with stripe
-	_, err = sc.Refunds.New(params)
-	if err != nil {
-		stripeErr := err.(*stripe.Error)
-		stripeErrMsg := stripeErr.Msg
-		output.Error(ErrStripe, stripeErrMsg, w, r)
-		return
-	}
-
-	//done
-	output.Success("refund-done", nil, w)
-	return
-}
-
-//SAVE COUNT OF CARD CHARGED AND CARD TYPES CHARGED
-//this is used to keep track of how many charges are processed and for what card types
+//saveChargeDetails increments the number of times each type of card is charged and saves this data to the datastore
 //use this info to negotiate better rates with Stripe (not saying Stripe isn't honest, but this gives you accurate data)
-//this just increments some counters in a transaction
-//this should be run in a goroutine so that the parent http calls response is sent back to user faster
 func saveChargeDetails(c context.Context, chg *stripe.Charge) {
-	//FORMAT OF DATA IN DATASTORE
+	//format of data in datastore
 	//total is the total number for charges performed
-	//each card type is the total per card type
+	//each card type is the total number of charges for that per card type
 	//list of card types from https://github.com/stripe/stripe-go/blob/6e49b4ff8c8b6fd2b32499ccad12f3e2fc302a87/card.go
 	type cardCounts struct {
 		Total           int
@@ -248,35 +175,35 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		DinersClub      int
 	}
 
-	//DATASTORE KIND TO SAVE DETAILS UNDER
+	//datastore kind to save details under
 	//separate kind that holds just this data
 	const kind = "chargeDetails"
 
-	//KEY NAME
+	//key name
 	//so we don't have to keep track of a random integer
 	//this replaces the IntID
 	const keyName = "card-count"
 
-	//GET CARD BRAND FROM CHARGE
+	//get card brand from charge
 	brand := string(chg.Source.Card.Brand)
 
-	//GET COMPLETE DATASTORE KEY TO LOOKUP AND UPDATE
+	//get complete datastore key to lookup and update
 	//this is the key of the entity that store the card count data
 	key := datastore.NewKey(c, kind, keyName, 0, nil)
 
-	//TRANSACTION
+	//transaction
 	err := datastore.RunInTransaction(c, func(c context.Context) error {
-		//LOOK UP DATA FROM DATASTORE
+		//look up data from datastore
 		r := new(cardCounts)
 		err := datastore.Get(c, key, r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
 			log.Errorf(c, "%v", "Error looking up card brand count.", err)
 		}
 
-		//INCREMENT COUNTER FOR TOTAL
+		//increment counter for total
 		r.Total++
 
-		//INCREMENT COUNTER FOR CARD BRAND
+		//increment counter for card brand
 		switch brand {
 		case "Visa":
 			r.Visa++
@@ -295,7 +222,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 			log.Warningf(c, "%v", "%v", "Unknown card type:", brand)
 		}
 
-		//SAVE DATA BACK TO DB
+		//save data back to db
 		//perform "update"
 		_, err = datastore.Put(c, key, r)
 		if err != nil {

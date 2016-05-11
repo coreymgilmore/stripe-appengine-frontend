@@ -1,34 +1,28 @@
 /*
-	This file is part of the card package.
-	This specifically deals with adding a new card for future charges.
-	Cards are added by first creating a Stripe Customer.  Then the card is assigned to that customer.
-	Card data is not stored locally, all that is stored in App Engine is the Stripe Customer Token.
-	This token is used to perform future charges.
-	Only one card can be saved per customer.
+File card-add.go implementss functionality to add a new card to the app.
 */
 
 package card
 
 import (
-	"net/http"
-	"strconv"
-
 	"github.com/coreymgilmore/timestamps"
 	"github.com/stripe/stripe-go"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-
 	"memcacheutils"
+	"net/http"
 	"output"
 	"sessionutils"
+	"strconv"
 )
 
-//ADD A NEW CARD TO THE DATASTORE
-//stripe created a card token with stripe.js that can only be used once
-//need to create a stripe customer to charge many times
-//create the customer and save the stripe customer token along with the customer id and customer name to datastore
-//the customer name is used to look up the stripe customer token that is used to charge the card
+//Add adds a new card the the app engine datastore
+//this is done by validating the provided inputs, sending the card token to stripe, and saving the data to the datastore
+//the card token was generaged client side by the stipe-js
+//  this is done so the card number and security code is never sent to the server
+//  the server has no way of "touching" the card number for security
+//when the card token is sent to stripe, stripe generates a customer token which we store and use to process payments
 func Add(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	customerId := r.FormValue("customerId")     //a unique key, not the datastore id or stripe customer id
@@ -65,7 +59,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//if customerId was given, make sure it is unique
 	//this id should be unique in the user's company's crm
-	//the customerId is used to autofill the charge card panel
+	//the customerId is used to autofill the charge card panel when performing the api-like semi-automated charges
 	if len(customerId) != 0 {
 		_, err := FindByCustId(c, customerId)
 		if err == nil {
@@ -95,7 +89,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get username of logged in user
-	//used for tracking who added a card
+	//used for tracking who added a card, just for diagnostics
 	session := sessionutils.Get(r)
 	username := session.Values["username"].(string)
 
@@ -131,12 +125,14 @@ func Add(w http.ResponseWriter, r *http.Request) {
 //**********************************************************************
 //DATASTORE
 
-//CREATE INCOMPLETE KEY
+//createNewCustomerKey generates a new datastore key for saving a new customer/card
+//appengine's datastore does not generate this key automatically when an entity is saved
 func createNewCustomerKey(c context.Context) *datastore.Key {
 	return datastore.NewIncompleteKey(c, datastoreKind, nil)
 }
 
-//SAVE CARD
+//save does the actual saving of a card to the datastore
+//separate function to clean up code
 func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
 	//save customer
 	completeKey, err := datastore.Put(c, key, &customer)
