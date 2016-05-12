@@ -1,21 +1,22 @@
+/*
+Package pages provides functions to display the app's interface, the UI.
+*/
+
 package pages
 
 import (
-	"net/http"
-	"strconv"
-
-	"google.golang.org/appengine"
-
 	"card"
+	"google.golang.org/appengine"
+	"net/http"
 	"sessionutils"
+	"strconv"
 	"templates"
 	"users"
 )
 
-//STRUCT USED FOR AUTOMATICALLY FILLING IN DATA IN THE "CHARGE" PANEL IF A USER IS LOGGED IN
-//user must already be logged in and session token/data is stored
-//this is what powers the api-like autofill of the form data
-//this struct is used to fill in the data when building the output template for the /main/ page
+//autoLoader is used when making api-style semi-automated request to charge a card
+//user must be logged in to the app already for this to work, otherwise user is shown a login page
+//this data is grabbed from the url and auto filled into the app's interface so all a user has to do is click the "charge" button
 type autoloader struct {
 	Amount   float64
 	Invoice  string
@@ -33,8 +34,11 @@ const (
 	adminInitError   = "Admin. Setup Error"
 )
 
-//MAIN ROOT PAGE
-//not logged in page
+//Root is used to show the login page of the app
+//when a user browses to the page (usually just the domain minus any path), the user is checked for a session
+//if a session exists, the app attempts to auto-login the user
+//otherwise a user is shown the log in prompt
+//this also handles the "first run" of the app in which no users exist yet...it forces creation of the "super admin"
 func Root(w http.ResponseWriter, r *http.Request) {
 	//check that session store was initialized correctly
 	if err := sessionutils.CheckSession(); err != nil {
@@ -90,34 +94,38 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//PAGES THAT DO NOT EXIST
+//NotFound is run when a user browses to a pages that does not exists
 //404s
 func NotFound(w http.ResponseWriter, r *http.Request) {
 	notificationPage(w, "panel-danger", "Page Not Found", "This page does not exist. Please try logging in.", "btn-default", "/", "Log In")
 	return
 }
 
-//MAIN LOGGED IN PAGE
-//load the page and show only the nav buttons & panels that a user has access rights to
-//templating hides everything else
-//also use url to autofil data into charge panel
-//if a link to the page has a "customer_id" form value, this will automatically find the customer's card data and show it in the panel
-//if "amount", "invoice", and/or "po" form values are given, these will also automatically be filled into the charge panel's form
-//if "customer_id" is not given, no autofilling will occur of any fields
-//"amount" must be in cents
-//card is no automatically charged, user must still click charge button
+//Main loads the main UI of the app
+//this is the page the user sees once they are logged in
+//this ui is a single page app and holds almost all the functionality of the app
+//the user only sees the parts of the ui they have access to...the rest is removed via go's contemplating
+//we also check if this page was loaded with a bunch of extra data in the url...this would be used to perform the api-like semi-automated charging of the card
+//  if a link to the page has a "customer_id" form value, this will automatically find the customer's card data and show it in the panel
+//  if "amount", "invoice", and/or "po" form values are given, these will also automatically be filled into the charge panel's form
+//  if "customer_id" is not given, no auto filling will occur of any fields
+//  "amount" must be in cents
+//  card is not automatically charged, user still has to click "charge" button
 func Main(w http.ResponseWriter, r *http.Request) {
 	//placeholder for sending data back to template
 	var tempData autoloader
 
 	//get logged in user data
 	//catch instances where session is not working and redirect user to log in page
+	//use the user's data to show/hide certain parts of the ui per the users access rights
 	session := sessionutils.Get(r)
 	if session.IsNew == true {
 		notificationPage(w, "panel-danger", "Cannot Load Page", "Your session has expired or there is an error.  Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
 		return
 	}
+
 	userId := session.Values["user_id"].(int64)
+
 	c := appengine.NewContext(r)
 	user, err := users.Find(c, userId)
 	if err != nil {
@@ -146,24 +154,27 @@ func Main(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tempData.CardData = custData
+	tempData.UserData = user
+
 	//if amount was given, it is in cents
-	//display it in input as dollars
-	//check for other form values and build template
+	//display it in html input as dollars
 	amountUrl := r.FormValue("amount")
 	amountFloat, _ := strconv.ParseFloat(amountUrl, 64)
 	amountDollars := amountFloat / 100
 	tempData.Amount = amountDollars
+
+	//check for other form values and build template
 	tempData.Invoice = r.FormValue("invoice")
 	tempData.Po = r.FormValue("po")
-	tempData.CardData = custData
-	tempData.UserData = user
+
+	//load the page with the card data
 	templates.Load(w, "main", tempData)
 	return
 }
 
-//LOAD THE PAGE TO CREATE THE INITIAL ADMIN USER
-//this is loaded upon the "first run" of the app and that should be it
-//first run is when administrator user does not exist in datastore
+//CreateAdminShow loads the page used to create the initial admin user
+//this is done only upon the app running for the first time (per project on app engine since nothing exists in this project's datastore yet)
 func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 	//check if the admin user already exists
 	//no need to show this page if it does exist
@@ -177,7 +188,7 @@ func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//HELPER FUNC TO SHOW NOTIFICAITON PAGE
+//notificationPage is a helper func to show notification page
 //less retyping
 //panelType is "panel-default", "panel-danger", etc.
 //title is the text in the panel-heading
@@ -188,8 +199,8 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 	return
 }
 
-//GET DIAGNOSTICS FOR APP
-//for figuring out which version of an app is serving from app engine
+//Diagnostics shows a bunch of app engine's information for the app/project
+//useful for figuring out which version of an app is serving
 func Diagnostics(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 

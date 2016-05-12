@@ -1,36 +1,34 @@
 /*
-This file deals with receipts for charges.  Receipts are built using data from Stripe
-on the charge and data for the company.  The company data just makes the receipt look legit.
-
-This file specifically deals with showing the receipt for a charge.
+Package receipt is used to generate and show a receipt for a specific credit card charge.
+The data for a receipt is taken from Stripe (the charge data) and from the app engine datastore
+(information on the company who runs this app). The company data is used to make the receipt look
+legit.
 */
 
 package receipt
 
 import (
+	"chargeutils"
 	"errors"
 	"fmt"
-	"net/http"
-
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-
-	"chargeutils"
 	"memcacheutils"
+	"net/http"
 	"templates"
 )
 
-var (
-	initError                  error
-	ErrCompanyDataDoesNotExist = errors.New("companyInfoDoesNotExist")
-)
+//error for when no company data has been set yet
+//this occurs when an admin did not go into the settings and provide the company info
+var ErrCompanyDataDoesNotExist = errors.New("companyInfoDoesNotExist")
 
-//FOR SHOWING THE RECEIPT IN HTML
-//used for building a template
+//templateData is used for showing the receipt in html
 type templateData struct {
+	//information about the company that uses this app
+	//"your" company, not the company for the card
 	CompanyName,
 	Street,
 	Suite,
@@ -39,6 +37,8 @@ type templateData struct {
 	Postal,
 	Country,
 	PhoneNum,
+
+	//information the card that was charged
 	Customer,
 	Cardholder,
 	CardBrand,
@@ -51,14 +51,10 @@ type templateData struct {
 	Po string
 }
 
-//**********************************************************************
-//HANDLE HTTP REQUESTS
-
-//SHOW THE RECEIPT
-//just a plain text page for easy printing and reading
-//need to get data on the charge from stripe
-//if this charge was just processed, it should be saved in memcache
-//otherwise, get the charge data from stripe
+//Show builds an html page that display a receipt
+//this is a very boring, plain test, monospaced font page designed for easy printing and reading
+//the receipt is generated from the charge id
+//the data for the charge may be in memcache or will have to be retrieved from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
 	//get charge id from form value
 	chargeId := r.FormValue("chg_id")
@@ -76,6 +72,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		stripe.SetBackend(stripe.APIBackend, nil)
 		stripe.SetHTTPClient(urlfetch.Client(c))
 
+		//get charge data
 		chg, err = charge.Get(chargeId, nil)
 		if err != nil {
 			fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
@@ -84,14 +81,14 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//save to memcache
+		//just in case we want to view the receipt again
 		memcacheutils.Save(c, chg.ID, chg)
 	}
 
 	//extract charge data
 	d := chargeutils.ExtractData(chg)
 
-	//get company info from datastore
-	//might also be in memcache
+	//get company info
 	info, err := getCompanyInfo(r)
 	name, street, suite, city, state, postal, country, phone := "", "", "", "", "", "", "", ""
 	if err == ErrCompanyDataDoesNotExist {

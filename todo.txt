@@ -1,0 +1,4 @@
+Reports
+	- when clicking refund, any amount with a comma is not autofilled into the refund modal.
+
+	- filter refunded charges by company (like charges are filtered)

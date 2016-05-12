@@ -1,38 +1,46 @@
+/*
+Package output is used to send data back to client in a consistent manner.
+The data send back is always sent back as JSON.
+Sending data back to client using these funcs allows the data to be easily parsable by
+the client since the format is always the same.
+
+Responses can either be successful or error. Each has specific uses and returns
+data slightly differently.
+*/
+
 package output
 
 import (
 	"encoding/json"
-	"net/http"
-
+	"github.com/coreymgilmore/timestamps"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-
-	"github.com/coreymgilmore/timestamps"
+	"net/http"
 )
 
-//BASIC STRUCT FOR RETURNING DATA TO CLIENT AS JSON
-//Ok is used to tell if an error occured
-//MsgData is an interface because it could be a struct of any type
+//returnObj is the basic format for returning data to the client
+//this is converted to json before it is sent
 type returnObj struct {
-	Ok       bool        `json:"ok"`
+	//true if this is a "succcess" message being returnd
+	//false if this is an "error"
+	Ok bool `json:"ok"`
+
 	MsgType  string      `json:"type"`
 	MsgData  interface{} `json:"data"`
 	Datetime string      `json:"datetime"`
 }
 
-//OBJECT FOR MSGDATA WHEN AN ERROR OCCURS
-//shows info on the error
+//errorObj is the MsgData when an error is being returned
+//this hold some descriptive data on the error that occured
 type errorObj struct {
 	Title string `json:"error_type"`
 	Msg   string `json:"error_msg"`
 }
 
-//**********************************************************************
-
-//RETURN DATA TO CLIENT
-//basic boilerplate function
-//returns data to client in a consistant json object that is easily checked for errors
-//ok is true on successful events, for false when an error occurs
+//returnData is a low level func that actually sends the data back to the client
+//this sends the response
+//ok is true if the message is "success", false if it is "error"
+//resCode is an http response code
 func returnData(ok bool, msgType string, msgData interface{}, resCode int, w http.ResponseWriter) {
 	//build data to return as json
 	o := returnObj{
@@ -43,6 +51,7 @@ func returnData(ok bool, msgType string, msgData interface{}, resCode int, w htt
 	}
 
 	//set content type
+	//since we only want the data to be interpreted as json since that is the only type of data we send back
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
 	//set response code
@@ -54,10 +63,10 @@ func returnData(ok bool, msgType string, msgData interface{}, resCode int, w htt
 	return
 }
 
-//ERRORS
-//when an error occurs, data object has error message and info
-//sets an http status of error so client does not get a '200'
-//logs to appengine logs so that we can diagnose any reoccuring client side errors
+//Error is used when an error occured within the app and we could not continue with the task
+//this returns some data on the error so the user can diagnose it or contact an admin
+//this logs to appengine logs (viewable in google cloud platform) so admins can also see the error and more details
+//responds 400 status code since this clearly was not an "ok" event
 func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	//get error as a string
 	titleStr := title.Error()
@@ -69,6 +78,7 @@ func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	}
 
 	//log errors into appengine log
+	//"%+v" is formatting for the error
 	c := appengine.NewContext(r)
 	log.Errorf(c, "%+v", "output.Error:", d)
 
@@ -77,8 +87,9 @@ func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//SUCCESS
-//when a task completed successfully
+//Success is used when no errors occured and we want to send data back to the client
+//the msgData could be blank/empty if the user was making a request in which all the client looks for is a status ok
+//sometimes no data is returned on purpose
 func Success(msgType string, msgData interface{}, w http.ResponseWriter) {
 	returnData(true, msgType, msgData, http.StatusOK, w)
 	return

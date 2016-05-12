@@ -1,24 +1,34 @@
+/*
+Package middleware implements functionality to authentication to the app and access rights within the app.
+
+User is checked on every endpoint or page load to make sure the user's password has not changed, the user's account
+is active, and if the user's session is still active. This then extends a user's session if the user is valid so
+that the user is "auto logged in" to the app upon loading it.
+
+Access rights determine what elements of the GUI the user can see and interact with as well as limits
+usage of certain endpoints.
+*/
+
 package middleware
 
 import (
 	"errors"
-	"net/http"
-
 	"google.golang.org/appengine"
-
+	"net/http"
 	"output"
 	"sessionutils"
 	"templates"
 	"users"
 )
 
+//error returned when user does not have access rights to a certain functionality
 var ErrNotAuthorized = errors.New("userDoesNotHavePermission")
 
-//MIDDLEWARE TO CHECK IF A USER IS LOGGED IN
-//checks if user is logged in on every page
+//Auth checks if a user is logged in and is allowed access to the app
+//this is done on every page load and every endpoint
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get use data from session
+		//get user data from session
 		session := sessionutils.Get(r)
 
 		//session data does not exist yet
@@ -29,7 +39,9 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		//check if user id is given
+		//check if user id is in session
+		//it *should* be!
+		//otherwise show user a notice and force user to log in again
 		userId, ok := session.Values["user_id"].(int64)
 		if ok == false {
 			sessionutils.Destroy(w, r)
@@ -46,15 +58,16 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		//check if user is allowed access
+		//check if user is allowed access to the app
+		//this is a setting the app's administrators can toggle for each user
 		if users.AllowedAccess(data) == false {
 			sessionutils.Destroy(w, r)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		//okay
-		//extend expirtation of session cookie
+		//user is allowed access
+		//extend expiration of session cookie to allow user to stay "logged in"
 		sessionutils.ExtendExpiration(session, w, r)
 
 		//move to next middleware or handler
@@ -62,7 +75,7 @@ func Auth(next http.Handler) http.Handler {
 	})
 }
 
-//CHECK ACCESS RIGHTS
+//AddCards checks if the user is allowed to add credit cards to the app
 func AddCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
@@ -73,7 +86,7 @@ func AddCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w, r)
+			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
 
@@ -88,6 +101,7 @@ func AddCards(next http.Handler) http.Handler {
 	})
 }
 
+//RemoveCards checks if the user is allowed to remove credit cards from the app
 func RemoveCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
@@ -98,7 +112,7 @@ func RemoveCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w, r)
+			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
 
@@ -113,6 +127,7 @@ func RemoveCards(next http.Handler) http.Handler {
 	})
 }
 
+//ChargeCards checks if the user is allowed to charge credit cards
 func ChargeCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
@@ -123,7 +138,7 @@ func ChargeCards(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w, r)
+			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
 
@@ -138,6 +153,7 @@ func ChargeCards(next http.Handler) http.Handler {
 	})
 }
 
+//ViewReports checks if the user is allowed to view the charge & refunds reports
 func ViewReports(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
@@ -148,7 +164,7 @@ func ViewReports(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w, r)
+			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
 
@@ -163,6 +179,9 @@ func ViewReports(next http.Handler) http.Handler {
 	})
 }
 
+//Administrator checks if the user is an administrator to the app
+//this allows for adding/removing/changing other users
+//also allows for changing the data that shows up on the receipt
 func Administrator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//get session data
@@ -173,7 +192,7 @@ func Administrator(next http.Handler) http.Handler {
 		userId := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userId)
 		if err != nil {
-			output.Error(err, "An error occured in the middleware.", w, r)
+			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
 
@@ -188,7 +207,7 @@ func Administrator(next http.Handler) http.Handler {
 	})
 }
 
-//HELPER FUNC TO SHOW NOTIFICAITON PAGE
+//notificationPage is a helper function to load an html template when an error occurs during authentication
 //less retyping
 //panelType is "panel-default", "panel-danger", etc.
 //title is the text in the panel-heading

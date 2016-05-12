@@ -1,3 +1,8 @@
+/*
+Package memcachutils implements some wrapper functions around the appengine memcache library to make using
+memcache easier and to reduce the amount of retyped code.
+*/
+
 package memcacheutils
 
 import (
@@ -5,8 +10,9 @@ import (
 	"google.golang.org/appengine/memcache"
 )
 
-//SAVE TO MEMCACHE
-//key is actually an int as a string (the intID of a key)
+//Save saves a key value pair to memcache
+//the key is usually a datastore intId represented as a string
+//this saves an object as the value. the value isn't just a string
 func Save(c context.Context, key string, value interface{}) error {
 	//build memcache item to store
 	item := &memcache.Item{
@@ -24,7 +30,7 @@ func Save(c context.Context, key string, value interface{}) error {
 	return nil
 }
 
-//DELETE FROM MEMCACHE
+//Delete removes a key value pair from memcache
 func Delete(c context.Context, key string) error {
 	err := memcache.Delete(c, key)
 	if err == memcache.ErrCacheMiss {

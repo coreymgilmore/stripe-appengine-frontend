@@ -1,4 +1,9 @@
 /*
+Package receipt is used to generate and show a receipt for a specific credit card charge.
+The data for a receipt is taken from Stripe (the charge data) and from the app engine datastore
+(information on the company who runs this app). The company data is used to make the receipt look
+legit.
+
 This file deals with setting, updating, ad getting the company info that is displayed on a receipt.
 The company info is just used to make the receipt look legit and have some helpful info.
 */
@@ -6,15 +11,13 @@ The company info is just used to make the receipt look legit and have some helpf
 package receipt
 
 import (
-	"net/http"
-	"strings"
-
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
-
 	"memcacheutils"
+	"net/http"
 	"output"
+	"strings"
 )
 
 const (
@@ -25,7 +28,7 @@ const (
 	datastoreKey    = "companyInfoKey"
 )
 
-//FOR GETTING DATA FROM DATASTORE
+//companyInfo is used for setting or getting the company data from the datastore
 type companyInfo struct {
 	CompanyName string `json:"company_name"`
 	Street      string `json:"street"`
@@ -37,15 +40,10 @@ type companyInfo struct {
 	PhoneNum    string `json:"phone_num"`
 }
 
-//**********************************************************************
-//GET AND SET RECEIPT/COMPANY INFO
-
-//GET COMPANY INFO
-//done when loading the change company info modal
-//or when building the receipt page
+//GetCompanyInfo is used when viewing the data in the gui or on a receipt
 func GetCompanyInfo(w http.ResponseWriter, r *http.Request) {
+	//get info
 	info, err := getCompanyInfo(r)
-
 	if err != nil {
 		output.Error(err, "", w, r)
 		return
@@ -56,10 +54,9 @@ func GetCompanyInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//SAVE COMPANY INFO
-//this updates existing info if it exists
+//SaveCompanyInfo saves new or updates existing company info in the datastore
 func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
-	//GET FORM VALUES
+	//get form values
 	name := strings.TrimSpace(r.FormValue("name"))
 	street := strings.TrimSpace(r.FormValue("street"))
 	suite := strings.TrimSpace(r.FormValue("suite"))
@@ -69,7 +66,7 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	country := strings.TrimSpace(r.FormValue("country"))
 	phone := strings.TrimSpace(r.FormValue("phone"))
 
-	//LOOK UP DATA FOR THIS COMPANY
+	//look up data for this company
 	//may return a blank struct if this data does not exist yet
 	data, err := getCompanyInfo(r)
 	if err != nil && err != ErrCompanyDataDoesNotExist {
@@ -77,15 +74,15 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//CONTEXT
+	//context
 	c := appengine.NewContext(r)
 
-	//GENERATE ENTITY KEY
+	//generate entity key
 	//keyname is hard coded so only one entity exists
 	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
-	//BUILD ENTITY TO SAVE
-	//update existing entity
+	//build entity to save
+	//or update existing entity
 	data.CompanyName = name
 	data.Street = street
 	data.Suite = suite
@@ -95,14 +92,15 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	data.Country = strings.ToUpper(country)
 	data.PhoneNum = phone
 
-	//SAVE COMPANY INFO
+	//save company info
 	_, err = datastore.Put(c, key, &data)
 	if err != nil {
 		output.Error(err, "", w, r)
 		return
 	}
 
-	//SAVE COMPANY INTO TO MEMCACHE
+	//save company into to memcache
+	//ignoring errors since we can always get data from the datastore
 	memcacheutils.Save(c, memcacheKeyName, data)
 
 	//done
@@ -110,28 +108,23 @@ func SaveCompanyInfo(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//**********************************************************************
-//FUNCS
-
-//GET COMPANY INFO
+//getCompanyInfo actually retrienves the information from memcache or the datastore
+//putting this into a separate func cleans up code elsewhere
 func getCompanyInfo(r *http.Request) (companyInfo, error) {
+	//check memcache
 	c := appengine.NewContext(r)
-
-	//CHECK MEMCACHED
 	var result companyInfo
 	_, err := memcache.Gob.Get(c, memcacheKeyName, &result)
 	if err == nil {
-		//DATA FOUND IN MEMCACHE
-		//return it
 		return result, nil
+	}
 
-		//LOOK FOR DATA IN DATASTORE
-		//since data was not in memache
-	} else if err == memcache.ErrCacheMiss {
-		//GENERATE KEY TO LOOK UP DATA
+	//data not found in memcache
+	//get from datastore
+	if err == memcache.ErrCacheMiss {
 		key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
-		//GET DATA
+		//get data
 		err := datastore.Get(c, key, &result)
 		if err == datastore.ErrNoSuchEntity {
 			return result, ErrCompanyDataDoesNotExist
@@ -139,14 +132,16 @@ func getCompanyInfo(r *http.Request) (companyInfo, error) {
 			return result, err
 		}
 
-		//DATA FOUND, SAVE TO MEMCACHE
+		//save to memcache
+		//ignore errors since we already got the data
 		memcacheutils.Save(c, memcacheKeyName, result)
 
-		//RETURN DATA
+		//return data
 		return result, nil
 
-		//UNKNOWN ERROR
-	} else {
+	} else if err != nil {
 		return companyInfo{}, err
 	}
+
+	return
 }
