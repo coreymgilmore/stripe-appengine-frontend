@@ -336,7 +336,7 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 		return CustomerDatastore{}, err
 	}
 
-	return
+	return CustomerDatastore{}, err
 }
 
 //FindByCustId retrieves a card's information by the unique id from a CRM system
@@ -372,7 +372,7 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 		return CustomerDatastore{}, err
 	}
 
-	return
+	return CustomerDatastore{}, err
 }
 
 //datastoreFindOne finds one entity in the datastore

@@ -1,32 +1,30 @@
 /*
-	This is part of users package.
-	This specifically deals with adding new users to this app.
-	This also deals with creating the first, administrator, user who can manage all other users.
+File users-add.go adds new users to the app.
 */
 
 package users
 
 import (
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/coreymgilmore/pwds"
 	"github.com/coreymgilmore/timestamps"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-
 	"memcacheutils"
+	"net/http"
 	"output"
 	"sessionutils"
+	"strconv"
 )
 
-//SAVE THE INITIAL ADMIN USER
-//sets the password for the "administrator" super user
-//this user is used to create other users
-//done this was b/c if this app is deployed to more app engine projects, we cannot just set something in the datastore on first run
-//doing so would require setting a default password that is shown in the instructions which is insecure
+//**********************************************************************
+//HANDLE HTTP REQUESTS
+
+//CreateAdmin saves the initial super-admin for the app
+//this user is used to log in and create new users
+//this user is created when the app is first deployed and used
+//  done this way b/c we don't want to set a default password/username in the code
 func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//make sure the admin user doesnt already exist
 	err := DoesAdminExist(r)
@@ -93,10 +91,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//ADD A NEW USER
-//gathers data from ajax call
-//does some validation
-//creates and saved the user to datastore and saves user to memcache by IntID
+//Add saves a new user to the app
 func Add(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	username := r.FormValue("username")
@@ -163,14 +158,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//CREATE INCOMPLETE KEY TO SAVE NEW USER
+//**********************************************************************
+//DATASTORE
+
+//createNewCustomerKey generates a new datastore key for saving a new user
+//appengine's datastore does not generate this key automatically when an entity is saved
 func createNewUserKey(c context.Context) *datastore.Key {
 	return datastore.NewIncompleteKey(c, datastoreKind, nil)
 }
 
-//SAVE A USER TO THE DATASTORE
-//input key is an incomplete key
-//returned key is a complete key...use this to save session data
+//saveUser does the actual saving of a user to the datastore
+//separate function to clean up code
 func saveUser(c context.Context, key *datastore.Key, user User) (*datastore.Key, error) {
 	//save to datastore
 	completeKey, err := datastore.Put(c, key, &user)

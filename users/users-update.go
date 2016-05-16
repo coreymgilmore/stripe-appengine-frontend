@@ -1,24 +1,20 @@
 /*
-	This is part of the users package.
-	This deals with changing a user's password or updating a user's permissions.
-	These functions are in a separate file for organization.
+File users-update.go implements functions for changing a user's password or permissions.
 */
 
 package users
 
 import (
-	"net/http"
-	"strconv"
-
 	"github.com/coreymgilmore/pwds"
 	"google.golang.org/appengine"
-
 	"memcacheutils"
+	"net/http"
 	"output"
 	"sessionutils"
+	"strconv"
 )
 
-//UPDATE A USER'S PASSWORD
+//ChangePwd is used to change a user's password
 func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//gather inputs
 	userId := r.FormValue("userId")
@@ -78,9 +74,9 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//UPDATE A USER'S PERMISSIONS
+//UpdatePermissions is used to save changes to a user's permissions (access rights)
 //super-admin "administrator" account cannot be edited...this user always has full permissions
-//you can also not edit your own permissions...so you don't lock yourself out of the app
+//you can not edit your own permissions so you don't lock yourself out of the app
 func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//gather form values
 	userId := r.FormValue("userId")
@@ -116,7 +112,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//check iF user is editing the super admin user
+	//check if user is editing the super admin user
 	if userData.Username == adminUsername {
 		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w, r)
 		return

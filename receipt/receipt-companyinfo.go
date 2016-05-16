@@ -143,5 +143,5 @@ func getCompanyInfo(r *http.Request) (companyInfo, error) {
 		return companyInfo{}, err
 	}
 
-	return
+	return companyInfo{}, err
 }

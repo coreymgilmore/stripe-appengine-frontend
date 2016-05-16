@@ -1,22 +1,19 @@
 /*
-	This is part of the users package.
-	This deals with logging a user in and out of the app.
+File users-login.go is used to handle logging in and logging out of the app
 */
 
 package users
 
 import (
-	"net/http"
-
 	"github.com/coreymgilmore/pwds"
 	"google.golang.org/appengine"
-
+	"net/http"
 	"sessionutils"
 )
 
-//LOGIN
-//verify a username and password combo is correct
-//make sure a user account is active
+//Login verifies a username and password combo
+//this makes sure the user exists, that the password is correct, and that the user is active
+//if user is allowed access, their data is saved to the session and they are redirected into the app
 func Login(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	username := r.FormValue("username")
@@ -59,7 +56,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//LOGOUT
+//Logout handles logging out of the app
+//this removes the session data so a user must log back in before using the app
 func Logout(w http.ResponseWriter, r *http.Request) {
 	//destroy session
 	sessionutils.Destroy(w, r)

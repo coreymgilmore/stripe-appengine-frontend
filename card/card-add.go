@@ -1,5 +1,5 @@
 /*
-File card-add.go implementss functionality to add a new card to the app.
+File card-add.go implements functionality to add a new card to the app.
 */
 
 package card
@@ -16,6 +16,9 @@ import (
 	"sessionutils"
 	"strconv"
 )
+
+//**********************************************************************
+//HANDLE HTTP REQUESTS
 
 //Add adds a new card the the app engine datastore
 //this is done by validating the provided inputs, sending the card token to stripe, and saving the data to the datastore
