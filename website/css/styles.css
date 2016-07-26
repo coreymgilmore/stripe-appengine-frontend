@@ -310,3 +310,16 @@ footer a,
 footer a:hover{
 	color: 						#000;
 }
+
+/*BUTTONS IN PANEL HEADER FOR REPORTS*/
+/*basics*/
+.panel-heading-with-buttons h3{
+	display: 				inline-block; /*so header text and buttons are on the same line*/
+	padding-bottom: 		8px; /*to make spacing between top/bottom of panel heading and buttons is the same*/
+}
+/*remove the buttons on very small screens*/
+@media(max-width: 350px) {
+	.panel-heading-with-buttons .btn-group {
+		display:  			none;
+	}
+}
