@@ -4,3 +4,5 @@ config/stripe-secret-key.txt
 config/statement-descriptor.txt
 
 website/js/stripe-public-key.js
+
+/todo.txt
