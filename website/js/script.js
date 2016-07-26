@@ -1238,7 +1238,7 @@ $('#reports').submit(function (e) {
 $('#report-rows').on('click', '.refund', function() {
 	//get amount of charge
 	var refundBtn = 	$(this);
-	var amountDollars = refundBtn.parent().siblings('td.amount-dollars').children('.amount').text();
+	var amountDollars = parseFloat(refundBtn.parent().siblings('td.amount-dollars').children('.amount').text().replace(",","")).toFixed(2);
 
 	//get charge id
 	var chargeId = 		refundBtn.data("chgid");
