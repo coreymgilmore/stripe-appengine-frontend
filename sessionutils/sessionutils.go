@@ -8,10 +8,12 @@ Session data stores user authentication data in a cookie. The cookie value is en
 package sessionutils
 
 import (
+	"bytes"
 	"errors"
-	"github.com/gorilla/sessions"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/gorilla/sessions"
 )
 
 const (
@@ -74,8 +76,8 @@ func Init() error {
 	}
 
 	//assign to package variables
-	authKey = aKey
-	encryptKey = eKey
+	authKey = bytes.TrimSpace(aKey)
+	encryptKey = bytes.TrimSpace(eKey)
 
 	//init the session store
 	s := sessions.NewCookieStore(
