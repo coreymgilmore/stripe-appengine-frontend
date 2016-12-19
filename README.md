@@ -51,7 +51,7 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 
 ####Limitations:
 - Currency is currently hardcoded as USD.
-  - This can be changed in card/card.go as the card.CURRENCY constant.
+  - This can be changed in card/card.go as the currency constant.
 - You *must* access this app over HTTPS.
   - Stripe requires this for security and it makes absolute sense.
   - If you use this app with the *.appspot.com URL, your app can be accessed by HTTPS without any changes.
