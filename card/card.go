@@ -21,6 +21,16 @@ package card
 import (
 	"chargeutils"
 	"errors"
+	"io/ioutil"
+	"math"
+	"memcacheutils"
+	"net/http"
+	"output"
+	"strconv"
+	"strings"
+	"time"
+	"users"
+
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
 	"golang.org/x/net/context"
@@ -28,14 +38,6 @@ import (
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-	"io/ioutil"
-	"math"
-	"memcacheutils"
-	"net/http"
-	"output"
-	"strconv"
-	"time"
-	"users"
 )
 
 const (
@@ -203,7 +205,9 @@ func Init() error {
 
 	//Save key to Stripe
 	//so we can charge cards and perform other actions
-	stripePrivateKey = string(apikey)
+	//convert to a string since stripe requires the api key to be passed as a string
+	//remove spaces since any whitespace will cause errors
+	stripePrivateKey = strings.TrimSpace(string(apikey))
 	stripe.Key = stripePrivateKey
 
 	//Statement descriptor
