@@ -2,7 +2,10 @@ config/session-auth-key.txt
 config/session-encrypt-key.txt
 config/stripe-secret-key.txt
 config/statement-descriptor.txt
+config/config.json
 
 website/js/stripe-public-key.js
 
 todo.txt
+
+.vscode
