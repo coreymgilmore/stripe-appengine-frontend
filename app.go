@@ -17,22 +17,20 @@ package stripeappenginefrontend
 
 import (
 	"card"
-	"github.com/gorilla/mux"
-	"github.com/justinas/alice"
 	"middleware"
 	"net/http"
 	"pages"
 	"receipt"
 	"sessionutils"
-	"templates"
 	"users"
+
+	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 )
 
 func init() {
-	//**********************************************************************
-	//Initialize the app
-	//build html templates and cache them
-	templates.Init()
+	//**************************************************
+	//Initializing stuff...
 
 	//start the session store to save user authentication data
 	sessionutils.Init()
