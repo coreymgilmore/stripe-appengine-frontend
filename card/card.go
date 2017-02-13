@@ -3,236 +3,149 @@ Package card implements functionality to add, remove, charge, and issue refunds 
 as well as view reports for lists of charges and refunds.
 
 Charges are performed via Stripe. This package requires loading the Stripe private key for your
-Stripe account when the app starts.  The private key should be in the /config folder with the
-name "stripe-secret-key.txt"
+Stripe account when the app starts.  The private key should be in the app.yaml file as an
+environmental variable.
 
-There is also a requirement for another setup file, "statement-descriptor.txt" in the /config
-folder that is used to show a note on card holder's credit card statements.
+When a card is added to the app, very minimal (expiration and last 4) of the card's data
+is actually stored in App Engine. The card's information is sent to Stripe who then
+returns an id for this card. When a charge is processed, this id is sent to Stripe and
+Stripe looks up the card's information to charge it.
 
-When a card is added to the app, none of the card's data is actually stored in App Engine. The
-card's information is sent to Stripe who then returns an id for this card. When a charge is
-processed, this id is sent to Stripe and Stripe looks up the card's information to charge it.
 The information stored in App Engine is safe...no credit card number is stored.  The data is
-just used to identify the Stripe ID so users of the app know which card they are charging.
+just used to identify the card so users of the app know which card they are charging.
 */
 
 package card
 
 import (
-	"chargeutils"
 	"errors"
-	"io/ioutil"
 	"math"
 	"memcacheutils"
 	"net/http"
+	"os"
 	"output"
 	"strconv"
 	"strings"
-	"time"
-	"users"
+
+	"golang.org/x/net/context"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 )
 
-const (
-	//Path to Stripe private key file
-	//this needs to be the "live" key to perform charges that actually collect money
-	//otherwise the "test" key can be used but only with test card numbers
-	//this is stored in a separate file so it is not mistakenly saved with version control since .gitignore ignores the /config directory
-	stripePriateKeyPath = "config/stripe-secret-key.txt"
+//stripeSecretKeyLength is the exact length of a stripe secret key
+//this is used to make sure a valid stripe secret key was provided
+const stripeSecretKeyLength = 32
 
-	//Path to the statement descriptor of charges made through this app
-	//this is the short note that shows up on the card holder's statement
-	//this is stored in a separate file outside of the code for easy changing
-	stripeStatementDescPath = "config/statement-descriptor.txt"
+//maxStatementDescriptorLength is the maximum length of the statement description
+//this is dictated by Stripe
+const maxStatementDescriptorLength = 22
 
-	//The app engine datastore "kind" is similar to a "collection" or "table" in other dbs.
-	datastoreKind = "card"
+//datastoreKind is the name of the "table" or "collection" where card data is stored
+//we store the name to the "kind" in a const for easy reference in other code
+const datastoreKind = "card"
 
-	//Define the key name for storing the list of cards in memcache
-	//this key holds a value that is equal to the json of all cards we have stored in the datastore
-	//it is used to get the list of cards faster then having to query the datastore every time
-	listOfCardsKey = "list-of-cards"
+//listOfCardsKey is the key name for storing the list of cards in memcache
+//this key holds a value that is equal to the json of all cards we have stored in the datastore
+//it is used to get the list of cards faster then having to query the datastore every time
+const listOfCardsKey = "list-of-cards"
 
-	//Currency used for transactions
-	currency = "usd"
+//currency for transactions
+//this should be a simple change for other currencies, but you will need to change the "$" symbol elsewhere in this code base
+const currency = "usd"
 
-	//Minimum charge the app will allow
-	//Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
-	minCharge = 50
+//minCharge is the lowest charge the app will allow
+//Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
+const minCharge = 50
 
-	//The max amount of characters that will show up on a statement
-	//this is dictated by Stripe but via the card companies
-	maxStatementDescriptorLength = 22
-)
+//stripeStatementDescriptor is the description for your company shown on credit card statements
+//this value is read in from environmental variable defined in app.yaml in init()
+//but we need it to be accessible outside of init()
+var stripeStatementDescriptor string
 
+//stripeSecretKey is the private api key from stripe used to charge cards
+//this is read in during init() and when creating a stripe client to process cards
+var stripeSecretKey string
+
+//init func errors
+//since init() cannot return errors, we check for errors upon the app starting up
 var (
-	//Text from files gets read into these variables
-	stripePrivateKey          = ""
-	stripeStatementDescriptor = ""
-
-	//For reporting errors upon app initialization
-	initError error
-
-	//Desctiption of errors
-	ErrStripeKeyTooShort    = errors.New("The Stripe private key ('stripe-secret-key.txt') file was empty. Please provide your Stripe secret key.")
-	ErrStatementDescMissing = errors.New("The statement descriptor ('statement-descriptor.txt') file was empty. Please provide a statement descriptor.")
-	ErrMissingCustomerName  = errors.New("missingCustomerName")
-	ErrMissingCardholerName = errors.New("missingCardholderName")
-	ErrMissingCardToken     = errors.New("missingCardToken")
-	ErrMissingExpiration    = errors.New("missingExpiration")
-	ErrMissingLast4         = errors.New("missingLast4CardDigits")
-	ErrStripe               = errors.New("stripeError")
-	ErrMissingInput         = errors.New("missingInput")
-	ErrChargeAmountTooLow   = errors.New("amountLessThanMinCharge")
-	ErrCustomerNotFound     = errors.New("customerNotFound")
-	ErrCustIdAlreadyExists  = errors.New("customerIdAlreadyExists")
+	initError               error
+	ErrStripeKeyInvalid     = errors.New("Card: The Stripe secret key you provided is invalid. Provide a valid Stripe secret key in app.yaml.")
+	ErrStatementDescMissing = errors.New("Card: You did not provide a statement descriptor. Provide one in app.yaml.")
 )
 
-//CustomerDatastore is the format for data being saved to the datastore when a new customer is added
-//this data is also returned when looking up a customer
-type CustomerDatastore struct {
-	//The CRM id of the customer
-	//used when performing semi-automated api style requests to this app
-	//this should be unique for every customer but can be left blank
-	CustomerId string `json:"customer_id"`
+//other errors
+var (
+	ErrMissingCustomerName  = errors.New("Card: missingCustomerName")
+	ErrMissingCardholerName = errors.New("Card: missingCardholderName")
+	ErrMissingCardToken     = errors.New("Card: missingCardToken")
+	ErrMissingExpiration    = errors.New("Card: missingExpiration")
+	ErrMissingLast4         = errors.New("Card: missingLast4CardDigits")
+	ErrStripe               = errors.New("Card: stripeError")
+	ErrMissingInput         = errors.New("Card: missingInput")
+	ErrChargeAmountTooLow   = errors.New("Card: amountLessThanMinCharge")
+	ErrCustomerNotFound     = errors.New("Card: customerNotFound")
+	ErrCustIDAlreadyExists  = errors.New("Card: customerIdAlreadyExists")
+)
 
-	//The name of the customer
-	//usually this is the company an individual card holder works for
-	CustomerName string `json:"customer_name"`
-
-	//The name on the card
-	Cardholder string `json:"cardholder_name"`
-
-	//MM/YYYY
-	//used to just show in the gui which card is on file
-	CardExpiration string `json:"card_expiration"`
-
-	//Used to just show in the gui which card is on file
-	CardLast4 string `json:"card_last4"`
-
-	//The id returned when a card is saved via Stripe
-	//this id uniquely identifies this card for this customer
-	StripeCustomerToken string `json:"-"`
-
-	//When was this card added to the app
-	DatetimeCreated string `json:"-"`
-
-	//Which user of the app saved the card
-	//mostly used for diagnostics in the cloud platform console
-	AddedByUser string `json:"added_by"`
-}
-
-//chargeSuccessful is used to return data to the gui when a charge is processed
-//this data shows which card was processed and some confirmation details.
-type chargeSuccessful struct {
-	CustomerName   string `json:"customer_name"`
-	Cardholder     string `json:"cardholder_name"`
-	CardExpiration string `json:"card_expiration"`
-	CardLast4      string `json:"card_last4"`
-
-	//The amount of the charge as a dollar amount string
-	Amount string `json:"amount"`
-
-	//The invoice number to reference for this charge
-	Invoice string `json:"invoice"`
-
-	//The po number to reference for this charge
-	Po string `json:"po"`
-
-	//When the charge was processed
-	Datetime string `json:"datetime"`
-
-	//The id returned by stripe for this charge
-	//used to show a receipt if needed
-	ChargeId string `json:"charge_id"`
-}
-
-//CardList is used to return the list of cards available to be charged to build the gui
-//the list is filled into a datalist in html to form an autocomplete list
-//the app user chooses a card from this list to remove or process a charge
-type CardList struct {
-	//Company name for the card
-	CustomerName string `json:"customer_name"`
-
-	//The App Engine datastore id of the card
-	//This is what uniquely identifies the card in the app engine datatore so we can look up the stripe customer token to process a charge
-	Id int64 `json:"id"`
-}
-
-//reportData is used to build the report UI
-type reportData struct {
-	//The data for the logged in user
-	//so we can show/hide certain UI elements based on the user's access rights
-	UserData users.User `json:"user_data"`
-
-	//The datetime we are filtering for getting report data
-	//to limit the days a report gets data for
-	StartDate time.Time `json:"start_datetime"`
-	EndDate   time.Time `json:"end_datetime"`
-
-	//Data for each charge for the report
-	//this is a bunch of "rows" from Stripe
-	Charges []chargeutils.Data `json:"charges"`
-
-	//Data for each refund for the report
-	//similar to Charges above
-	Refunds []chargeutils.RefundData `json:"refunds"`
-
-	//The total amount of all charges within the report date range
-	TotalAmount string `json:"total_amount"`
-
-	//Number of charges within the report date range
-	NumCharges uint16 `json:"num_charges"`
-}
-
-//Init reads the private key and statement descriptor text files into the app
+//init reads the private key and statement descriptor environmental varibales into the app
 //the values of these files are saved for use in other parts of this app
 //an error is thrown if either of these files is missing as they are both required for the app to work
-func Init() error {
-	//Stripe private key
-	apikey, err := ioutil.ReadFile(stripePriateKeyPath)
-	if err != nil {
-		initError = err
-		return err
+func init() {
+	//stripe private key
+	secretKey := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
+	if len(secretKey) != stripeSecretKeyLength {
+		initError = ErrStripeKeyInvalid
+
 	}
 
-	//Save key to Stripe
-	//so we can charge cards and perform other actions
-	//convert to a string since stripe requires the api key to be passed as a string
-	//remove spaces since any whitespace will cause errors
-	stripePrivateKey = strings.TrimSpace(string(apikey))
-	stripe.Key = stripePrivateKey
+	//save key to Stripe so we can charge cards and perform other actions
+	stripe.Key = secretKey
 
-	//Statement descriptor
-	descriptor, err := ioutil.ReadFile(stripeStatementDescPath)
-	if err != nil {
-		initError = err
-		return err
+	//save key to create stripe client later
+	stripeSecretKey = secretKey
+
+	//statement descriptor
+	stmtDesc := strings.TrimSpace(os.Getenv("STATEMENT_DESCRIPTOR"))
+	if len(stmtDesc) == 0 {
+		initError = ErrStatementDescMissing
+		return
+	}
+
+	//trim to max length if needed
+	if len(stmtDesc) > maxStatementDescriptorLength {
+		stmtDesc = stmtDesc[:maxStatementDescriptorLength]
 	}
 
 	//Save description to variable for use when charging
-	stripeStatementDescriptor = string(descriptor)
+	stripeStatementDescriptor = stmtDesc
+
+	//done
+	return
+}
+
+//CheckInit makes sure init() completed successfully since init() cannot return errors
+func CheckInit() error {
+	if initError != nil {
+		return initError
+	}
 
 	return nil
 }
-
-//**********************************************************************
-//HANDLE HTTP REQUESTS
 
 //GetAll retrieves the list of all cards in the datastore (datastore id and customer name only)
 //the data is pulled from memcache or the datastore
 //the data is returned as json to populate the datalist in the html ui
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	//check if list of cards is in memcache
 	c := appengine.NewContext(r)
-	result := make([]CardList, 0, 50)
+
+	//check if list of cards is in memcache
+	var result []CardList
 	_, err := memcache.Gob.Get(c, listOfCardsKey, &result)
 	if err == nil {
 		output.Success("cardlist-cached", result, w)
@@ -241,11 +154,11 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//list of cards not found in memcache
 	//get list from datastore
-	//only need to get entity keys and customer names: cuts down on datastore usage
+	//only need to get entity keys and customer names which cuts down on datastore usage
 	//save the list to memcache for faster retrieval next time
 	if err == memcache.ErrCacheMiss {
 		q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
-		cards := make([]CustomerDatastore, 0, 50)
+		var cards []CustomerDatastore
 		keys, err := q.GetAll(c, &cards)
 		if err != nil {
 			output.Error(err, "Error retrieving list of cards from datastore.", w, r)
@@ -255,7 +168,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		//build result
 		//format data to show just datastore id and customer name
 		//creates a map of structs
-		idAndNames := make([]CardList, 0, 50)
+		var idAndNames []CardList
 		for i, r := range cards {
 			x := CardList{r.CustomerName, keys[i].IntID()}
 			idAndNames = append(idAndNames, x)
@@ -280,13 +193,13 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 //GetOne retrieves the full data for one card from the datastore
 //this is used to fill in the "charge card" panel with identifying info on the card so the user car verify they are charging the correct card
 func GetOne(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
 	//get form value
-	datastoreId := r.FormValue("customerId")
-	datstoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
+	datstoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)
 
 	//get customer card data
-	c := appengine.NewContext(r)
-	data, err := findByDatastoreId(c, datstoreIdInt)
+	data, err := findByDatastoreID(c, datstoreID)
 	if err != nil {
 		output.Error(err, "Could not find this customer's data.", w, r)
 		return
@@ -297,24 +210,21 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//**********************************************************************
-//DATASTORE
-
-//getCustomerKeyFromId gets the full datastore key from the id
-//id is just numeric, key is a big string with the appengine name, kind name, etc.
+//getCustomerKeyFromID gets the full datastore key from the id
+//id is just numeric, key is a long string with the appengine app name, kind name, etc.
 //key is what is actually used to find entities in the datastore
-func getCustomerKeyFromId(c context.Context, id int64) *datastore.Key {
+func getCustomerKeyFromID(c context.Context, id int64) *datastore.Key {
 	return datastore.NewKey(c, datastoreKind, "", id, nil)
 }
 
-//findByDatastoreId retrieves a card's information by its datastore id
+//findByDatastoreID retrieves a card's information by its datastore id
 //this returns all the info on a card that is needed to build the ui
 //first memcache is checked for the data, then the datastore
-func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore, error) {
+func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
 	//check for card in memcache
 	var r CustomerDatastore
-	datastoreIdStr := strconv.FormatInt(datastoreId, 10)
-	_, err := memcache.Gob.Get(c, datastoreIdStr, &r)
+	datastoreIDStr := strconv.FormatInt(datastoreID, 10)
+	_, err := memcache.Gob.Get(c, datastoreIDStr, &r)
 	if err == nil {
 		return r, nil
 	}
@@ -323,34 +233,34 @@ func findByDatastoreId(c context.Context, datastoreId int64) (CustomerDatastore,
 	//look up data in datastore
 	//save card to memcache after it is found
 	if err == memcache.ErrCacheMiss {
-		key := getCustomerKeyFromId(c, datastoreId)
-		data, err := datastoreFindOne(c, "__key__ =", key, []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"})
+		key := getCustomerKeyFromID(c, datastoreID)
+		fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
+		data, err := datastoreFindOne(c, "__key__ =", key, fields)
 		if err != nil {
 			return data, err
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, datastoreIdStr, data)
+		memcacheutils.Save(c, datastoreIDStr, data)
 
 		//done
 		return data, nil
 
-	} else {
-		return CustomerDatastore{}, err
 	}
 
+	//most likely an error occured
 	return CustomerDatastore{}, err
 }
 
-//FindByCustId retrieves a card's information by the unique id from a CRM system
+//FindByCustID retrieves a card's information by the unique id from a CRM system
 //this id was provided when a card was saved
 //this func is used when making api style request to semi-automate the charging of a card.
 //first memcache is checked for the data, then the datastore
-func FindByCustId(c context.Context, customerId string) (CustomerDatastore, error) {
+func FindByCustID(c context.Context, customerID string) (CustomerDatastore, error) {
 	//check for card in memcache
 	var r CustomerDatastore
-	_, err := memcache.Gob.Get(c, customerId, &r)
+	_, err := memcache.Gob.Get(c, customerID, &r)
 	if err == nil {
 		return r, nil
 	}
@@ -360,22 +270,22 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 	//save card to memcache after it is found
 	if err == memcache.ErrCacheMiss {
 		//only getting the fields we need to show data in the charge card panel
-		data, err := datastoreFindOne(c, "CustomerId =", customerId, []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"})
+		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"}
+		data, err := datastoreFindOne(c, "CustomerId =", customerID, fields)
 		if err != nil {
 			return data, err
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, customerId, data)
+		memcacheutils.Save(c, customerID, data)
 
 		//done
 		return data, nil
 
-	} else {
-		return CustomerDatastore{}, err
 	}
 
+	//most likely an error occured
 	return CustomerDatastore{}, err
 }
 
@@ -383,60 +293,26 @@ func FindByCustId(c context.Context, customerId string) (CustomerDatastore, erro
 //this function wraps around the datastore package to clean up the code
 //project is a string slice listing the column names we would like returned. less fields is more efficient
 func datastoreFindOne(c context.Context, filterField string, filterValue interface{}, project []string) (CustomerDatastore, error) {
-	q := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	r := make([]CustomerDatastore, 0, 1)
-
-	_, err := q.GetAll(c, &r)
+	//query
+	query := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
+	var result []CustomerDatastore
+	_, err := query.GetAll(c, &result)
 	if err != nil {
 		return CustomerDatastore{}, err
 	}
 
 	//check if one result exists
-	if len(r) == 0 {
+	if len(result) == 0 {
 		return CustomerDatastore{}, ErrCustomerNotFound
 	}
 
-	//get one result
-	return r[0], nil
+	//return the single result
+	return result[0], nil
 }
 
-//**********************************************************************
-//FUNCS
-
-//CheckStripe is used to make sure that a Stripe private key was provided
-func CheckStripe() error {
-	//check if reading key from file returned an error
-	if initError != nil {
-		return initError
-	}
-
-	//check if there was actually some text read
-	if len(stripePrivateKey) == 0 {
-		return ErrStripeKeyTooShort
-	}
-
-	//private key read correctly
-	return nil
-}
-
-//FORMAT STATEMENT DESCRIPTOR
-//this is a max of 22 characters long
-//just in case user specified a longer descriptor in the config file
-
-//formatStatementDescripto trims the text from the statement descriptor file down to the max size allowed
-func formatStatementDescriptor() string {
-	s := stripeStatementDescriptor
-
-	if len(s) > maxStatementDescriptorLength {
-		return s[:maxStatementDescriptorLength]
-	}
-
-	return s
-}
-
-//calcTxOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang
+//calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang
 //input is a number such as -4 for EST generated via JS:
-//  var d = new Date(); (d.getTimezoneOffset() / 60 * -1);
+//var d = new Date(); (d.getTimezoneOffset() / 60 * -1);
 //the output is a string in the format "-0400"
 //the output is used to construct a golang time.Time
 func calcTzOffset(hoursToUTC string) string {
@@ -489,7 +365,7 @@ func createAppengineStripeClient(c context.Context) *client.API {
 	httpClient := urlfetch.Client(c)
 
 	//returns "sc" stripe client
-	return client.New(stripePrivateKey, stripe.NewBackends(httpClient))
+	return client.New(stripeSecretKey, stripe.NewBackends(httpClient))
 }
 
 //getAmountAsIntCents converts a dollar amount as a string into a cents integer value
