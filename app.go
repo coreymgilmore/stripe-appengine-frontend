@@ -28,12 +28,6 @@ import (
 )
 
 func init() {
-	//**************************************************
-	//Initializing stuff...
-
-	//read some configuration data for Stripe
-	//private key for processing payments
-	card.Init()
 
 	//**********************************************************************
 	//Middleware
