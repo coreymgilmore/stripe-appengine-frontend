@@ -1,0 +1,25 @@
+Changes in V2
+-------------
+
+- use init() function to initialize packages instead of calling another function (i.e. package.Init())
+    - this clean up code
+    - makes code more "golang" styled
+    - remove "initialization" from app.go's init() func.
+
+- store config stuff in environmental variables in app.yaml
+    - **this is a breaking change**
+    - remove need for creating txt files for session keys, stripe key, and statement descriptor.
+    - uses standard appengine abilities instead of having to read from files
+    - cleans up code base
+
+- clean up code everywhere
+    - better documentation
+    - better styling and formatting
+
+- remove some external dependencies and include them as local packages instead
+    - less dependencies
+
+- add "charge and remove" feature
+    - allows users to charge and remove a card all in one step
+    - used for one-time cards or times when a customer only wants to use a card once
+    - just removes need for choosing "charge" then "remove"
