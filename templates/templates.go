@@ -2,7 +2,7 @@
 Package templates handles dealing with HTML files used to build the GUI.
 
 This package reads through the HTML files that make up the pages,
-parses the files, and builds them into golang templates.  These build
+parses the files, and builds them into golang templates.  These built
 templates are then available to be shown to the user.  Templates are just
 regular HTML files with some golang templating code.
 */
@@ -15,8 +15,6 @@ import (
 	"log"
 	"net/http"
 )
-
-//directory where template files are saved
 
 //templateDir is the directory where the HTML files are stored
 //this is based off of the "app.go" file
@@ -35,12 +33,6 @@ type NotificationPage struct {
 	LinkHref   string
 	BtnText    string
 }
-
-//Init reads the templates files from a directory, parses them, and builds templates to be used in the future
-//  scans for files in the template directory
-//  saves each file as a full path to a map (map of strings where each string is a file path)
-//  then builds the templates with these files
-//  do this instead of having to list every file in ParseFiles() manually
 
 //init handles finding the HTML files, parsing them, and building the golang templates.
 //this is done when the program first starts.
