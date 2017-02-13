@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"pages"
 	"receipt"
-	"sessionutils"
 	"users"
 
 	"github.com/gorilla/mux"
@@ -31,9 +30,6 @@ import (
 func init() {
 	//**************************************************
 	//Initializing stuff...
-
-	//start the session store to save user authentication data
-	sessionutils.Init()
 
 	//read some configuration data for Stripe
 	//private key for processing payments
