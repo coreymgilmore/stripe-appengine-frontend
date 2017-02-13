@@ -3,6 +3,12 @@ version: 15
 runtime: go
 api_version: go1
 
+default_expiration: "7d"
+
+env_variables:
+  SESSION_AUTH_KEY: "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"
+  SESSION_ENCRYPT_KEY: "asdfasdfasdfasdfasdfasdfasdfasdf"
+
 handlers:
 - url: /css
   static_dir: website/css
