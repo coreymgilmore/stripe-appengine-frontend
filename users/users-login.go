@@ -5,10 +5,11 @@ File users-login.go is used to handle logging in and logging out of the app
 package users
 
 import (
-	"github.com/coreymgilmore/pwds"
-	"google.golang.org/appengine"
 	"net/http"
+	"pwds"
 	"sessionutils"
+
+	"google.golang.org/appengine"
 )
 
 //Login verifies a username and password combo

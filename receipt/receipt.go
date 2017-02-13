@@ -11,17 +11,18 @@ import (
 	"chargeutils"
 	"errors"
 	"fmt"
+	"memcacheutils"
+	"net/http"
+	"templates"
+
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
-	"memcacheutils"
-	"net/http"
-	"templates"
 )
 
-//error for when no company data has been set yet
+//ErrCompanyDataDoesNotExist is thrown when no company data has been set yet
 //this occurs when an admin did not go into the settings and provide the company info
 var ErrCompanyDataDoesNotExist = errors.New("companyInfoDoesNotExist")
 
@@ -38,7 +39,7 @@ type templateData struct {
 	Country,
 	PhoneNum,
 
-	//information the card that was charged
+	//information about the card that was charged
 	Customer,
 	Cardholder,
 	CardBrand,
@@ -56,13 +57,14 @@ type templateData struct {
 //the receipt is generated from the charge id
 //the data for the charge may be in memcache or will have to be retrieved from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
 	//get charge id from form value
-	chargeId := r.FormValue("chg_id")
+	chargeID := r.FormValue("chg_id")
 
 	//try looking up charge data in memcache
 	var chg *stripe.Charge
-	c := appengine.NewContext(r)
-	_, err := memcache.Gob.Get(c, chargeId, &chg)
+	_, err := memcache.Gob.Get(c, chargeID, &chg)
 
 	//charge not found in memcache
 	//look up charge data from stripe
@@ -73,7 +75,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		stripe.SetHTTPClient(urlfetch.Client(c))
 
 		//get charge data
-		chg, err = charge.Get(chargeId, nil)
+		chg, err = charge.Get(chargeID, nil)
 		if err != nil {
 			fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
 			fmt.Fprint(w, err)
@@ -90,7 +92,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 	//get company info
 	info, err := getCompanyInfo(r)
-	name, street, suite, city, state, postal, country, phone := "", "", "", "", "", "", "", ""
+	var name, street, suite, city, state, postal, country, phone string
 	if err == ErrCompanyDataDoesNotExist {
 		name = "**Company info has not been set yet.**"
 		street = "**Please contact an administrator to fix this.**"

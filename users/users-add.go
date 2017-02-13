@@ -5,26 +5,24 @@ File users-add.go adds new users to the app.
 package users
 
 import (
-	"fmt"
-	"github.com/coreymgilmore/pwds"
-	"github.com/coreymgilmore/timestamps"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
+	"fmt"
 	"memcacheutils"
 	"net/http"
 	"output"
+	"pwds"
 	"sessionutils"
 	"strconv"
-)
+	"timestamps"
 
-//**********************************************************************
-//HANDLE HTTP REQUESTS
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+)
 
 //CreateAdmin saves the initial super-admin for the app
 //this user is used to log in and create new users
 //this user is created when the app is first deployed and used
-//  done this way b/c we don't want to set a default password/username in the code
+//done this way b/c we don't want to set a default password/username in the code
 func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//make sure the admin user doesnt already exist
 	err := DoesAdminExist(r)
@@ -157,9 +155,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.Success("addNewUser", nil, w)
 	return
 }
-
-//**********************************************************************
-//DATASTORE
 
 //createNewCustomerKey generates a new datastore key for saving a new user
 //appengine's datastore does not generate this key automatically when an entity is saved

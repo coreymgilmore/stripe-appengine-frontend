@@ -5,20 +5,21 @@ File users-update.go implements functions for changing a user's password or perm
 package users
 
 import (
-	"github.com/coreymgilmore/pwds"
-	"google.golang.org/appengine"
 	"memcacheutils"
 	"net/http"
 	"output"
+	"pwds"
 	"sessionutils"
 	"strconv"
+
+	"google.golang.org/appengine"
 )
 
 //ChangePwd is used to change a user's password
 func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//gather inputs
-	userId := r.FormValue("userId")
-	userIdInt, _ := strconv.ParseInt(userId, 10, 64)
+	userID := r.FormValue("userId")
+	userIDInt, _ := strconv.ParseInt(userID, 10, 64)
 	password1 := r.FormValue("pass1")
 	password2 := r.FormValue("pass2")
 
@@ -39,7 +40,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//get user data
 	c := appengine.NewContext(r)
-	userData, err := Find(c, userIdInt)
+	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "Error while retreiving user data to update user's password.", w, r)
 		return
@@ -49,7 +50,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	userData.Password = hashedPwd
 
 	//clear memcache for this userID & username
-	err = memcacheutils.Delete(c, userId)
+	err = memcacheutils.Delete(c, userID)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
 		output.Error(err, "Error clearing cache for user id.", w, r)
@@ -60,7 +61,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//generate full datastore key for user
-	fullKey := getUserKeyFromId(c, userIdInt)
+	fullKey := getUserKeyFromID(c, userIDInt)
 
 	//save user
 	_, err = saveUser(c, fullKey, userData)
@@ -79,8 +80,8 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 //you can not edit your own permissions so you don't lock yourself out of the app
 func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//gather form values
-	userId := r.FormValue("userId")
-	userIdInt, _ := strconv.ParseInt(userId, 10, 64)
+	userID := r.FormValue("userId")
+	userIDInt, _ := strconv.ParseInt(userID, 10, 64)
 	addCards, _ := strconv.ParseBool(r.FormValue("addCards"))
 	removeCards, _ := strconv.ParseBool(r.FormValue("removeCards"))
 	chargeCards, _ := strconv.ParseBool(r.FormValue("chargeCards"))
@@ -99,7 +100,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 
 	//get user data to update
 	c := appengine.NewContext(r)
-	userData, err := Find(c, userIdInt)
+	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w, r)
 		return
@@ -127,7 +128,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	userData.Active = isActive
 
 	//clear memcache
-	err = memcacheutils.Delete(c, userId)
+	err = memcacheutils.Delete(c, userID)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
 		output.Error(err, "Error clearing cache for user id.", w, r)
@@ -138,7 +139,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//generate complete key for user
-	completeKey := getUserKeyFromId(c, userIdInt)
+	completeKey := getUserKeyFromID(c, userIDInt)
 
 	//resave user
 	//saves to datastore and memcache

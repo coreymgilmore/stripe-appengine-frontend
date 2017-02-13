@@ -5,23 +5,24 @@ File card-refund.go implements functionality for refunding money back to a credi
 package card
 
 import (
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/refund"
-	"google.golang.org/appengine"
 	"net/http"
 	"output"
 	"sessionutils"
+
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/refund"
+	"google.golang.org/appengine"
 )
 
-//REFUND A CHARGE
+//Refund handles refunding a charge on a card
 func Refund(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	chargeId := r.FormValue("chargeId")
+	chargeID := r.FormValue("chargeId")
 	amount := r.FormValue("amount")
 	reason := r.FormValue("reason")
 
 	//make sure inputs were given
-	if len(chargeId) == 0 {
+	if len(chargeID) == 0 {
 		output.Error(ErrMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
 		return
 	}
@@ -45,13 +46,13 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//build refund
 	params := &stripe.RefundParams{
-		Charge: chargeId,
+		Charge: chargeID,
 		Amount: amountCents,
 	}
 
 	//add metadata to refund
 	//same field name as when creating a charge
-	params.AddMeta("charged_by", username)
+	params.AddMeta("processed_by", username)
 
 	//get reason code for refund
 	//these are defined by stripe

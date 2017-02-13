@@ -11,7 +11,6 @@ package sessionutils
 import (
 	"errors"
 	"net/http"
-
 	"os"
 	"strings"
 
@@ -39,16 +38,17 @@ var options = &sessions.Options{
 	Domain:   sessionCookieDomain,
 	Path:     "/",
 	MaxAge:   60 * 60 * 24 * 7, //cookie for session expires in 7 days
-	HttpOnly: false,            //should be set to true in production
-	Secure:   false,            //should be set to true in production
+	HttpOnly: true,             //should be set to true in production
+	Secure:   true,             //should be set to true in production
 }
 
 //init func errors
 //since init() cannot return errors, we check for errors upon the app starting up
 var (
 	initError             error
-	ErrAuthKeyWrongSize   = errors.New("Session: Auth key wrong size. Must by 64 bytes long.")
-	ErrEncyptKeyWrongSize = errors.New("Session: Encrypt key wrong size. Must be 32 bytes long.")
+	initErrorVal          interface{}
+	ErrAuthKeyWrongSize   = errors.New("Session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long.")
+	ErrEncyptKeyWrongSize = errors.New("Session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long.")
 )
 
 //init initializes the session store
@@ -62,8 +62,9 @@ func init() {
 	}
 
 	encryptKey := strings.TrimSpace(os.Getenv("SESSION_ENCRYPT_KEY"))
-	if len(authKey) != encryptKeyLength {
+	if len(encryptKey) != encryptKeyLength {
 		initError = ErrEncyptKeyWrongSize
+		initErrorVal = len(encryptKey)
 		return
 	}
 
@@ -81,6 +82,16 @@ func init() {
 
 	//done
 	return
+}
+
+//CheckInit makes sure no errors occured during init()
+//since init() cannot return errors and we need to make sure init() completed successfully
+func CheckInit() error {
+	if initError != nil {
+		return initError
+	}
+
+	return nil
 }
 
 //Get gets an existing session for a request or creates a new session if none exists

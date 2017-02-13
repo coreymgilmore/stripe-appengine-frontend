@@ -11,18 +11,19 @@ The company info is just used to make the receipt look legit and have some helpf
 package receipt
 
 import (
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/memcache"
 	"memcacheutils"
 	"net/http"
 	"output"
 	"strings"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/memcache"
 )
 
+//for referencing when looking up or setting data in datastore or memcache
+//so we don't need to type in key names anywhere
 const (
-	//for referencing when looking up or setting data in datastore or memcache
-	//so we don't need to type in key names anywhere
 	memcacheKeyName = "company-info-memcache-key"
 	datastoreKind   = "companyInfo"
 	datastoreKey    = "companyInfoKey"

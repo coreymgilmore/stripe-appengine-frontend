@@ -5,12 +5,6 @@ File card-charge.go implements functionality to charge a card.
 package card
 
 import (
-	"github.com/coreymgilmore/timestamps"
-	"github.com/stripe/stripe-go"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 	"memcacheutils"
 	"net/http"
 	"net/url"
@@ -66,15 +60,15 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//need to adjust deadline in case stripe takes longer than 5 seconds
 	//default timeout for a urlfetch is 5 seconds
 	//sometimes charging a card through stripe api takes longer
-	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (old deadline)
+	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 secodns is a bit over generous but covers even really strange senarios
 	c := appengine.NewContext(r)
 	c, _ = context.WithTimeout(c, 10*time.Second)
 
 	//look up stripe customer id from datastore
-	datastoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
-	custData, err := findByDatastoreId(c, datastoreIdInt)
+	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
+	custData, err := findByDatastoreID(c, datastoreIDInt)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
 		return
@@ -89,7 +83,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//get username of logged in user
 	//used for tracking who processed a charge
-	//for audits and reports
+	//for reports
 	session := sessionutils.Get(r)
 	username := session.Values["username"].(string)
 
@@ -102,17 +96,17 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Amount:    amountCents,
 		Currency:  currency,
 		Desc:      "Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
-		Statement: formatStatementDescriptor(),
+		Statement: stripeStatementDescriptor,
 	}
 
 	//add metadata to charge
 	//used for reports and receipts
 	chargeParams.AddMeta("customer_name", customerName)
-	chargeParams.AddMeta("datastore_id", datastoreId)
-	chargeParams.AddMeta("customer_id", custData.CustomerId)
+	chargeParams.AddMeta("appengine_datastore_id", datastoreID)
+	chargeParams.AddMeta("customer_id", custData.CustomerID)
 	chargeParams.AddMeta("invoice_num", invoice)
 	chargeParams.AddMeta("po_num", poNum)
-	chargeParams.AddMeta("charged_by", username)
+	chargeParams.AddMeta("processed_by", username)
 
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
@@ -168,7 +162,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		Invoice:        invoice,
 		Po:             poNum,
 		Datetime:       timestamps.ISO8601(),
-		ChargeId:       chg.ID,
+		ChargeID:       chg.ID,
 	}
 	output.Success("cardCharged", out, w)
 	return

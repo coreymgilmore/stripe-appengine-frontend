@@ -5,30 +5,29 @@ File card-add.go implements functionality to add a new card to the app.
 package card
 
 import (
-	"github.com/coreymgilmore/timestamps"
-	"github.com/stripe/stripe-go"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
 	"memcacheutils"
 	"net/http"
 	"output"
 	"sessionutils"
 	"strconv"
+	"timestamps"
+
+	"golang.org/x/net/context"
+
+	"github.com/stripe/stripe-go"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 )
 
-//**********************************************************************
-//HANDLE HTTP REQUESTS
-
-//Add adds a new card the the app engine datastore
+//Add adds a new card the the appengine datastore
 //this is done by validating the provided inputs, sending the card token to stripe, and saving the data to the datastore
-//the card token was generaged client side by the stipe-js
+//the card token was generated client side by the stipe-js
 //  this is done so the card number and security code is never sent to the server
 //  the server has no way of "touching" the card number for security
 //when the card token is sent to stripe, stripe generates a customer token which we store and use to process payments
 func Add(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	customerId := r.FormValue("customerId")     //a unique key, not the datastore id or stripe customer id
+	customerID := r.FormValue("customerId")     //a unique key, not the datastore id or stripe customer id
 	customerName := r.FormValue("customerName") //user provided, could be company name/client name/may be same as cardholder
 	cardholder := r.FormValue("cardholder")     //name on card as it appears
 	cardToken := r.FormValue("cardToken")       //from stripejs
@@ -57,17 +56,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//init context
+	//context
 	c := appengine.NewContext(r)
 
-	//if customerId was given, make sure it is unique
+	//if customerID was given, make sure it is unique
 	//this id should be unique in the user's company's crm
-	//the customerId is used to autofill the charge card panel when performing the api-like semi-automated charges
-	if len(customerId) != 0 {
-		_, err := FindByCustId(c, customerId)
+	//the customerID is used to autofill the charge card panel when performing the api-like semi-automated charges
+	if len(customerID) != 0 {
+		_, err := FindByCustID(c, customerID)
 		if err == nil {
 			//customer already exists
-			output.Error(ErrCustIdAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w, r)
+			output.Error(ErrCustIDAlreadyExists, "This customer ID is already in use. Please double check your records or remove the customer with this customer ID first.", w, r)
 			return
 		} else if err != ErrCustomerNotFound {
 			output.Error(err, "An error occured while verifying this customer ID does not already exist. Please try again or leave the customer ID blank.", w, r)
@@ -99,7 +98,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//save customer & card data to datastore
 	newCustKey := createNewCustomerKey(c)
 	newCustomer := CustomerDatastore{
-		CustomerId:          customerId,
+		CustomerID:          customerID,
 		CustomerName:        customerName,
 		Cardholder:          cardholder,
 		CardExpiration:      cardExp,
@@ -124,9 +123,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	memcacheutils.Delete(c, listOfCardsKey)
 	return
 }
-
-//**********************************************************************
-//DATASTORE
 
 //createNewCustomerKey generates a new datastore key for saving a new customer/card
 //appengine's datastore does not generate this key automatically when an entity is saved

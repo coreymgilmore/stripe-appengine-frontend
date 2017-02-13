@@ -12,10 +12,11 @@ package output
 
 import (
 	"encoding/json"
-	"github.com/coreymgilmore/timestamps"
+	"net/http"
+	"timestamps"
+
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
-	"net/http"
 )
 
 //returnObj is the basic format for returning data to the client

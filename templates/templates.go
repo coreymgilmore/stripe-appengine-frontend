@@ -18,7 +18,7 @@ import (
 
 //templateDir is the directory where the HTML files are stored
 //this is based off of the "app.go" file
-const templateDir = "website/templates/"
+const templateDir = "./website/templates/"
 
 //htmlTemplates is a variable for holding the built golang templates
 var htmlTemplates *template.Template

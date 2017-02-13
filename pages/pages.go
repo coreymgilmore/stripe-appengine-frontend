@@ -6,12 +6,13 @@ package pages
 
 import (
 	"card"
-	"google.golang.org/appengine"
 	"net/http"
 	"sessionutils"
 	"strconv"
 	"templates"
 	"users"
+
+	"google.golang.org/appengine"
 )
 
 //autoLoader is used when making api-style semi-automated request to charge a card
@@ -40,14 +41,15 @@ const (
 //otherwise a user is shown the log in prompt
 //this also handles the "first run" of the app in which no users exist yet...it forces creation of the "super admin"
 func Root(w http.ResponseWriter, r *http.Request) {
+
 	//check that session store was initialized correctly
-	if err := sessionutils.CheckSession(); err != nil {
+	if err := sessionutils.CheckInit(); err != nil {
 		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
 	}
 
 	//check that stripe private key and statement desecriptor were read correctly
-	if err := card.CheckStripe(); err != nil {
+	if err := card.CheckInit(); err != nil {
 		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
 	}
@@ -67,9 +69,9 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	//if user is already logged in, redirect to /main/ page
 	session := sessionutils.Get(r)
 	if session.IsNew == false {
-		uId := session.Values["user_id"].(int64)
+		userID := session.Values["user_id"].(int64)
 		c := appengine.NewContext(r)
-		u, err := users.Find(c, uId)
+		u, err := users.Find(c, userID)
 		if err != nil {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Autologin Error", "There was an issue looking up your user account. Please go back and try logging in.", "btn-default", "/", "Go Back")
@@ -123,11 +125,10 @@ func Main(w http.ResponseWriter, r *http.Request) {
 		notificationPage(w, "panel-danger", "Cannot Load Page", "Your session has expired or there is an error.  Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
 		return
 	}
-
-	userId := session.Values["user_id"].(int64)
+	userID := session.Values["user_id"].(int64)
 
 	c := appengine.NewContext(r)
-	user, err := users.Find(c, userId)
+	user, err := users.Find(c, userID)
 	if err != nil {
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return
@@ -135,8 +136,8 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 	//check for url form values for autofilling charge panel
 	//if data in url does not exist, just load the page with user data only
-	custId := r.FormValue("customer_id")
-	if len(custId) == 0 {
+	custID := r.FormValue("customer_id")
+	if len(custID) == 0 {
 		tempData.UserData = user
 		templates.Load(w, "main", tempData)
 		return
@@ -146,7 +147,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//look up card data by customer id
 	//get the card data to show in the panel so user can visually confirm they are charging the correct card
 	//if an error occurs, just load the page normally
-	custData, err := card.FindByCustId(c, custId)
+	custData, err := card.FindByCustID(c, custID)
 	if err != nil {
 		tempData.Error = "The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
 		tempData.UserData = user
@@ -159,8 +160,8 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 	//if amount was given, it is in cents
 	//display it in html input as dollars
-	amountUrl := r.FormValue("amount")
-	amountFloat, _ := strconv.ParseFloat(amountUrl, 64)
+	amountURL := r.FormValue("amount")
+	amountFloat, _ := strconv.ParseFloat(amountURL, 64)
 	amountDollars := amountFloat / 100
 	tempData.Amount = amountDollars
 

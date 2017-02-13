@@ -1,2 +1,0 @@
-Reports
-	- filter refunded charges by company (like charges are filtered)
