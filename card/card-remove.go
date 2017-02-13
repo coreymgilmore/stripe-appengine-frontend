@@ -7,63 +7,29 @@ the card on file is no longer being used.
 package card
 
 import (
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/memcache"
 	"net/http"
 	"output"
 	"strconv"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/memcache"
 )
 
 //Remove removes a card from the datastore, memcache, and stripe
 func Remove(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	datastoreId := r.FormValue("customerId")
-	datastoreIdInt, _ := strconv.ParseInt(datastoreId, 10, 64)
+	datastoreID := r.FormValue("customerId")
 
 	//make sure an id was given
-	if len(datastoreId) == 0 {
+	if len(datastoreID) == 0 {
 		output.Error(ErrMissingInput, "A customer's datastore ID must be given but was missing. This value is different from your \"Customer ID\" and should have been submitted automatically.", w, r)
 		return
 	}
 
-	//init stripe
-	c := appengine.NewContext(r)
-	sc := createAppengineStripeClient(c)
-
-	//delete customer on stripe
-	custData, err := findByDatastoreId(c, datastoreIdInt)
-	if err != nil {
-		output.Error(err, "An error occured while trying to look up customer's Stripe information.", w, r)
-	}
-	stripeCustId := custData.StripeCustomerToken
-	sc.Customers.Del(stripeCustId)
-
-	//delete custome from datastore
-	completeKey := getCustomerKeyFromId(c, datastoreIdInt)
-	err = datastore.Delete(c, completeKey)
+	err := remove(datastoreID, r)
 	if err != nil {
 		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w, r)
-		return
-	}
-
-	//delete customer from memcache
-	//delete list of cards in memcache since this list is now stale
-	//all memcache.Delete operations are listed first so error handling doesn't return if one fails...each call does not depend on another so this is safe
-	//obviously, if the card is not in the cache it cannot be removed
-	err1 := memcache.Delete(c, datastoreId)
-	err2 := memcache.Delete(c, custData.CustomerId)
-	err3 := memcache.Delete(c, listOfCardsKey)
-	if err1 != nil && err1 != memcache.ErrCacheMiss {
-		output.Error(err1, "There was an error flushing this card's data from the cache (by datastore id). Please contact an administrator and have them flush the cache manually.", w, r)
-		return
-	}
-	if err2 != nil && err2 != memcache.ErrCacheMiss {
-		output.Error(err2, "There was an error flushing this card's data from the cache (by customer id). Please contact an administrator and have them flush the cache manually.", w, r)
-		return
-	}
-	if err3 != nil && err3 != memcache.ErrCacheMiss {
-		output.Error(err3, "There was an error flushing the cached list of cards.", w, r)
 		return
 	}
 
@@ -71,4 +37,49 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	//return to client
 	output.Success("removeCustomer", nil, w)
 	return
+}
+
+//remove does the actual removal of the card
+func remove(customerID string, r *http.Request) error {
+	//convert to int
+	customerIDInt, _ := strconv.ParseInt(customerID, 10, 64)
+
+	//init stripe
+	c := appengine.NewContext(r)
+	sc := createAppengineStripeClient(c)
+
+	//delete customer on stripe
+	custData, err := findByDatastoreID(c, customerIDInt)
+	if err != nil {
+		return err
+	}
+	stripeCustID := custData.StripeCustomerToken
+	sc.Customers.Del(stripeCustID)
+
+	//delete custome from datastore
+	completeKey := getCustomerKeyFromID(c, customerIDInt)
+	err = datastore.Delete(c, completeKey)
+	if err != nil {
+		return err
+	}
+
+	//delete customer from memcache
+	//delete list of cards in memcache since this list is now stale
+	//all memcache.Delete operations are listed first so error handling doesn't return if one fails...each call does not depend on another so this is safe
+	//obviously, if the card is not in the cache it cannot be removed
+	err1 := memcache.Delete(c, customerID)
+	err2 := memcache.Delete(c, custData.CustomerID)
+	err3 := memcache.Delete(c, listOfCardsKey)
+	if err1 != nil && err1 != memcache.ErrCacheMiss {
+		return err1
+	}
+	if err2 != nil && err2 != memcache.ErrCacheMiss {
+		return err2
+	}
+	if err3 != nil && err3 != memcache.ErrCacheMiss {
+		return err3
+	}
+
+	//customer removed
+	return nil
 }

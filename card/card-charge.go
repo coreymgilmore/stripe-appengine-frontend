@@ -18,19 +18,27 @@ import (
 	"sessionutils"
 	"strconv"
 	"time"
+	"timestamps"
+
+	"github.com/stripe/stripe-go"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
 )
 
 //Charge charges a credit card
 func Charge(w http.ResponseWriter, r *http.Request) {
 	//get form values
-	datastoreId := r.FormValue("datastoreId")
+	datastoreID := r.FormValue("datastoreId")
 	customerName := r.FormValue("customerName")
 	amount := r.FormValue("amount")
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
+	chargeAndRemove, _ := strconv.ParseBool(r.FormValue("chargeAndRemove"))
 
 	//validation
-	if len(datastoreId) == 0 {
+	if len(datastoreID) == 0 {
 		output.Error(ErrMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
 		return
 	}
@@ -134,8 +142,17 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//charge successful
 	//save charge to memcache
 	//less data to get from stripe if receipt is needed
-	//errors are ignores since if we can't save this data to memcache we can always get it from the datastore/stripe
+	//errors are ignored since if we can't save this data to memcache we can always get it from the datastore/stripe
 	memcacheutils.Save(c, chg.ID, chg)
+
+	//check if we need to remove this card
+	//remove it if necessary
+	if chargeAndRemove {
+		err := remove(datastoreID, r)
+		if err != nil {
+			log.Warningf(c, "%v", "Error removing card after charge.", err)
+		}
+	}
 
 	//save count of card types
 	//used for negotiating rates with Stripe and just extra info

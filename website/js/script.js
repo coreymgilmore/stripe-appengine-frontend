@@ -875,7 +875,7 @@ $('#add-card').submit(function (e) {
 					//this needs to be delayed for a few seconds so the memcache can clear
 					//this was creating problems (list was not up to date) when it was updating right away on success
 					getCards();
-				}, 3000);
+				}, 2000);
 				return;
 			}
 		});
@@ -963,12 +963,15 @@ $('#remove-card').submit(function (e) {
 			showPanelMessage('Card was removed!', 'success', msg);
 
 			//clear the chosen option
-			//reload list of cards
 			input.val('');
 			setTimeout(function() {
-				getCards();
 				msg.html('');
-			}, 3000);
+
+				//reload list of cards
+				//this needs to be delayed for a few seconds so the memcache can clear
+				//this was creating problems (list was not up to date) when it was updating right away on success
+				getCards();
+			}, 2000);
 
 			return;
 		}
@@ -1050,6 +1053,8 @@ $('#charge-card').submit(function (e) {
 	var po = 				poElem.val();
 	var msg = 				$('#charge-card .msg');
 	var btn = 				$('#charge-card-submit');
+	var dropdownBtn = 		btn.siblings('.dropdown-toggle');
+	var chargeAndRemove = 	btn.data("chargeandremove") || false;
 
 	//stop form submission
 	e.preventDefault();
@@ -1061,16 +1066,21 @@ $('#charge-card').submit(function (e) {
 		return;
 	}
 
+	//unset the charge and remove data attribute
+	//so we don't use this by mistake for the next charge or card
+	btn.data("chargeandremove", "");
+
 	//charge card via ajax
 	$.ajax({
 		type: 	"POST",
 		url: 	"/card/charge/",
 		data: {
-			datastoreId: 	datastoreId,
-			customerName: 	customerName,
-			amount: 		amount,
-			invoice: 		invoice, 
-			po: 			po
+			datastoreId: 		datastoreId,
+			customerName: 		customerName,
+			amount: 			amount,
+			invoice: 			invoice, 
+			po: 				po,
+			chargeAndRemove: 	chargeAndRemove
 		},
 		beforeSend: function() {
 			//disabled the inputs
@@ -1079,6 +1089,7 @@ $('#charge-card').submit(function (e) {
 			invoiceElem.prop('disabled', true);
 			poElem.prop('disabled', true);
 			btn.prop('disabled', true);
+			dropdownBtn.prop('disabled', true);
 
 			//show working message
 			showPanelMessage("Charging card...", 'info', msg);
@@ -1129,11 +1140,32 @@ $('#charge-card').submit(function (e) {
 
 			//clear the charge card panel
 			resetChargeCardPanel(true);
+
+			//if this card was a "charge and remove", refresh the list of cards
+			//reload list of cards
+			//this needs to be delayed for a few seconds so the memcache can clear
+			//this was creating problems (list was not up to date) when it was updating right away on success
+			setTimeout(function() {
+				getCards();
+			}, 2000);
+
 			return;
 		}
 	});
 
 	return false;
+});
+
+//CHARGE A CARD AND REMOVE IT 
+//in case a customer provides a one time card
+//this just sets a data attribute and forces the submit of the form from an <a> link in the dropdown menu
+$('.dropdown-menu.charge-card-options').on('click', '#charge-and-remove-card', function() {
+	//set data attribute so we know to remove this card
+	$('#charge-card-submit').data("chargeandremove", true);
+
+	//submit the form
+	$('#charge-card').submit();
+	return;
 });
 
 //RESET THE CHARGE CARD PANEL TO DEFAULTS
@@ -1148,6 +1180,7 @@ function resetChargeCardPanel(msgRemove) {
 	$('#charge-card .charge-invoice').val('');
 	$('#charge-card .charge-po').val('');
 	$('#charge-card-submit').prop('disabled', false);
+	$('#charge-card-submit').siblings('.dropdown-toggle').prop('disabled', false);
 
 	//disable inputs
 	$('#charge-card .charge-amount, #charge-card .charge-invoice, #charge-card .charge-po').prop('disabled', true);
