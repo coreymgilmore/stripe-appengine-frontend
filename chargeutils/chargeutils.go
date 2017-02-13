@@ -9,10 +9,11 @@ package chargeutils
 
 import (
 	"encoding/json"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/event"
 	"strconv"
 	"time"
+
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/event"
 )
 
 //Data is the format in which we return data that is part of a Stripe charge object
@@ -20,7 +21,7 @@ import (
 //this is the data we need from that charge object
 type Data struct {
 	//the stripe charge id
-	Id string `json:"charge_id"`
+	ID string `json:"charge_id"`
 
 	//the amount of the charge in cents
 	AmountCents uint64 `json:"amount_cents"`
@@ -41,7 +42,7 @@ type Data struct {
 	Po      string `json:"po_num"`
 
 	//this is the id given to the customer by stripe and is used to charge the card
-	StripeCustId string `json:"stripe_customer_id"`
+	StripeCustID string `json:"stripe_customer_id"`
 
 	//name of the customer from the app engine datastore
 	//the name of the company a card belongs to
@@ -49,7 +50,7 @@ type Data struct {
 
 	//this is your unique id you gave the customer when you saved the card
 	//from a crm
-	CustomerId string `json:"customer_id"`
+	CustomerID string `json:"customer_id"`
 
 	//username of the user who charged the card
 	User string `json:"username"`
@@ -152,7 +153,7 @@ func ExtractData(chg *stripe.Charge) Data {
 
 	//build data struct to return
 	d := Data{
-		Id:            id,
+		ID:            id,
 		AmountCents:   amountInt,
 		AmountDollars: amountDollars,
 		Captured:      captured,
@@ -160,9 +161,9 @@ func ExtractData(chg *stripe.Charge) Data {
 		Timestamp:     datetime,
 		Invoice:       invoice,
 		Po:            po,
-		StripeCustId:  stripeCustId,
+		StripeCustID:  stripeCustId,
 		Customer:      customerName,
-		CustomerId:    customerId,
+		CustomerID:    customerId,
 		User:          username,
 		Cardholder:    cardholder,
 		LastFour:      last4,
