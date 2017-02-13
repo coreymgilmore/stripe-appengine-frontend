@@ -48,10 +48,10 @@
 														<td>{{.Invoice}}</td>
 														<td>{{.User}}
 														<td>{{.Timestamp}}</td>
-														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.Id}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														
 														{{ if $canCharge }}
-														<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.Id}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+														<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
 														{{else}}
 														<td></td>
 														{{end}}
@@ -99,7 +99,7 @@
 										<tr>
 											<th>Customer Name</th>
 											<th>Card Ending</th>
-											<th>Refund Amount</th>
+											<th>Amount Refunded</th>
 											<th>Invoice</th>
 											<th>User</th>
 											<th>Timestamp (UTC)</th>
