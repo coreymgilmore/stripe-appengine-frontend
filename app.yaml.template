@@ -1,0 +1,35 @@
+application: stripe-appengine-frontend
+version: 16
+runtime: go
+api_version: go1
+
+default_expiration: "5d"
+
+env_variables:
+  SESSION_AUTH_KEY: "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"
+  SESSION_ENCRYPT_KEY: "asdfasdfasdfasdfasdfasdfasdfasdf"
+  STRIPE_SECRET_KEY: "sk_test_asdfasdfasdfasdfasdfasdf"
+  STATEMENT_DESCRIPTOR: "Example Corp"
+
+handlers:
+- url: /css
+  static_dir: website/css
+
+- url: /js
+  static_dir: website/js
+
+- url: /img
+  static_dir: website/img
+
+- url: /robots.txt
+  static_files: website/robots/robots.txt
+  upload: website/robots/robots.txt
+
+- url: /.*
+  script: _go_app
+
+error_handlers:
+  - file: default_error.html
+
+  - error_code: over_quota
+    file: over_quota.html
