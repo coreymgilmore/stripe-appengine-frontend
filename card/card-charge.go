@@ -142,7 +142,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := remove(datastoreID, r)
+		err := RemoveDo(datastoreID, r)
 		if err != nil {
 			log.Warningf(c, "%v", "Error removing card after charge.", err)
 		}

@@ -27,7 +27,7 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := remove(datastoreID, r)
+	err := RemoveDo(datastoreID, r)
 	if err != nil {
 		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w, r)
 		return
@@ -39,8 +39,9 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//remove does the actual removal of the card
-func remove(customerID string, r *http.Request) error {
+//RemoveDo does the actual removal of the card
+//i cant think of a better name for this at the time
+func RemoveDo(customerID string, r *http.Request) error {
 	//convert to int
 	customerIDInt, _ := strconv.ParseInt(customerID, 10, 64)
 
