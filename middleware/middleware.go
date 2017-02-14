@@ -35,11 +35,14 @@ func Auth(next http.Handler) http.Handler {
 		//get user data from session
 		session := sessionutils.Get(r)
 
+		log.Infof(c, "%v", "Session data for user being checked in middleware.Auth.")
+		log.Infof(c, "%+v", session)
+
 		//session data does not exist yet
 		//this is a new session
 		//redirect user to log in page
 		if session.IsNew {
-			log.Infof(c, "%v", "middleware.Auth: Session data does not exist yet.")
+			log.Warningf(c, "%v", "middleware.Auth: Session data does not exist yet.")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}

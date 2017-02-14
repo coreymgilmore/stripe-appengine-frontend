@@ -37,11 +37,20 @@ var store *sessions.CookieStore
 
 //options for sessions
 var options = &sessions.Options{
-	Domain:   sessionCookieDomain,
-	Path:     "/",
-	MaxAge:   60 * 60 * 24 * 7, //cookie for session expires in 7 days
-	HttpOnly: true,             //should be set to true in production
-	Secure:   true,             //should be set to true in production
+	Domain: sessionCookieDomain,
+	Path:   "/",
+
+	//cookie for session expires in 7 days
+	MaxAge: 60 * 60 * 24 * 7,
+
+	//this stops client side scripts from accessing the cookie
+	//should be set to true in production
+	HttpOnly: true,
+
+	//this will only send/set the session cookie if the website is being served over https
+	//should be set to true in production (since stripe requires this website be served over https to begin with)
+	//should be set to false when using the appengine dev server
+	Secure: false,
 }
 
 //init func errors

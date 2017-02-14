@@ -53,6 +53,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	sessionutils.AddValue(session, "user_id", id)
 	sessionutils.Save(session, w, r)
 
+	log.Infof(c, "%v", "Session for user created.  User logging in.")
 	log.Infof(c, "%+v", session)
 
 	//show user main page
