@@ -17,7 +17,7 @@ type CustomerDatastore struct {
 	//the CRM id of the customer
 	//used when performing semi-automated api style requests to this app
 	//this should be unique for every customer but can be left blank
-	CustomerID string `json:"customer_id"`
+	CustomerID string `datastore:"CustomerId" json:"customer_id"`
 
 	//the name of the customer
 	//usually this is the company an individual card holder works for
