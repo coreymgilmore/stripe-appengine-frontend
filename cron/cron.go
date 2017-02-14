@@ -4,6 +4,7 @@ import (
 	"card"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"strings"
@@ -32,7 +33,6 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 
 		//get one customer result
 		datastoreKey, err := t.Next(&customer)
-		_ = datastoreKey
 		if err == datastore.Done {
 			break
 		}
@@ -59,7 +59,10 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 			//remove the card from the datastore, from stripe, and refresh memcache
 			log.Infof(c, "%s", "cron.RemoveExpiredCards: Card is expired. ", customer.CustomerName, customer.CardExpiration)
 
-			err := card.RemoveDo(customer.CustomerID, r)
+			//get datastore id as a string
+			datastoreID := strconv.FormatInt(datastoreKey.IntID(), 10)
+
+			err := card.RemoveDo(datastoreID, r)
 			if err != nil {
 				log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
 			}

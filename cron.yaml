@@ -2,3 +2,4 @@ cron:
 - description: remove expired cards
   url: /cron/remove-expired-cards/
   schedule: 1 of jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec 03:00
+  login: admin

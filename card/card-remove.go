@@ -41,16 +41,16 @@ func Remove(w http.ResponseWriter, r *http.Request) {
 
 //RemoveDo does the actual removal of the card
 //i cant think of a better name for this at the time
-func RemoveDo(customerID string, r *http.Request) error {
+func RemoveDo(datastoreID string, r *http.Request) error {
 	//convert to int
-	customerIDInt, _ := strconv.ParseInt(customerID, 10, 64)
+	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
 
 	//init stripe
 	c := appengine.NewContext(r)
 	sc := createAppengineStripeClient(c)
 
 	//delete customer on stripe
-	custData, err := findByDatastoreID(c, customerIDInt)
+	custData, err := findByDatastoreID(c, datastoreIDInt)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func RemoveDo(customerID string, r *http.Request) error {
 	sc.Customers.Del(stripeCustID)
 
 	//delete custome from datastore
-	completeKey := getCustomerKeyFromID(c, customerIDInt)
+	completeKey := getCustomerKeyFromID(c, datastoreIDInt)
 	err = datastore.Delete(c, completeKey)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func RemoveDo(customerID string, r *http.Request) error {
 	//delete list of cards in memcache since this list is now stale
 	//all memcache.Delete operations are listed first so error handling doesn't return if one fails...each call does not depend on another so this is safe
 	//obviously, if the card is not in the cache it cannot be removed
-	err1 := memcache.Delete(c, customerID)
+	err1 := memcache.Delete(c, datastoreID)
 	err2 := memcache.Delete(c, custData.CustomerID)
 	err3 := memcache.Delete(c, listOfCardsKey)
 	if err1 != nil && err1 != memcache.ErrCacheMiss {
