@@ -59,10 +59,10 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 			//remove the card from the datastore, from stripe, and refresh memcache
 			log.Infof(c, "%s", "cron.RemoveExpiredCards: Card is expired. ", customer.CustomerName, customer.CardExpiration)
 
-			// err := card.RemoveDo(customer.CustomerID, r)
-			// if err != nil {
-			// 	log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName)
-			// }
+			err := card.RemoveDo(customer.CustomerID, r)
+			if err != nil {
+				log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
+			}
 		}
 	}
 
