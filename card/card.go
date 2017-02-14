@@ -29,13 +29,10 @@ import (
 
 	"golang.org/x/net/context"
 
-	"time"
-
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 )
@@ -311,40 +308,6 @@ func datastoreFindOne(c context.Context, filterField string, filterValue interfa
 
 	//return the single result
 	return result[0], nil
-}
-
-//DatastoreFindMany finds all the cards in the datatore
-//we use this to run a cron task that purges expired cards from the datastore
-func DatastoreFindMany(c context.Context) error {
-	//query for all cards
-	//just get datastore id, stripe id, and expiration
-	fields := []string{"CustomerId", "CustomerName", "CardExpiration", "StripeCustomerToken"}
-	q := datastore.NewQuery(datastoreKind).Project(fields...).Limit(10)
-
-	//iterate through results
-	for t := q.Run(c); ; {
-		var customer CustomerDatastore
-
-		datastoreKey, err := t.Next(&customer)
-		_ = datastoreKey
-		if err == datastore.Done {
-			break
-		}
-		if err != nil {
-			log.Errorf(c, "%v", "Could not retrieve customer data.", err)
-		}
-
-		//parse expiration into a time.Time
-		expiration, err := time.Parse("01/2006", customer.CardExpiration)
-		_ = expiration
-		if err != nil {
-			log.Errorf(c, "%v", "Could not parse expiration into a time.Time", customer.CardExpiration, err)
-		}
-
-	}
-
-	return nil
-
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang

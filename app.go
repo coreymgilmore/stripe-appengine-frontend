@@ -17,6 +17,7 @@ package stripeappenginefrontend
 
 import (
 	"card"
+	"cron"
 	"middleware"
 	"net/http"
 	"pages"
@@ -55,7 +56,7 @@ func init() {
 	r.HandleFunc("/diagnostics/", pages.Diagnostics)
 
 	//cron
-	//r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
+	r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
 
 	//main app page once user is logged in
 	main := http.HandlerFunc(pages.Main)
