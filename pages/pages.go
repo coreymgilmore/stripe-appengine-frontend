@@ -43,7 +43,7 @@ const (
 func Root(w http.ResponseWriter, r *http.Request) {
 
 	//check that session store was initialized correctly
-	if err := sessionutils.CheckInit(); err != nil {
+	if err := sessionutils.CheckInit(r); err != nil {
 		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
 	}

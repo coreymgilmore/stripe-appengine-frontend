@@ -54,6 +54,9 @@ func init() {
 	//diagnostics page
 	r.HandleFunc("/diagnostics/", pages.Diagnostics)
 
+	//cron
+	//r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
+
 	//main app page once user is logged in
 	main := http.HandlerFunc(pages.Main)
 	r.Handle("/main/", a.Then(main))

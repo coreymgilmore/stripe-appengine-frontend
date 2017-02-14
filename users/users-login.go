@@ -10,6 +10,7 @@ import (
 	"sessionutils"
 
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 )
 
 //Login verifies a username and password combo
@@ -51,6 +52,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	sessionutils.AddValue(session, "username", username)
 	sessionutils.AddValue(session, "user_id", id)
 	sessionutils.Save(session, w, r)
+
+	log.Infof(c, "%+v", session)
 
 	//show user main page
 	http.Redirect(w, r, "/main/", http.StatusFound)

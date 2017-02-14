@@ -15,6 +15,8 @@ import (
 	"strings"
 
 	"github.com/gorilla/sessions"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 )
 
 //default cookie info
@@ -86,8 +88,12 @@ func init() {
 
 //CheckInit makes sure no errors occured during init()
 //since init() cannot return errors and we need to make sure init() completed successfully
-func CheckInit() error {
+func CheckInit(r *http.Request) error {
+	c := appengine.NewContext(r)
+
 	if initError != nil {
+		log.Errorf(c, "%v", "Error during session initialization.")
+		log.Errorf(c, "%v", initError)
 		return initError
 	}
 

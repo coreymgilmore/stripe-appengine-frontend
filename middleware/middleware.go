@@ -20,6 +20,7 @@ import (
 	"users"
 
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 )
 
 //ErrNotAuthorized is returned when user does not have access rights to certain functionality
@@ -29,6 +30,8 @@ var ErrNotAuthorized = errors.New("userDoesNotHavePermission")
 //this is done on every page load and every endpoint
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		c := appengine.NewContext(r)
+
 		//get user data from session
 		session := sessionutils.Get(r)
 
@@ -36,6 +39,7 @@ func Auth(next http.Handler) http.Handler {
 		//this is a new session
 		//redirect user to log in page
 		if session.IsNew {
+			log.Infof(c, "%v", "middleware.Auth: Session data does not exist yet.")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -51,7 +55,6 @@ func Auth(next http.Handler) http.Handler {
 		}
 
 		//look up user in memcache and/or datastore
-		c := appengine.NewContext(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			sessionutils.Destroy(w, r)
