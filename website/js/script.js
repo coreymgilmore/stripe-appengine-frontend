@@ -1068,6 +1068,7 @@ $('#charge-card').submit(function (e) {
 
 	//unset the charge and remove data attribute
 	//so we don't use this by mistake for the next charge or card
+	console.log("Remove card after charging?:", chargeAndRemove);
 	btn.data("chargeandremove", "");
 
 	//charge card via ajax
@@ -1145,9 +1146,11 @@ $('#charge-card').submit(function (e) {
 			//reload list of cards
 			//this needs to be delayed for a few seconds so the memcache can clear
 			//this was creating problems (list was not up to date) when it was updating right away on success
-			setTimeout(function() {
-				getCards();
-			}, 2000);
+			if (chargeAndRemove) {
+				setTimeout(function() {
+					getCards();
+				}, 2000);
+			}
 
 			return;
 		}
