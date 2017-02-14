@@ -1,5 +1,8 @@
 #A Credit Card Processing Virtual Terminal
 
+####Changelog:
+Please see the changelog.txt file if you used version 1 (prior to February 2017).  Version 2 (Feb. 14, 2017 and forward) has breaking changes.
+
 ####Intro:
 
 This app is basically a "virtual terminal" for collection and charging credit cards.  This is meant to be used for businesses that collect credit cards from customers and then charge this card repeadly for orders.  It removes the need to ask for card information at every purchase, stops you from storing credit cards in your database or on paper, and does not require PCI compliance since you are not storing any data about the cards.

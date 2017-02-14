@@ -23,3 +23,6 @@ Changes in V2
     - allows users to charge and remove a card all in one step
     - used for one-time cards or times when a customer only wants to use a card once
     - just removes need for choosing "charge" then "remove"
+
+- automatially remove expired card
+    - a cron task runs on the first of the month and removes any card that has expired
