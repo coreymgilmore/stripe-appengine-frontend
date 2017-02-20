@@ -35,14 +35,14 @@ func Auth(next http.Handler) http.Handler {
 		//get user data from session
 		session := sessionutils.Get(r)
 
-		log.Infof(c, "%v", "Session data for user being checked in middleware.Auth.")
-		log.Infof(c, "%+v", session)
+		log.Debugf(c, "%v", "middleware.Auth: Session data for user being checked.")
+		log.Debugf(c, "%+v", session)
 
 		//session data does not exist yet
 		//this is a new session
 		//redirect user to log in page
 		if session.IsNew {
-			log.Warningf(c, "%v", "middleware.Auth: Session data does not exist yet.")
+			log.Infof(c, "%v", "middleware.Auth: Session data does not exist yet.")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -94,6 +94,7 @@ func AddCards(next http.Handler) http.Handler {
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
+			log.Errorf(c, "%+v", "middleware.AddCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -121,6 +122,7 @@ func RemoveCards(next http.Handler) http.Handler {
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
+			log.Errorf(c, "%+v", "middleware.RemoveCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -148,6 +150,7 @@ func ChargeCards(next http.Handler) http.Handler {
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
+			log.Errorf(c, "%+v", "middleware.ChargeCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -175,6 +178,7 @@ func ViewReports(next http.Handler) http.Handler {
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
+			log.Errorf(c, "%+v", "middleware.ViewReports: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -204,6 +208,7 @@ func Administrator(next http.Handler) http.Handler {
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
+			log.Errorf(c, "%+v", "middleware.Administrator: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
