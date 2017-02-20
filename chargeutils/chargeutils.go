@@ -122,16 +122,16 @@ func ExtractData(chg *stripe.Charge) Data {
 	//metadata
 	meta := chg.Meta
 	customerName := meta["customer_name"]
-	customerId := meta["customer_id"]
+	customerID := meta["customer_id"]
 	invoice := meta["invoice_num"]
 	po := meta["po_num"]
-	username := meta["charged_by"]
+	username := meta["processed_by"]
 
 	//customer info
 	customer := chg.Customer
 	j, _ := json.Marshal(customer)
 	customer.UnmarshalJSON(j)
-	stripeCustId := customer.ID
+	stripeCustID := customer.ID
 
 	//card info
 	source := chg.Source
@@ -161,9 +161,9 @@ func ExtractData(chg *stripe.Charge) Data {
 		Timestamp:     datetime,
 		Invoice:       invoice,
 		Po:            po,
-		StripeCustID:  stripeCustId,
+		StripeCustID:  stripeCustID,
 		Customer:      customerName,
-		CustomerID:    customerId,
+		CustomerID:    customerID,
 		User:          username,
 		Cardholder:    cardholder,
 		LastFour:      last4,
