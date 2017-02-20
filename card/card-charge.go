@@ -210,7 +210,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		r := new(cardCounts)
 		err := datastore.Get(c, key, r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
-			log.Errorf(c, "%v", "Error looking up card brand count.", err)
+			log.Warningf(c, "%v", "Error looking up card brand count.", err)
 		}
 
 		//increment counter for total
@@ -239,7 +239,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		//perform "update"
 		_, err = datastore.Put(c, key, r)
 		if err != nil {
-			log.Errorf(c, "%v", "Error saving card brand count.", err)
+			log.Warningf(c, "%v", "Error saving card brand count.", err)
 		}
 
 		//done
