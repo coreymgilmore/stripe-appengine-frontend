@@ -1,5 +1,5 @@
 application: stripe-appengine-frontend
-version: 16
+version: 18
 runtime: go
 api_version: go1
 
@@ -27,6 +27,10 @@ handlers:
 
 - url: /.*
   script: _go_app
+
+- url: /cron/remove-expired-cards/
+  script: _go_app
+  login: admin
 
 error_handlers:
   - file: default_error.html
