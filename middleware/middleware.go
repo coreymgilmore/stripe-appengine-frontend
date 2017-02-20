@@ -35,9 +35,6 @@ func Auth(next http.Handler) http.Handler {
 		//get user data from session
 		session := sessionutils.Get(r)
 
-		log.Debugf(c, "%v", "middleware.Auth: Session data for user being checked.")
-		log.Debugf(c, "%+v", session)
-
 		//session data does not exist yet
 		//this is a new session
 		//redirect user to log in page
