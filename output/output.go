@@ -81,7 +81,7 @@ func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	//log errors into appengine log
 	//"%+v" is formatting for the error
 	c := appengine.NewContext(r)
-	log.WarningF(c, "%+v", "output.Error:", d)
+	log.Warningf(c, "%+v", "output.Error:", d)
 
 	//send message to client
 	returnData(false, "error", d, http.StatusBadRequest, w)
