@@ -127,6 +127,8 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		case *stripe.Error:
 			stripeErr := err.(*stripe.Error)
 			errorMsg = stripeErr.Msg
+
+			log.Errorf(c, "%+v", "card.Charge, stripeErr:", stripeErr)
 		}
 
 		output.Error(ErrStripe, errorMsg, w, r)
