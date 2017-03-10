@@ -1,6 +1,6 @@
 V2.0.1
 -------------
-- renamed version V2 to V2.0.1
+- renamed version V2 to V2.0.0
 
 - add some better logging
     - try to see if Stripe passes back any more useful information when a card is not accepted or declined
