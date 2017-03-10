@@ -220,8 +220,8 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 			refundedBy := "unknown"
 			if refund["metadata"] != nil {
 				rdMeta := refund["metadata"].(map[string]interface{})
-				if rdMeta["charged_by"] != nil {
-					refundedBy = rdMeta["charged_by"].(string)
+				if rdMeta["processed_by"] != nil {
+					refundedBy = rdMeta["processed_by"].(string)
 				}
 			}
 
