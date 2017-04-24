@@ -62,7 +62,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//sometimes charging a card through stripe api takes longer
 	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
 	//the call might still complete via stripe but appengine will return to the gui that it failed
-	//10 secodns is a bit over generous but covers even really strange senarios
+	//10 seconds is a bit over generous but covers even really strange senarios
 	c := appengine.NewContext(r)
 	c, _ = context.WithTimeout(c, 10*time.Second)
 
