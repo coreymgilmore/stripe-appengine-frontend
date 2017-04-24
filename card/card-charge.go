@@ -90,6 +90,15 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//init stripe
 	sc := createAppengineStripeClient(c)
 
+	//check if invoice or po number are blank
+	//so that the description on stripe's dashboard makes sense if values are missing
+	if len(invoice) == 0 {
+		invoice = "*blank*"
+	}
+	if len(poNum) == 0 {
+		poNum = "*blank*"
+	}
+
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
 		Customer:  custData.StripeCustomerToken,
