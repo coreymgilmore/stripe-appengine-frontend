@@ -137,7 +137,17 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 			stripeErr := err.(*stripe.Error)
 			errorMsg = stripeErr.Msg
 
-			log.Errorf(c, "%+v", "card.Charge, stripeErr:", stripeErr)
+			//log all responses for charge data and errors
+			//use this to research if stripe is sending back any more data when a charge is declined besides generic "card declined".
+			log.Debugf(c, "%+v", ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+			log.Debugf(c, "%+v", "   ")
+
+			log.Debugf(c, "%+v", "Stripe chg:", chg)
+			log.Debugf(c, "%+v", "Stripe chg.Outcome:", chg.Outcome)
+			log.Debugf(c, "%+v", "Stripe err:", err)
+
+			log.Debugf(c, "%+v", "   ")
+			log.Debugf(c, "%+v", "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 		}
 
 		output.Error(ErrStripe, errorMsg, w, r)
