@@ -1,6 +1,6 @@
 /*
 This file is part of the card package.  This file just holds the structs needed for handling cards.
-These structs are in a separate file to clean up the other files.package card
+These structs are in a separate file to clean up the other files.
 
 */
 package card

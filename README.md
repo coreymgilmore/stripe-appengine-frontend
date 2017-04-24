@@ -69,10 +69,19 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 2. Activate your Stripe account.
 3. Create a Google Account.
 4. Create an App Engine project.
-5. Download this app's source code.
-6. Configure the app.
-7. Deploy to App Engine.
-8. Done!
+5. Download and install Golang.
+6. Download the Google Cloud SDK and the Golang App Engine tools.
+7. Download this app's source code.
+8. Configure the app:
+   - Copy app.yaml.template to app.yaml.
+   - Rename the application to match your App Engine project in app.yaml.
+   - Edit the environmental variables in app.yaml.
+   - Copy website/js/stripe-public-key.js.template to stripe-public-key.js.
+   - Put your Stripe public key in the stripe-public-key.js file.
+   - Get dependencies (open a terminal in this project's directory, run go get ./...).
+9. Test the app with the development server.
+10. Deploy to App Engine.
+11. Done!
 
 ####Pricing:
 
@@ -89,5 +98,3 @@ This app uses the following:
 - [Alice](https://github.com/justinas/alice) - Go middleware handler.
 - [Gorilla Mux](https://github.com/gorilla/mux) - Go http router.
 - [Gorilla Sessions](https://github.com/gorilla/sessions) - Secure sessions.
-- [Timestamps](https://github.com/coreymgilmore/timestamps) - Standardized timestamp creation.
-- [Pwds](https://github.com/coreymgilmore/pwds) - Simple wrapper functions to create/verify passwords.
