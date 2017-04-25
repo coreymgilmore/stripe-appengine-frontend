@@ -8,13 +8,13 @@ legit.
 package receipt
 
 import (
-	"chargeutils"
 	"errors"
 	"fmt"
-	"memcacheutils"
 	"net/http"
-	"templates"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"

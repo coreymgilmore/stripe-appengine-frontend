@@ -6,9 +6,10 @@ These structs are in a separate file to clean up the other files.
 package card
 
 import (
-	"chargeutils"
 	"time"
-	"users"
+
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 )
 
 //CustomerDatastore is the format for data being saved to the datastore when a new customer is added

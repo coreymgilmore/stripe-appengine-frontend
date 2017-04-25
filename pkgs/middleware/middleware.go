@@ -14,11 +14,11 @@ package middleware
 import (
 	"errors"
 	"net/http"
-	"output"
-	"sessionutils"
-	"templates"
-	"users"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )

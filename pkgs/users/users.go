@@ -6,14 +6,13 @@ package users
 
 import (
 	"errors"
-	"memcacheutils"
 	"net/http"
-	"output"
 	"strconv"
-	"templates"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"golang.org/x/net/context"
-
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"

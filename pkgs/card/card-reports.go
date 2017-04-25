@@ -6,15 +6,15 @@ of charges and refunds filtered by a date range and by customer.
 package card
 
 import (
-	"chargeutils"
 	"net/http"
-	"output"
-	"sessionutils"
 	"strconv"
-	"templates"
 	"time"
-	"users"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/stripe/stripe-go"
 	"google.golang.org/appengine"
 )

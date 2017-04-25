@@ -5,15 +5,15 @@ File card-charge.go implements functionality to charge a card.
 package card
 
 import (
-	"memcacheutils"
 	"net/http"
 	"net/url"
-	"output"
-	"sessionutils"
 	"strconv"
 	"time"
-	"timestamps"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"

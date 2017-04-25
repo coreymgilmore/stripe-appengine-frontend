@@ -16,14 +16,14 @@ is used to process the card with Stripe.
 package stripeappenginefrontend
 
 import (
-	"card"
-	"cron"
-	"middleware"
 	"net/http"
-	"pages"
-	"receipt"
-	"users"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/cron"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/middleware"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pages"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/receipt"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 )

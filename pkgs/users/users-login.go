@@ -6,9 +6,9 @@ package users
 
 import (
 	"net/http"
-	"pwds"
-	"sessionutils"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )

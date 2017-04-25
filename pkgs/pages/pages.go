@@ -5,13 +5,13 @@ Package pages provides functions to display the app's interface, the UI.
 package pages
 
 import (
-	"card"
 	"net/http"
-	"sessionutils"
 	"strconv"
-	"templates"
-	"users"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"google.golang.org/appengine"
 )
 
