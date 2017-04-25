@@ -5,13 +5,13 @@ File users-update.go implements functions for changing a user's password or perm
 package users
 
 import (
-	"memcacheutils"
 	"net/http"
-	"output"
-	"pwds"
-	"sessionutils"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"google.golang.org/appengine"
 )
 

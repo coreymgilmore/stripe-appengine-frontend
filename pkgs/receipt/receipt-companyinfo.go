@@ -11,11 +11,11 @@ The company info is just used to make the receipt look legit and have some helpf
 package receipt
 
 import (
-	"memcacheutils"
 	"net/http"
-	"output"
 	"strings"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"

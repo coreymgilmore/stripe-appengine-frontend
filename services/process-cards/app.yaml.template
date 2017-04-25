@@ -1,5 +1,6 @@
-application: stripe-appengine-frontend
-version: 18
+##application and version no longer needed when using Google Cloud SDK (gcloud)
+#application: stripe-appengine-frontend
+#version: 19dev
 runtime: go
 api_version: go1
 

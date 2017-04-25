@@ -5,16 +5,16 @@ File users-add.go adds new users to the app.
 package users
 
 import (
-	"golang.org/x/net/context"
 	"fmt"
-	"memcacheutils"
 	"net/http"
-	"output"
-	"pwds"
-	"sessionutils"
 	"strconv"
-	"timestamps"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
+	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 )

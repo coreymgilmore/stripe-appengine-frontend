@@ -6,9 +6,9 @@ package card
 
 import (
 	"net/http"
-	"output"
-	"sessionutils"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/refund"
 	"google.golang.org/appengine"

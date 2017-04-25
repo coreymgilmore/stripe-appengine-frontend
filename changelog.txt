@@ -1,3 +1,19 @@
+V2.1.0
+-------------
+- reorganized all file per App Engine best practices.
+    - organized into "project and services" style.
+    - see https://cloud.google.com/appengine/docs/standard/go/an-overview-of-app-engine
+    - and https://cloud.google.com/appengine/docs/standard/go/runtime
+
+- now using Google Cloud SDK to develop and deploy
+    - no longer using "goapp serve" and "goapp deploy"
+    - this results in no longer needing the "application" or "version" lines in app.yaml.
+
+- renamed "transfers" to "payouts" in the reports
+    - per changes in stripe.
+
+
+
 V2.0.1
 -------------
 - renamed version V2 to V2.0.0

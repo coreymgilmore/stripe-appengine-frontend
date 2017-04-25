@@ -8,9 +8,9 @@ package card
 
 import (
 	"net/http"
-	"output"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"

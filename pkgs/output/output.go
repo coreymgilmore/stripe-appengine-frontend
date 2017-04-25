@@ -13,8 +13,8 @@ package output
 import (
 	"encoding/json"
 	"net/http"
-	"timestamps"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )

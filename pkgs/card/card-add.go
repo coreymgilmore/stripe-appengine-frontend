@@ -5,16 +5,15 @@ File card-add.go implements functionality to add a new card to the app.
 package card
 
 import (
-	"memcacheutils"
 	"net/http"
-	"output"
-	"sessionutils"
 	"strconv"
-	"timestamps"
 
-	"golang.org/x/net/context"
-
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
+	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 )
