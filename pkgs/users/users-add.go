@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -86,6 +87,14 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	err = company.SaveDefaultInfo(c)
 	if err != nil {
 		log.Errorf(c, "%v", "Could not save default company info.", err)
+		return
+	}
+
+	//save the default app settings
+	err = appsettings.SaveDefaultInfo(c)
+	if err != nil {
+		log.Errorf(c, "%v", "Could not save default company info.", err)
+		return
 	}
 
 	//show user main page

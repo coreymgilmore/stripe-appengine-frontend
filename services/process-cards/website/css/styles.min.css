@@ -33,6 +33,7 @@
 /*ADD 1PX BORDER TO MAKE ALL BUTTONS THE SAME HEIGHT
 /*only btn-default usually has borders, other btn- are just colored*/
 .btn-primary {
+	border-top: 			1px solid #2196F3;
 	border-bottom: 			1px solid #2196F3;
 }
 
@@ -203,6 +204,11 @@ hr {
 	border-bottom: 				0;
 }
 
+/*make button in panel not have extra spacing*/
+.panel-footer .form-group {
+	margin-bottom: 0;
+}
+
 /*HIDE ALL PANELS ON PAGE LOAD*/
 .action-panels {
 	display: 					none;
@@ -327,10 +333,10 @@ footer a:hover{
 }
 
 /*input groups for fees in settings modal*/
-#modal-change-company-info .input-group {
+.input-group {
     width: 100%;
 }
-#modal-change-company-info .input-group-addon {
+.input-group .input-group-addon {
     border: 1px solid #ddd;
     border-left: none;
     width: 45px;

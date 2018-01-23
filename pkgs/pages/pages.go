@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 )
 
 //autoLoader is used when making api-style semi-automated request to charge a card
@@ -20,12 +22,13 @@ import (
 //This data is grabbed from the url and auto filled into the app's interface so all a
 //user has to do is click the "charge" button.
 type autoloader struct {
-	Amount   float64                //the amount we want to charge, in dollars.cents.
-	Invoice  string                 //extra info
-	Po       string                 //" "
-	UserData users.User             //data on the user who is processing this charge, retrieved from session data
-	CardData card.CustomerDatastore //data on the customer/card we want to charge
-	Error    interface{}
+	Amount      float64                //the amount we want to charge, in dollars.cents.
+	Invoice     string                 //extra info
+	Po          string                 //" "
+	UserData    users.User             //data on the user who is processing this charge, retrieved from session data
+	CardData    card.CustomerDatastore //data on the customer/card we want to charge
+	AppSettings appsettings.Settings   //data to modify the look of the app
+	Error       interface{}
 }
 
 const (
@@ -92,7 +95,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//load the login page
-	templates.Load(w, "root", nil)
+	templates.Load(w, "login", nil)
 	return
 }
 
@@ -135,15 +138,25 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	user, err := users.Find(c, userID)
 	if err != nil {
+		log.Errorf(c, "%+v", "pages.Main: look up user data", err)
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return
 	}
+	templateData.UserData = user
+
+	//look up app settings
+	as, err := appsettings.Get(r)
+	if err != nil {
+		log.Errorf(c, "%+v", "pages.Main: look up app settings", err)
+		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
+		return
+	}
+	templateData.AppSettings = as
 
 	//check for url form values for autofilling charge panel
 	//if data in url does not exist, just load the page with user data only
 	custID := r.FormValue("customer_id")
 	if len(custID) == 0 {
-		templateData.UserData = user
 		templates.Load(w, "main", templateData)
 		return
 	}
@@ -155,13 +168,10 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	custData, err := card.FindByCustomerID(c, custID)
 	if err != nil {
 		templateData.Error = "The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
-		templateData.UserData = user
 		templates.Load(w, "main", templateData)
 		return
 	}
-
 	templateData.CardData = custData
-	templateData.UserData = user
 
 	//if amount was given, it is in cents
 	//display it in html input as dollars

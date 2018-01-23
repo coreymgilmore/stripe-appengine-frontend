@@ -2,6 +2,9 @@
 Package company implements tools for handling your company's information.  This is
 for the company name and address, the amount of fees you pay per transaction to
 Stripe, and the text that is displayed on the credit card statement.
+
+Company data is anything for the company: address, contact info, receipt,
+statement description, and fees.
 */
 package company
 
@@ -84,10 +87,6 @@ func Get(r *http.Request) (result Info, err error) {
 		if err == datastore.ErrNoSuchEntity {
 			err = ErrCompanyDataDoesNotExist
 		}
-
-		//make sure the percentage fee is returned as a 4 decimal place number
-		//2.85% = 0.0285
-		//orginalValue = result.PercentFee
 
 		//save to memcache
 		//ignore errors since we already got the data
@@ -192,7 +191,7 @@ func SaveDefaultInfo(c context.Context) error {
 		PostalCode:          "",
 		Country:             "",
 		PhoneNum:            "",
-		PercentFee:          2.90,
+		PercentFee:          .0290,
 		FixedFee:            0.30,
 		StatementDescriptor: "",
 	}

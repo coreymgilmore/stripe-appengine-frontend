@@ -69,8 +69,14 @@
 						<div class="panel-body">
 							<form id="add-card">
 								<div class="form-group">
-									<label class="control-label">Customer ID: <small>(optional)</small></label>
-									<input class="form-control" id="customer-id" type="text" placeholder="A unique identifier." autocomplete="off">
+									<label class="control-label">Customer ID: {{if eq .AppSettings.RequireCustomerID false}}<small>(optional)</small>{{end}}</label>
+									<input class="form-control" id="customer-id" type="text" 
+										{{if .AppSettings.RequireCustomerID}}
+											placeholder="{{.AppSettings.CustomerIDFormat}}" required
+										{{else}}
+											placeholder="A unique identifier."
+										{{end}} 
+									autocomplete="off">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
@@ -110,20 +116,22 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Security Code: </label>
-									<input class="form-control disable-spinner" id="card-cvc" type="number" min="0" max="9999" step="1" placeholder="3, or 4 digits on the card's back." required>
+									<input class="form-control disable-spinner" id="card-cvc" type="number" min="0" max="9999" step="1" placeholder="3 or 4 digits." required>
 								</div>
 								<div class="form-group">
 									<label class="control-label">Billing Postal Code: </label>
 									<input class="form-control disable-spinner" id="card-postal-code" type="text" maxlength="6" required autocomplete="off">
 								</div>
 								<div class="msg"></div>
-								<div class="form-group">
-									<div class="btn-group">
-										<button class="btn btn-primary submit-form-btn" type="submit">Add</button>
-										<button class="btn btn-default clear-form-btn" type="button">Clear</button>
-									</div>
-								</div>
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<div class="btn-group">
+									<button class="btn btn-primary submit-form-btn" form="add-card" type="submit">Add</button>
+									<button class="btn btn-default clear-form-btn" type="button">Clear</button>
+								</div>
+							</div>
 						</div>
 					</div>
 					{{end}}
@@ -147,10 +155,12 @@
 									<input class="form-control customer-name" type="list" list="customer-list" required>
 								</div>
 								<div class="msg"></div>
-								<div class="form-group">
-									<input class="btn btn-danger submit-form-btn" name="submit" type="submit" value="Remove" required>
-								</div>
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<input class="btn btn-danger submit-form-btn" name="submit" form="remove-card" type="submit" value="Remove" required>
+							</div>
 						</div>
 					</div>
 					{{end}}
@@ -220,22 +230,24 @@
 										<div class="alert alert-info">{{.Error}}</div>
 									{{end}}
 								</div>
-								<div class="form-group">
-									<div class="btn-group">
-										<div class="btn-group">
-											<button class="btn btn-primary" id="charge-card-submit" type="submit" required>Charge</button>
-											<button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-												<span class="caret"></span>
-											</button>
-											<ul class="dropdown-menu charge-card-options">
-												<li><a id="charge-and-remove-card" href="#" type="submit">Charge & Remove</a></li>
-											</ul>
-										</div>								
-										
-										<button class="btn btn-default clear-form-btn" type="button">Clear</button>
-									</div>
-								</div>
+								
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<div class="btn-group">
+									<div class="btn-group">
+										<button class="btn btn-primary" id="charge-card-submit" form="charge-card" type="submit" required>Charge</button>
+										<button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+											<span class="caret"></span>
+										</button>
+										<ul class="dropdown-menu charge-card-options">
+											<li><a id="charge-and-remove-card" href="#" form="charge-card" type="submit">CHARGE & REMOVE</a></li>
+										</ul>
+									</div>								
+									<button class="btn btn-default clear-form-btn" type="button">Clear</button>
+								</div>
+							</div>
 						</div>
 					</div>
 					<div class="panel panel-success action-panels" id="panel-charge-success">
@@ -294,10 +306,12 @@
 									<label class="control-label">Expiration: </label>
 									<input class="form-control card-expiration" readonly tabindex="-1">
 								</div>
-								<div class="form-group">
-									<button class="btn btn-default clear-form-btn" type="button">Clear</button>
-								</div>
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<button class="btn btn-default clear-form-btn" form="charge-card" type="button">Clear</button>
+							</div>
 						</div>
 					</div>
 					{{end}}
@@ -326,12 +340,14 @@
 									<input class="form-control end-date" name="end-date" type="date" required>
 								</div>
 								<div class="msg"></div>
-								<div class="form-group">
-									<input id="report-customer-id" type="hidden" name="customer-id">
-									<input id="timezone" type="hidden" name="timezone">
-									<input class="btn btn-primary" id="reports-submit" type="submit" value="View">
-								</div>
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<input id="report-customer-id" type="hidden" name="customer-id">
+								<input id="timezone" type="hidden" name="timezone">
+								<input class="btn btn-primary" id="reports-submit" form="reports" type="submit" value="View">
+							</div>
 						</div>
 					</div>
 					{{end}}
@@ -357,6 +373,10 @@
 
 							<h5>Change Company Info</h5>
 							<button class="btn btn-primary" id="open-modal-change-company-info" data-toggle="modal" data-target="#modal-change-company-info">Go</button>
+							<hr class="hr-panel">
+
+							<h5>App Settings</h5>
+							<button class="btn btn-primary" id="open-modal-app-settings" data-toggle="modal" data-target="#modal-app-settings">Go</button>
 						</div>
 					</div>
 					{{end}}
@@ -701,6 +721,7 @@
 									<input class="form-control company-phone" type="text" placeholder="Any format is acceptable." required autocomplete="off">
 								</div>
 							</div>
+
 							<hr class="hr-modal">
 							<div class="form-group">
 								<label class="control-label col-sm-3">Percentage Fee:</label>
@@ -720,6 +741,7 @@
 									</div>
 								</div>
 							</div>
+
 							<hr class="hr-modal">
 							<div class="form-group">
 								<label class="control-label col-sm-3">Statement Desc.:</label>
@@ -734,6 +756,51 @@
 						<div class="btn-group">
 							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
 							<button class="btn btn-primary" id="company-info-submit" type="submit" form="form-change-company-info">Save</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- CHANGE APP SETTINGS -->
+		<!-- fees, statement description, other settings -->
+		<div class="modal fade" id="modal-app-settings">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">App Settings</h4>
+					</div>
+					<div class="modal-body">
+						<form class="form-horizontal" id="form-change-app-settings" method="POST" action="">
+				
+							<div class="form-group">
+								<label class="control-label col-sm-4">Require Customer ID:</label>
+								<div class="col-sm-7">
+									<div class="btn-group require-cust-id" data-toggle="buttons">
+										<label class="btn btn-default">
+											<input class="radio-yes" type="radio" name="require-cust-id" value="true">Yes
+										</label>
+										<label class="btn btn-default">
+											<input class="radio-no" type="radio" name="require-cust-id" value="false">No
+										</label>
+									</div>
+								</div>
+							</div>
+							<div class="form-group">
+									<label class="control-label col-sm-4">Customer ID Format:</label>
+									<div class="col-sm-7">
+										<input class="form-control cust-id-format" type="text" required autocomplete="off">
+									</div>
+								</div>
+
+							<div class="msg"></div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<div class="btn-group">
+							<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							<button class="btn btn-primary" id="app-settings-submit" type="submit" form="form-change-app-settings">Save</button>
 						</div>
 					</div>
 				</div>

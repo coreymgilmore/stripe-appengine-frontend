@@ -199,9 +199,15 @@ func Find(c context.Context, userID int64) (u User, err error) {
 	//look up data in datastore
 	//save to memcache after it is found
 	if err == memcache.ErrCacheMiss {
+		var uu []User
 		key := getUserKeyFromID(c, userID)
 		q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
-		_, err = q.GetAll(c, &u)
+		_, err = q.GetAll(c, &uu)
+
+		//get one and only result
+		if len(uu) > 0 {
+			u = uu[0]
+		}
 
 		//save to memcache
 		//ignore errors since we already got the data

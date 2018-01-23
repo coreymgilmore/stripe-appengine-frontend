@@ -24,7 +24,7 @@
 							<h3 class="panel-title">Please Log In</h3>
 						</div>
 						<div class="panel-body">
-							<form method="post" action="/login/">
+							<form id="login" method="post" action="/login/">
 								<div class="form-group">
 									<label class="control-label">Username: </label>
 									<input class="form-control" id="username" name="username" type="text" required autocomplete="off">
@@ -33,10 +33,12 @@
 									<label class="control-label">Password: </label>
 									<input class="form-control" id="password" name="password" type="password" required autocomplete="off">
 								</div>
-								<div class="form-group">
-									<input class="btn btn-primary" id="submit" name="submit" type="submit" value="Continue" required>
-								</div>
 							</form>
+						</div>
+						<div class="panel-footer">
+							<div class="form-group">
+								<input class="btn btn-primary" id="submit" name="submit" form="login" type="submit" value="Continue" required>
+							</div>
 						</div>
 					</div>
 				</div>

@@ -24,9 +24,9 @@ package stripeappenginefrontend
 import (
 	"net/http"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/cron"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/middleware"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pages"
@@ -91,6 +91,11 @@ func init() {
 	comp := r.PathPrefix("/company").Subrouter()
 	comp.Handle("/get/", a.Then(http.HandlerFunc(company.GetAPI))).Methods("GET")
 	comp.Handle("/set/", admin.Then(http.HandlerFunc(company.SaveAPI))).Methods("POST")
+
+	//app settings
+	as := r.PathPrefix("/app-settings").Subrouter()
+	as.Handle("/get/", a.Then(http.HandlerFunc(appsettings.GetAPI))).Methods("GET")
+	as.Handle("/set/", admin.Then(http.HandlerFunc(appsettings.SaveAPI))).Methods("POST")
 
 	//Pages that don't exist
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)
