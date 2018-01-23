@@ -6,7 +6,7 @@ memcache easier and to reduce the amount of retyped code.
 package memcacheutils
 
 import (
-	"golang.org/x/net/context"
+	"context"
 
 	"google.golang.org/appengine/memcache"
 )

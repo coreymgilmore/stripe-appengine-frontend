@@ -11,14 +11,22 @@ is actually stored in App Engine. The card's information is sent to Stripe who t
 returns an id for this card. When a charge is processed, this id is sent to Stripe and
 Stripe looks up the card's information to charge it.
 
-The information stored in App Engine is safe...no credit card number is stored.  The data is
+The information stored in App Engine is safe; no credit card number is stored.  The data is
 just used to identify the card so users of the app know which card they are charging.
-*/
 
+Datastore ID: the ID the entity in the App Engine Datastore.
+Customer ID: the ID that the user provides that links the card to a company.  This is usually from a CRM.
+Stripe ID: the ID stripe uses to process a charge.  Also known as the stripe customer token.
+For each datastore ID, there should be one and only one customer ID and stripe ID.
+For each customer ID, there can be many datastore IDs and stripe IDs; one for each card added.
+For each stripe ID, there should be one and only one datastore ID and customer ID.
+*/
 package card
 
 import (
+	"context"
 	"errors"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -29,7 +37,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
@@ -39,10 +46,6 @@ import (
 //stripeSecretKeyLength is the exact length of a stripe secret key
 //this is used to make sure a valid stripe secret key was provided
 const stripeSecretKeyLength = 32
-
-//maxStatementDescriptorLength is the maximum length of the statement description
-//this is dictated by Stripe
-const maxStatementDescriptorLength = 22
 
 //datastoreKind is the name of the "table" or "collection" where card data is stored
 //we store the name to the "kind" in a const for easy reference in other code
@@ -59,48 +62,37 @@ const currency = "usd"
 
 //minCharge is the lowest charge the app will allow
 //Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
+//this is in cents
 const minCharge = 50
-
-//stripeStatementDescriptor is the description for your company shown on credit card statements
-//this value is read in from environmental variable defined in app.yaml in init()
-//but we need it to be accessible outside of init()
-var stripeStatementDescriptor string
 
 //stripeSecretKey is the private api key from stripe used to charge cards
 //this is read in during init() and when creating a stripe client to process cards
 var stripeSecretKey string
 
-//init func errors
-//since init() cannot return errors, we check for errors upon the app starting up
-var (
-	initError               error
-	ErrStripeKeyInvalid     = errors.New("Card: The Stripe secret key you provided is invalid. Provide a valid Stripe secret key in app.yaml.")
-	ErrStatementDescMissing = errors.New("Card: You did not provide a statement descriptor. Provide one in app.yaml.")
-)
+//errStripeKeyInvalid is used to describe an error with getting the Stripe secret key from and app.yaml when the app loads
+var errStripeKeyInvalid = errors.New("card: the stripe secret key in app.yaml is invalid")
 
 //other errors
 var (
-	ErrMissingCustomerName  = errors.New("Card: missingCustomerName")
-	ErrMissingCardholerName = errors.New("Card: missingCardholderName")
-	ErrMissingCardToken     = errors.New("Card: missingCardToken")
-	ErrMissingExpiration    = errors.New("Card: missingExpiration")
-	ErrMissingLast4         = errors.New("Card: missingLast4CardDigits")
-	ErrStripe               = errors.New("Card: stripeError")
-	ErrMissingInput         = errors.New("Card: missingInput")
-	ErrChargeAmountTooLow   = errors.New("Card: amountLessThanMinCharge")
-	ErrCustomerNotFound     = errors.New("Card: customerNotFound")
-	ErrCustIDAlreadyExists  = errors.New("Card: customerIdAlreadyExists")
+	errMissingCustomerName  = errors.New("card: missing customer name")
+	errMissingCardholerName = errors.New("card: missing cardholder name")
+	errMissingCardToken     = errors.New("card: missing card token")
+	errMissingExpiration    = errors.New("card: missing rxpiration")
+	errMissingLast4         = errors.New("card: missing last4 card digits")
+	errStripe               = errors.New("card: stripe error")
+	errMissingInput         = errors.New("card: missing input")
+	errChargeAmountTooLow   = errors.New("card: amount less than min charge")
+	errCustomerNotFound     = errors.New("card: customer not found")
+	errCustIDAlreadyExists  = errors.New("card: customer id already exists")
 )
 
-//init reads the private key and statement descriptor environmental varibales into the app
-//the values of these files are saved for use in other parts of this app
-//an error is thrown if either of these files is missing as they are both required for the app to work
+//init reads the stripe private key into the app
+//an error is thrown if this is missing b/c we need this value to process charges
 func init() {
-	//stripe private key
 	secretKey := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
 	if len(secretKey) != stripeSecretKeyLength {
-		initError = ErrStripeKeyInvalid
-
+		log.Panicln(errStripeKeyInvalid)
+		return
 	}
 
 	//save key to Stripe so we can charge cards and perform other actions
@@ -109,37 +101,25 @@ func init() {
 	//save key to create stripe client later
 	stripeSecretKey = secretKey
 
-	//statement descriptor
-	stmtDesc := strings.TrimSpace(os.Getenv("STATEMENT_DESCRIPTOR"))
-	if len(stmtDesc) == 0 {
-		initError = ErrStatementDescMissing
-		return
-	}
-
-	//trim to max length if needed
-	if len(stmtDesc) > maxStatementDescriptorLength {
-		stmtDesc = stmtDesc[:maxStatementDescriptorLength]
-	}
-
-	//Save description to variable for use when charging
-	stripeStatementDescriptor = stmtDesc
-
 	//done
 	return
 }
 
-//CheckInit makes sure init() completed successfully since init() cannot return errors
+//CheckInit makes sure the init() ran successfully by checking if the
+//stirpeSecretKey was loaded
 func CheckInit() error {
-	if initError != nil {
-		return initError
+	if len(stripeSecretKey) == 0 {
+		return errStripeKeyInvalid
 	}
 
 	return nil
 }
 
-//GetAll retrieves the list of all cards in the datastore (datastore id and customer name only)
-//the data is pulled from memcache or the datastore
-//the data is returned as json to populate the datalist in the html ui
+//GetAll retrieves the list of all cards in the datastore
+//This only gets the datastore id and customer name.
+//The data is pulled from memcache or the datastore and is returned as json
+//to build the datalist drop down where the user can choose what customer
+//to charge.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -185,16 +165,15 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "Unknown error retrieving list of cards.", w, r)
 		return
 	}
-
-	return
 }
 
 //GetOne retrieves the full data for one card from the datastore
-//this is used to fill in the "charge card" panel with identifying info on the card so the user car verify they are charging the correct card
+//This is used to fill in the "charge card" panel with identifying info on
+//the card so the user can verify they are charging the correct card.
 func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
-	//get form value
+	//get input
 	datstoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)
 
 	//get customer card data
@@ -209,23 +188,22 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//getCustomerKeyFromID gets the full datastore key from the id
-//id is just numeric, key is a long string with the appengine app name, kind name, etc.
-//key is what is actually used to find entities in the datastore
+//getCustomerKeyFromID gets the full datastore key from the datastore id
+//ID is just numeric while key is a long string with the appengine
+//app name, kind name, etc.
+//Key is what is actually used to find entities in the datastore.
 func getCustomerKeyFromID(c context.Context, id int64) *datastore.Key {
 	return datastore.NewKey(c, datastoreKind, "", id, nil)
 }
 
 //findByDatastoreID retrieves a card's information by its datastore id
-//this returns all the info on a card that is needed to build the ui
-//first memcache is checked for the data, then the datastore
-func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
+//This returns all the info on a card that is needed to build the ui.
+func findByDatastoreID(c context.Context, datastoreID int64) (r CustomerDatastore, err error) {
 	//check for card in memcache
-	var r CustomerDatastore
 	datastoreIDStr := strconv.FormatInt(datastoreID, 10)
-	_, err := memcache.Gob.Get(c, datastoreIDStr, &r)
+	_, err = memcache.Gob.Get(c, datastoreIDStr, &r)
 	if err == nil {
-		return r, nil
+		return
 	}
 
 	//card data not found in memcache
@@ -234,34 +212,27 @@ func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore,
 	if err == memcache.ErrCacheMiss {
 		key := getCustomerKeyFromID(c, datastoreID)
 		fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-		data, err := datastoreFindOne(c, "__key__ =", key, fields)
+		r, err = datastoreFindEntity(c, "__key__ =", key, fields)
 		if err != nil {
-			return data, err
+			return
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, datastoreIDStr, data)
-
-		//done
-		return data, nil
-
+		memcacheutils.Save(c, datastoreIDStr, r)
 	}
 
-	//most likely an error occured
-	return CustomerDatastore{}, err
+	return
 }
 
-//FindByCustID retrieves a card's information by the unique id from a CRM system
-//this id was provided when a card was saved
-//this func is used when making api style request to semi-automate the charging of a card.
-//first memcache is checked for the data, then the datastore
-func FindByCustID(c context.Context, customerID string) (CustomerDatastore, error) {
+//FindByCustomerID retrieves a card's information by the unique id from a CRM system
+//This id was provided when a card was added to this app.
+//This func is used when making api style request to semi-automate the charging of a card.
+func FindByCustomerID(c context.Context, customerID string) (r CustomerDatastore, err error) {
 	//check for card in memcache
-	var r CustomerDatastore
-	_, err := memcache.Gob.Get(c, customerID, &r)
+	_, err = memcache.Gob.Get(c, customerID, &r)
 	if err == nil {
-		return r, nil
+		return
 	}
 
 	//card data not found in memcache
@@ -270,60 +241,45 @@ func FindByCustID(c context.Context, customerID string) (CustomerDatastore, erro
 	if err == memcache.ErrCacheMiss {
 		//only getting the fields we need to show data in the charge card panel
 		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"}
-		data, err := datastoreFindOne(c, "CustomerId =", customerID, fields)
+		r, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
 		if err != nil {
-			return data, err
+			return
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, customerID, data)
-
-		//done
-		return data, nil
-
+		memcacheutils.Save(c, customerID, r)
 	}
 
-	//most likely an error occured
-	return CustomerDatastore{}, err
+	return
 }
 
-//datastoreFindOne finds one entity in the datastore
-//this function wraps around the datastore package to clean up the code
-//project is a string slice listing the column names we would like returned. less fields is more efficient
-func datastoreFindOne(c context.Context, filterField string, filterValue interface{}, project []string) (CustomerDatastore, error) {
+//datastoreFindEntity finds one entity in the datastore
+//This function wraps around the datastore package to clean up the code.
+//The project input is a string slice listing the column names we would like returned.
+func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (r CustomerDatastore, err error) {
 	//query
 	query := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	var result []CustomerDatastore
-	_, err := query.GetAll(c, &result)
+	_, err = query.GetAll(c, &r)
 	if err != nil {
-		return CustomerDatastore{}, err
+		return
 	}
 
-	//check if one result exists
-	if len(result) == 0 {
-		return CustomerDatastore{}, ErrCustomerNotFound
-	}
-
-	//return the single result
-	return result[0], nil
+	//return the result
+	return
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang
-//input is a number such as -4 for EST generated via JS:
-//var d = new Date(); (d.getTimezoneOffset() / 60 * -1);
-//the output is a string in the format "-0400"
-//the output is used to construct a golang time.Time
+//Input is a number such as -4 for EST generated via JS: var d = new Date(); (d.getTimezoneOffset() / 60 * -1);.
+//The output is a string in the format "-0400" and is used to construct a golang time.Time.
 func calcTzOffset(hoursToUTC string) string {
-	//placeholder for output
-	var tzOffset = ""
-
 	//get hours as a float
 	hoursFloat, _ := strconv.ParseFloat(hoursToUTC, 64)
 
 	//check if hours is before or after UTC
 	//negative numbers are behind UTC (aka EST is -4 hours behind UTC)
 	//add leading symbol to tzOffset output
+	tzOffset := ""
 	if hoursFloat > 0 {
 		tzOffset += "+"
 	} else {
@@ -354,23 +310,23 @@ func calcTzOffset(hoursToUTC string) string {
 }
 
 //createAppendingeStripeClient creates an httpclient on a per-request basis for use in making api calls to Stripe
-//stripe's api is accessed via http requests, need a way to make these requests
-//urlfetch is the appengine way of making http requests
-//this func returns an httpclient *per request* aka per request to this app
-//otherwise one request could use another requests httpclient
-//this is for app engine only since the golang http.DefaultClient is unavailable
+//Stripe's API is accessed via http requests, need a way to make these requests.
+//Urlfetch is the appengine way of making http requests.
+//This func returns an httpclient on a per request basis.  Per http request made to this app.
+//Otherwise one request could use another requests httpclient which would not be good!
+//This is for app engine only since the golang http.DefaultClient is unavailable.
 func createAppengineStripeClient(c context.Context) *client.API {
 	//create http client
+	//returns stripe client to use to process charges
 	httpClient := urlfetch.Client(c)
-
-	//returns "sc" stripe client
 	return client.New(stripeSecretKey, stripe.NewBackends(httpClient))
 }
 
 //getAmountAsIntCents converts a dollar amount as a string into a cents integer value
-//amounts typed in ui form are dollars as a string (12.56)
-//need amounts as cents to process payments via Stripe (1256)
-//need to make sure value does add or lose decimal places during type conversions due to conversions from floats to int and different precisions
+//Amounts typed in UI form are dollars as a string (12.56).
+//Need amounts as cents to process payments via Stripe (1256).
+//Make sure value doesn't add or lose decimal places during type conversions due to
+//conversions from floats to int and different precisions.
 func getAmountAsIntCents(amount string) (uint64, error) {
 	//convert string to float
 	//catch errors if number can not be converted
@@ -383,9 +339,6 @@ func getAmountAsIntCents(amount string) (uint64, error) {
 	//may return value short one penny but with .99999 fraction of a cent, i.e.: 32.55 -> 3254.9999999999995
 	//or with additional penny but with fractions of a cent, i.e: 32.52 -> 3252.0000000000005
 	amountFloatCents := amountFloat * 100
-
-	//round up to get whole number in cents
-	//gets rid of .99999 fraction of a cent
 
 	//get rid of strange cents
 	//add half a cent to number to "jump" to next cent if float amount was .99999 (if amount was .000005 this will not "jump" to the next cent)

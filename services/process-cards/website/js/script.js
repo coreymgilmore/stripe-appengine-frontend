@@ -16,6 +16,7 @@ const BAD_PASSWORDS = [
 ];
 
 const MIN_CHARGE = 0.5;
+const MAX_STATEMENT_DESCRIPTOR_LENGTH = 22;
 
 //*******************************************************************************
 //COMMON FUNCS
@@ -1397,6 +1398,9 @@ $('#modal-change-company-info').on('show.bs.modal', function() {
 			$('#modal-change-company-info .company-postal').val(data['postal_code']);
 			$('#modal-change-company-info .company-country').val(data['country']);
 			$('#modal-change-company-info .company-phone').val(data['phone_num']);
+			$('#modal-change-company-info .percentage-fee').val(data['percentage_fee']);
+			$('#modal-change-company-info .fixed-fee').val(data['fixed_fee']);
+			$('#modal-change-company-info .statement-descripto').val(data['statement_descriptor']);
 
 			//hide the alert message
 			msg.html('');
@@ -1424,16 +1428,19 @@ $('#form-change-company-info').submit( function (e) {
 	e.preventDefault();
 
 	//gather input values
-	var name = 		$('#modal-change-company-info .company-name').val();
-	var street = 	$('#modal-change-company-info .company-street').val();
-	var suite = 	$('#modal-change-company-info .company-suite').val();
-	var city = 		$('#modal-change-company-info .company-city').val();
-	var state = 	$('#modal-change-company-info .company-state').val();
-	var postal = 	$('#modal-change-company-info .company-postal').val();
-	var country = 	$('#modal-change-company-info .company-country').val();
-	var phone = 	$('#modal-change-company-info .company-phone').val();
-	var msg = 		$('#modal-change-company-info .msg');
-	var btn = 		$('#company-info-submit');
+	var name = 		 $('#modal-change-company-info .company-name').val();
+	var street = 	 $('#modal-change-company-info .company-street').val();
+	var suite = 	 $('#modal-change-company-info .company-suite').val();
+	var city = 		 $('#modal-change-company-info .company-city').val();
+	var state = 	 $('#modal-change-company-info .company-state').val();
+	var postal = 	 $('#modal-change-company-info .company-postal').val();
+	var country = 	 $('#modal-change-company-info .company-country').val();
+	var phone = 	 $('#modal-change-company-info .company-phone').val();
+	var percentFee = parseFloat($('#modal-change-company-info .percentage-fee').val());
+	var fixedFee = 	 parseFloat($('#modal-change-company-info .fixed-fee').val());
+	var descriptor = $('#modal-change-company-info .statement-descriptor').val();
+	var msg = 		 $('#modal-change-company-info .msg');
+	var btn = 		 $('#company-info-submit');
 
 	//validation
 	if (state.length > 2) {
@@ -1446,6 +1453,18 @@ $('#form-change-company-info').submit( function (e) {
 	}
 	if (country.length > 3) {
 		showModalMessage("Country must be a 2 or 3 character abbreviation.", "danger", msg);
+		return;
+	}
+	if (percentFee < 0 || percentFee > 100 || isNaN(percentFee)) {
+		showModalMessage("Percentage fee must be a number such as 2.95.", "danger", msg);
+		return;
+	}
+	if (fixedFee < 0 || fixedFee > 100 || isNaN(fixedFee)) {
+		showModalMessage("Fixed fee must be a number such as 0.30.", "danger", msg);
+		return;
+	}
+	if (descriptor.length < 5 || descriptor.length > 22) {
+		showModalMessage("Statement descriptor must be between 5 and 22 characters long.  It is currently " + descriptor.length + " characters.", "danger", msg);
 		return;
 	}
 
@@ -1461,7 +1480,10 @@ $('#form-change-company-info').submit( function (e) {
 			state: 		state,
 			postal: 	postal,
 			country: 	country,
-			phone: 		phone
+			phone: 		phone,
+			percentFee: percentFee,
+			fixedFee: 	fixedFee,
+			descriptor: descriptor,
 		},
 		beforeSend: function() {
 			showModalMessage("Saving company information...", "info", msg);

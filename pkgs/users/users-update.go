@@ -1,7 +1,3 @@
-/*
-File users-update.go implements functions for changing a user's password or permissions.
-*/
-
 package users
 
 import (
@@ -13,11 +9,12 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 )
 
 //ChangePwd is used to change a user's password
 func ChangePwd(w http.ResponseWriter, r *http.Request) {
-	//gather inputs
+	//get inputs
 	userID := r.FormValue("userId")
 	userIDInt, _ := strconv.ParseInt(userID, 10, 64)
 	password1 := r.FormValue("pass1")
@@ -25,13 +22,13 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//make sure passwords match
 	if doStringsMatch(password1, password2) == false {
-		output.Error(ErrPasswordsDoNotMatch, "The passwords you provided to not match.", w, r)
+		output.Error(errPasswordsDoNotMatch, "The passwords you provided to not match.", w, r)
 		return
 	}
 
 	//make sure password is long enough
 	if len(password1) < minPwdLength {
-		output.Error(ErrPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w, r)
+		output.Error(errPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w, r)
 		return
 	}
 
@@ -53,11 +50,9 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	err = memcacheutils.Delete(c, userID)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
-		output.Error(err, "Error clearing cache for user id.", w, r)
-		return
+		log.Errorf(c, "%v", "users.ChangePwd clear cache for user id", err)
 	} else if err1 != nil {
-		output.Error(err1, "Error clearing cache for username.", w, r)
-		return
+		log.Errorf(c, "%v", "users.ChangePwd clear cache for username", err)
 	}
 
 	//generate full datastore key for user
@@ -76,8 +71,9 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 }
 
 //UpdatePermissions is used to save changes to a user's permissions (access rights)
-//super-admin "administrator" account cannot be edited...this user always has full permissions
-//you can not edit your own permissions so you don't lock yourself out of the app
+//Super-admin "administrator" account cannot be edited...this user always has full permissions.
+//You can not edit your own permissions so you don't lock yourself out of the app.
+//Permissions default to "false".
 func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//gather form values
 	userID := r.FormValue("userId")
@@ -94,7 +90,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//failsafe/second check since non-admins would not see the settings panel anyway
 	session := sessionutils.Get(r)
 	if session.IsNew {
-		output.Error(ErrSessionMismatch, "An error occured. Please log out and log back in.", w, r)
+		output.Error(errSessionMismatch, "An error occured. Please log out and log back in.", w, r)
 		return
 	}
 
@@ -102,20 +98,20 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	userData, err := Find(c, userIDInt)
 	if err != nil {
-		output.Error(err, "We could not retrieve this user's information. This user could not be updates.", w, r)
+		output.Error(err, "We could not retrieve this user's information. This user could not be updated.", w, r)
 		return
 	}
 
 	//check if the logged in user is trying to update their own permissions
 	//you cannot edit your own permissions no matter what
 	if session.Values["username"].(string) == userData.Username {
-		output.Error(ErrCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w, r)
+		output.Error(errCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w, r)
 		return
 	}
 
 	//check if user is editing the super admin user
 	if userData.Username == adminUsername {
-		output.Error(ErrCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w, r)
+		output.Error(errCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w, r)
 		return
 	}
 
@@ -131,18 +127,14 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	err = memcacheutils.Delete(c, userID)
 	err1 := memcacheutils.Delete(c, userData.Username)
 	if err != nil {
-		output.Error(err, "Error clearing cache for user id.", w, r)
-		return
+		log.Errorf(c, "%v", "users.ChangePwd clear cache for user id", err)
 	} else if err1 != nil {
-		output.Error(err1, "Error clearing cache for username.", w, r)
-		return
+		log.Errorf(c, "%v", "users.ChangePwd clear cache for username", err)
 	}
 
 	//generate complete key for user
 	completeKey := getUserKeyFromID(c, userIDInt)
 
-	//resave user
-	//saves to datastore and memcache
 	//save user
 	_, err = saveUser(c, completeKey, userData)
 	if err != nil {

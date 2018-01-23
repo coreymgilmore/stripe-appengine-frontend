@@ -1,7 +1,3 @@
-/*
-File card-refund.go implements functionality for refunding money back to a credit card.
-*/
-
 package card
 
 import (
@@ -16,23 +12,23 @@ import (
 
 //Refund handles refunding a charge on a card
 func Refund(w http.ResponseWriter, r *http.Request) {
-	//get form values
+	//get inputs
 	chargeID := r.FormValue("chargeId")
 	amount := r.FormValue("amount")
 	reason := r.FormValue("reason")
 
 	//make sure inputs were given
 	if len(chargeID) == 0 {
-		output.Error(ErrMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
+		output.Error(errMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(ErrMissingInput, "No amount was given to refund.", w, r)
+		output.Error(errMissingInput, "No amount was given to refund.", w, r)
 		return
 	}
 
 	//convert refund amount to cents
-	//stripe requires cents
+	//stripe requires amount in a whole number
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
 		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
@@ -41,8 +37,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//get username of logged in user
 	//for tracking who processed this refund
-	session := sessionutils.Get(r)
-	username := session.Values["username"].(string)
+	username := sessionutils.GetUsername(r)
 
 	//build refund
 	params := &stripe.RefundParams{
@@ -56,10 +51,13 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//get reason code for refund
 	//these are defined by stripe
-	if reason == "duplicate" {
+	switch reason {
+	case "duplicate":
 		params.Reason = refund.RefundDuplicate
-	} else if reason == "requested_by_customer" {
-		params.Reason = refund.RefundRequestedByCustomer
+	case "requested_by_customer":
+		params.Reason = refund.RefundDuplicate
+	case "fraudulent":
+		params.Reason = refund.RefundFraudulent
 	}
 
 	//init stripe
@@ -71,7 +69,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		stripeErr := err.(*stripe.Error)
 		stripeErrMsg := stripeErr.Msg
-		output.Error(ErrStripe, stripeErrMsg, w, r)
+		output.Error(errStripe, stripeErrMsg, w, r)
 		return
 	}
 

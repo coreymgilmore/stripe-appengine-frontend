@@ -1,10 +1,10 @@
 /*
-Package chargeutils implements tools to pull data out of Stripe api call responses and use it to display information in the app's ui.
+Package chargeutils impletments some tooling to pull data out of Stripe api calls
+that is used to build reports.
 
-Data returned from Stripe has some funky formatting. It is important to extract the data points we need and format the data
-in a better way to that it can be used in the gui.
+Data is retrieved/returned from Stripe in a very "busy" format.  It has lots of extra
+data.  This cleans up the data for us to use in building reports.
 */
-
 package chargeutils
 
 import (
@@ -16,95 +16,47 @@ import (
 	"github.com/stripe/stripe-go/event"
 )
 
-//Data is the format in which we return data that is part of a Stripe charge object
+//Charge is the format in which we return data that is part of a Stripe charge object
 //stripe returns a bunch of data when a charge is made (or when looking up a charge by the charge id)
 //this is the data we need from that charge object
-type Data struct {
-	//the stripe charge id
-	ID string `json:"charge_id"`
-
-	//the amount of the charge in cents
-	AmountCents uint64 `json:"amount_cents"`
-
-	//amount of the charge in dollars (without $ symbol)
-	AmountDollars string `json:"amount_dollars"`
-
-	//determines if the charge was successfully placed on a real credit card
-	Captured    bool   `json:"captured"`        //True or False
-	CapturedStr string `json:"captured_string"` //"true" or "false"
-
-	//unix timestamp of the time that stripe charged the card
-	Timestamp string `json:"timestamp"`
-
-	//metadata fields with extra info on the charge
-	//the user provides this data when a charge is processed
-	Invoice string `json:"invoice_num"`
-	Po      string `json:"po_num"`
-
-	//this is the id given to the customer by stripe and is used to charge the card
-	StripeCustID string `json:"stripe_customer_id"`
-
-	//name of the customer from the app engine datastore
-	//the name of the company a card belongs to
-	Customer string `json:"customer_name"`
-
-	//this is your unique id you gave the customer when you saved the card
-	//from a crm
-	CustomerID string `json:"customer_id"`
-
-	//username of the user who charged the card
-	User string `json:"username"`
-
-	//name on the card
-	Cardholder string `json:"cardholder"`
-
-	//used to identify the card when looking at the receipt or in a report
-	LastFour   string `json:"last4"`
-	Expiration string `json:"expiration"`
-	CardBrand  string `json:"card_brand"`
+type Charge struct {
+	ID            string `json:"charge_id"`          //the stripe charge id
+	AmountCents   uint64 `json:"amount_cents"`       //the amount of the charge in cents
+	AmountDollars string `json:"amount_dollars"`     //amount of the charge in dollars (without $ symbol)
+	Captured      bool   `json:"captured"`           //determines if the charge was successfully placed on a real credit card
+	CapturedStr   string `json:"captured_string"`    //see above
+	Timestamp     string `json:"timestamp"`          //unix timestamp of the time that stripe charged the card
+	Invoice       string `json:"invoice_num"`        //some extra info that was provided when the user processed the charge
+	Po            string `json:"po_num"`             // " " " "
+	StripeCustID  string `json:"stripe_customer_id"` //this is the id given to the customer by stripe and is used to charge the card
+	Customer      string `json:"customer_name"`      //name of the customer from the app engine datastore, the name of the company a card belongs to
+	CustomerID    string `json:"customer_id"`        //the unique id you gave the customer when you saved the card, from a CRM
+	User          string `json:"username"`           //username of the user who charged the card
+	Cardholder    string `json:"cardholder"`         //name on the card
+	LastFour      string `json:"last4"`              //used to identify the card when looking at the receipt or in a report
+	Expiration    string `json:"expiration"`         // " " " "
+	CardBrand     string `json:"card_brand"`         // " " " "
 }
 
-//RefundData is the format in which we return data that is part of a refund
+//Refund is the format in which we return data that is part of a refund
 //this makes it easier to deal with the funky way stripe returns refund data
-type RefundData struct {
-	//was this a refund
-	//should always be true
-	Refunded bool
-
-	//the amount of the refund in cents
-	//this amount can be less than or equal to the corresponding charge
-	//cannot refund more than was originally charged
-	AmountCents uint64
-
-	//amount of the refund in dollars (without $ symbol)
-	AmountDollars string
-
-	//unix timestamp of the time that stripe refunded the card
-	Timestamp string
-
-	//metadata field with extra info on the charge
-	Invoice string
-
-	//used to identify the card when looking at a report
-	LastFour   string
-	Expiration string
-
-	//name of the customer from the app engine datastore
-	//the name of the company a card belongs to
-	Customer string
-
-	//username of the user who refunded the card
-	User string
-
-	//why was the card refunded
-	//this has special values dictated by stripe
-	Reason string
+type Refund struct {
+	Refunded      bool   //was this a refund, should always be true
+	AmountCents   uint64 //the amount of the refund in cents, this amount can be less than or equal to the corresponding charge
+	AmountDollars string //amount of the refund in dollars (without $ symbol)
+	Timestamp     string //unix timestamp of the time that stripe refunded the card
+	Invoice       string //metadata field with extra info on the charge
+	LastFour      string //used to identify the card when looking at a report
+	Expiration    string //" " " "
+	Customer      string //name of the customer from the app engine datastore, name of the customer we charged
+	User          string //username of the user who refunded the card
+	Reason        string //why was the card refunded, this is a special value dictated by stripe
 }
 
-//ExtractData pulls out the fields of data we want from a stripe charge object
+//ExtractDataFromCharge pulls out the fields of data we want from a stripe charge object
 //we only need certain info from the stripe charge object, this pulls the needed fields out
 //also does some formating for using the data in the gui
-func ExtractData(chg *stripe.Charge) Data {
+func ExtractDataFromCharge(chg *stripe.Charge) (data Charge) {
 	//charge info
 	id := chg.ID
 	amountInt := chg.Amount
@@ -116,7 +68,7 @@ func ExtractData(chg *stripe.Charge) Data {
 	//this means the charge was not processed
 	//for example: the card was declined
 	if captured == false {
-		return Data{}
+		return
 	}
 
 	//metadata
@@ -152,7 +104,7 @@ func ExtractData(chg *stripe.Charge) Data {
 	datetime := time.Unix(timestamp, 0).Format("2006-01-02T15:04:05.000Z")
 
 	//build data struct to return
-	d := Data{
+	data = Charge{
 		ID:            id,
 		AmountCents:   amountInt,
 		AmountDollars: amountDollars,
@@ -171,18 +123,15 @@ func ExtractData(chg *stripe.Charge) Data {
 		CardBrand:     cardBrand,
 	}
 
-	return d
+	return
 }
 
-//ExtractRefunds pulls out the data for each refund from the list of events and formats the data as needed
+//ExtractRefundsFromEvents pulls out the data for each refund from the list of events and formats the data as needed
 //stripe does not allow easy retrieving of refund data like charge data
 //have to search in the "history" aka event log for refunds
 //then have to parse the data since the data is in json format and there is no easy way to convert the data to a struct
 //note: there can be many refunds for a single charge (that total less than or equal to the total amount charged)
-func ExtractRefunds(eventList *event.Iter) []RefundData {
-	//placeholder for returning data
-	output := make([]RefundData, 0, 10)
-
+func ExtractRefundsFromEvents(eventList *event.Iter) (r []Refund) {
 	//loop through each refund event
 	//each event is a charge
 	//each charge can have one or more refunds
@@ -232,7 +181,7 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 			datetime := time.Unix(int64(refundedTimestamp), 0).Format("2006-01-02T15:04:05.000Z")
 
 			//build struct to build template with
-			x := RefundData{
+			rr := Refund{
 				Refunded:      true,
 				AmountCents:   uint64(refundedAmountInt),
 				AmountDollars: refundedDollars,
@@ -245,10 +194,10 @@ func ExtractRefunds(eventList *event.Iter) []RefundData {
 				Reason:        refundReason,
 			}
 
-			output = append(output, x)
+			r = append(r, rr)
 		}
 	}
 
 	//return list of refunds
-	return output
+	return
 }

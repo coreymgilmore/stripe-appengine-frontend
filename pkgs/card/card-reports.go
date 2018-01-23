@@ -1,27 +1,25 @@
-/*
-File card-reports.go implements functionality for generating reports.  Reports are just a list
-of charges and refunds filtered by a date range and by customer.
-*/
-
 package card
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/client"
 	"google.golang.org/appengine"
 )
 
 //Report gets the data for charges and refunds by the defined filters (date range and customer) and builds the reports page
-//the reports show up in a different page so they are easily printable and more easily inspected
-//date range is inclusive of start and end days
+//The reports show up in a different page so they are easily printable and more easily inspected.
+//Date range is inclusive of start and end day.
 func Report(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	datastoreID := r.FormValue("customer-id")
@@ -32,15 +30,15 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get report data form stripe
 	//make sure inputs are given
 	if len(startString) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'start-date'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'start-date'.", w, r)
 		return
 	}
 	if len(endString) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'end-date'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'end-date'.", w, r)
 		return
 	}
 	if len(hoursToUTC) == 0 {
-		output.Error(ErrMissingInput, "You must supply a 'timezone'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'timezone'.", w, r)
 		return
 	}
 
@@ -74,12 +72,49 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	sc := createAppengineStripeClient(c)
 
+	//get data on charges
+	charges, numCharges, totalCharged, totalChargedLessFees := getListOfCharges(c, sc, r, datastoreID, startUnix, endUnix)
+
+	//get data on refunds
+	refunds, numRefunds, totalRefunded := getListOfRefunds(sc, startUnix, endUnix)
+
+	//get logged in user's data
+	//for determining if receipt/refund buttons need to be hidden or shown based on user's access rights
+	userID := sessionutils.GetUserID(r)
+	userdata, _ := users.Find(c, userID)
+
+	//store data for building template
+	result := reportData{
+		UserData:             userdata,
+		StartDate:            startDt,
+		EndDate:              endDt,
+		Charges:              charges,
+		Refunds:              refunds,
+		TotalCharges:         totalCharged,
+		TotalChargesLessFees: totalChargedLessFees,
+		TotalRefunds:         totalRefunded,
+		TotalRefundsLessFees: "",
+		NumCharges:           numCharges,
+		NumRefunds:           numRefunds,
+	}
+
+	//build template to display report
+	//separate page in gui
+	templates.Load(w, "report", result)
+	return
+}
+
+//getListOfCharges gets the list of charges and returns data about them
+//This filters the list of charges by date range and customer.
+//The returned data includes the total amount of the charges with and without fees
+//and the number of charges.
+func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datastoreID string, start, end int64) (data []chargeutils.Charge, numCharges uint16, total, totalLessFees string) {
 	//retrieve data from stripe
 	//date is a range inclusive of the days the user chose
 	//limit of 100 is the max per stripe
 	params := &stripe.ChargeListParams{}
-	params.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
-	params.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
+	params.Filters.AddFilter("created", "gte", strconv.FormatInt(start, 10))
+	params.Filters.AddFilter("created", "lte", strconv.FormatInt(end, 10))
 	params.Filters.AddFilter("limit", "", "100")
 
 	//check if we need to filter by a specific customer
@@ -88,24 +123,21 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
 		custData, err := findByDatastoreID(c, datastoreIDInt)
 		if err != nil {
-			output.Error(err, "An error occured and this report could not be generated.", w, r)
 			return
 		}
 
 		params.Filters.AddFilter("customer", "", custData.StripeCustomerToken)
 	}
 
-	//get results
+	//get list of charges
 	//loop through each charge and extract charge data
 	//add up total amount of all charges
 	charges := sc.Charges.List(params)
-	data := make([]chargeutils.Data, 0, 10)
 	var amountTotal uint64
-	var numCharges uint16
 	for charges.Next() {
 		//get each charges data
 		chg := charges.Charge()
-		d := chargeutils.ExtractData(chg)
+		d := chargeutils.ExtractDataFromCharge(chg)
 
 		//make sure this charge was captured
 		//do not count charges that failed
@@ -120,38 +152,52 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		numCharges++
 	}
 
-	//convert total amount to dollars
-	amountTotalDollars := strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
+	//calculate total less fees
+	//fees should be returned as a dollar.cents number
+	companyInfo, _ := company.Get(r)
+	fixedFee := float64(numCharges) * companyInfo.FixedFee
+	percentFee := float64(amountTotal) * companyInfo.PercentFee
 
+	//convert total amount to dollars
+	total = strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
+	totalLessFees = strconv.FormatFloat(float64(amountTotal/100)-fixedFee-percentFee, 'f', 2, 64)
+
+	return
+}
+
+//getListOfRefunds  gets the list of refunds and returns data about them
+//This filters the list of refunds by date range.
+//We cannot filter by company when looking up refunds, unfortunately (Stripe issue).
+//This looks up refunds by iterating through the list of events that
+//happened on our Stripe account.
+func getListOfRefunds(sc *client.API, start, end int64) (data []chargeutils.Refund, numRefunds uint16, total string) {
 	//retrieve refunds
 	eventParams := &stripe.EventListParams{}
-	eventParams.Filters.AddFilter("created", "gte", strconv.FormatInt(startUnix, 10))
-	eventParams.Filters.AddFilter("created", "lte", strconv.FormatInt(endUnix, 10))
+	eventParams.Filters.AddFilter("created", "gte", strconv.FormatInt(start, 10))
+	eventParams.Filters.AddFilter("created", "lte", strconv.FormatInt(end, 10))
 	eventParams.Filters.AddFilter("limit", "", "100")
 	eventParams.Filters.AddFilter("type", "", "charge.refunded")
 
 	events := sc.Events.List(eventParams)
-	refunds := chargeutils.ExtractRefunds(events)
+	refunds := chargeutils.ExtractRefundsFromEvents(events)
 
-	//get logged in user's data
-	//for determining if receipt/refund buttons need to be hidden or shown based on user's access rights
-	session := sessionutils.Get(r)
-	userID := session.Values["user_id"].(int64)
-	userdata, _ := users.Find(c, userID)
-
-	//store data for building template
-	result := reportData{
-		UserData:    userdata,
-		StartDate:   startDt,
-		EndDate:     endDt,
-		Charges:     data,
-		Refunds:     refunds,
-		TotalAmount: amountTotalDollars,
-		NumCharges:  numCharges,
+	var amountTotal uint64
+	for _, v := range refunds {
+		numRefunds++
+		amountTotal += v.AmountCents
 	}
 
-	//build template to display report
-	//separate page in gui
-	templates.Load(w, "report", result)
+	//calculate total less fees
+	/*
+	 * Cannot do this since we don't know if a refund was a full refund or partial refund.
+	 * Fixed fees are only refunded on full refunds.
+	 * We can get a list of all refunds...but what if a charge was refunded on two transaction on different days?
+	 * We would need some way to check this and know which day the fixed fees were refunded on.
+	 *
+	 */
+
+	//convert amount to dollars
+	total = strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
+
 	return
 }

@@ -1,7 +1,3 @@
-/*
-File users-login.go is used to handle logging in and logging out of the app
-*/
-
 package users
 
 import (
@@ -10,14 +6,13 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 //Login verifies a username and password combo
-//this makes sure the user exists, that the password is correct, and that the user is active
-//if user is allowed access, their data is saved to the session and they are redirected into the app
+//This makes sure the user exists, that the password is correct, and that the user is active.
+//If user is allowed access, their data is saved to the session and they are redirected into the app.
 func Login(w http.ResponseWriter, r *http.Request) {
-	//get form values
+	//get inputs
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
@@ -52,9 +47,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	sessionutils.AddValue(session, "username", username)
 	sessionutils.AddValue(session, "user_id", id)
 	sessionutils.Save(session, w, r)
-
-	log.Infof(c, "%v", "Session for user created.  User logging in.")
-	log.Infof(c, "%+v", session)
 
 	//show user main page
 	http.Redirect(w, r, "/main/", http.StatusFound)

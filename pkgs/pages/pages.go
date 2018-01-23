@@ -1,7 +1,6 @@
 /*
-Package pages provides functions to display the app's interface, the UI.
+Package pages implements functions to display the app's interface, the UI.
 */
-
 package pages
 
 import (
@@ -16,14 +15,16 @@ import (
 )
 
 //autoLoader is used when making api-style semi-automated request to charge a card
-//user must be logged in to the app already for this to work, otherwise user is shown a login page
-//this data is grabbed from the url and auto filled into the app's interface so all a user has to do is click the "charge" button
+//User must be logged in to the app already for this to work, otherwise user is shown a
+//login page.
+//This data is grabbed from the url and auto filled into the app's interface so all a
+//user has to do is click the "charge" button.
 type autoloader struct {
-	Amount   float64
-	Invoice  string
-	Po       string
-	UserData users.User
-	CardData card.CustomerDatastore
+	Amount   float64                //the amount we want to charge, in dollars.cents.
+	Invoice  string                 //extra info
+	Po       string                 //" "
+	UserData users.User             //data on the user who is processing this charge, retrieved from session data
+	CardData card.CustomerDatastore //data on the customer/card we want to charge
 	Error    interface{}
 }
 
@@ -32,16 +33,15 @@ const (
 	//defined as constants in case they need to be changed in the future
 	//or reused for other purposes
 	sessionInitError = "Session Initialization Error"
-	adminInitError   = "Admin. Setup Error"
+	adminInitError   = "Admin Setup Error"
 )
 
 //Root is used to show the login page of the app
-//when a user browses to the page (usually just the domain minus any path), the user is checked for a session
-//if a session exists, the app attempts to auto-login the user
-//otherwise a user is shown the log in prompt
-//this also handles the "first run" of the app in which no users exist yet...it forces creation of the "super admin"
+//When a user browses to this page (usually just the domain), the user is checked for a session.
+//If a session exists, the app attempts to auto-login the user.
+//Otherwise a user is shown the log in prompt.
+//This also handles the "first run" of the app in which no users exist yet. It forces creation of the "super admin".
 func Root(w http.ResponseWriter, r *http.Request) {
-
 	//check that session store was initialized correctly
 	if err := sessionutils.CheckInit(r); err != nil {
 		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
@@ -104,18 +104,22 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 }
 
 //Main loads the main UI of the app
-//this is the page the user sees once they are logged in
-//this ui is a single page app and holds almost all the functionality of the app
-//the user only sees the parts of the ui they have access to...the rest is removed via go's contemplating
-//we also check if this page was loaded with a bunch of extra data in the url...this would be used to perform the api-like semi-automated charging of the card
-//  if a link to the page has a "customer_id" form value, this will automatically find the customer's card data and show it in the panel
-//  if "amount", "invoice", and/or "po" form values are given, these will also automatically be filled into the charge panel's form
-//  if "customer_id" is not given, no auto filling will occur of any fields
-//  "amount" must be in cents
-//  card is not automatically charged, user still has to click "charge" button
+//This is the page the user sees once they are logged in.
+//This ui is a single page app and holds almost all the functionality of the app.
+//The user only sees the parts of the ui they have access to, the rest is removed
+//via golang contemplating.
+//We also check if this page was loaded with a bunch of extra data in the url, this
+//would be used to perform the api-like semi-automated charging of the card.
+//If a link to the page has a "customer_id" form value, this will automatically find
+//the customer's card data and show it in the panel.
+//If "amount", "invoice", and/or "po" form values are given, these will also automatically
+//be filled into the charge panel's form.
+//If "customer_id" is not given, no auto filling will occur of any fields.
+//"amount" must be in cents.
+//Card is not automatically charged, user still has to click "charge" button.
 func Main(w http.ResponseWriter, r *http.Request) {
 	//placeholder for sending data back to template
-	var tempData autoloader
+	var templateData autoloader
 
 	//get logged in user data
 	//catch instances where session is not working and redirect user to log in page
@@ -127,6 +131,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := session.Values["user_id"].(int64)
 
+	//look up data for this user
 	c := appengine.NewContext(r)
 	user, err := users.Find(c, userID)
 	if err != nil {
@@ -138,8 +143,8 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//if data in url does not exist, just load the page with user data only
 	custID := r.FormValue("customer_id")
 	if len(custID) == 0 {
-		tempData.UserData = user
-		templates.Load(w, "main", tempData)
+		templateData.UserData = user
+		templates.Load(w, "main", templateData)
 		return
 	}
 
@@ -147,30 +152,30 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//look up card data by customer id
 	//get the card data to show in the panel so user can visually confirm they are charging the correct card
 	//if an error occurs, just load the page normally
-	custData, err := card.FindByCustID(c, custID)
+	custData, err := card.FindByCustomerID(c, custID)
 	if err != nil {
-		tempData.Error = "The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
-		tempData.UserData = user
-		templates.Load(w, "main", tempData)
+		templateData.Error = "The form could not be autofilled because the customer ID you provided could not be found.  The ID is either incorrect or the customer's credit card has not been added yet."
+		templateData.UserData = user
+		templates.Load(w, "main", templateData)
 		return
 	}
 
-	tempData.CardData = custData
-	tempData.UserData = user
+	templateData.CardData = custData
+	templateData.UserData = user
 
 	//if amount was given, it is in cents
 	//display it in html input as dollars
 	amountURL := r.FormValue("amount")
 	amountFloat, _ := strconv.ParseFloat(amountURL, 64)
 	amountDollars := amountFloat / 100
-	tempData.Amount = amountDollars
+	templateData.Amount = amountDollars
 
 	//check for other form values and build template
-	tempData.Invoice = r.FormValue("invoice")
-	tempData.Po = r.FormValue("po")
+	templateData.Invoice = r.FormValue("invoice")
+	templateData.Po = r.FormValue("po")
 
 	//load the page with the card data
-	templates.Load(w, "main", tempData)
+	templates.Load(w, "main", templateData)
 	return
 }
 

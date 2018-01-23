@@ -2,7 +2,6 @@
 Package pwds is used to create and validate bcrypt passwords.
 This is just a wrapper aroung golang.org/x/crypto/bcrypt that makes it easier to use.
 */
-
 package pwds
 
 import (

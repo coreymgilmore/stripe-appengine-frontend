@@ -1,40 +1,41 @@
-##application and version no longer needed when using Google Cloud SDK (gcloud)
-#application: stripe-appengine-frontend
-#version: 19dev
 runtime: go
 api_version: go1
 
+#default cache period for static files
 default_expiration: "5d"
 
+#these items need to be edited prior to deployment
+#SESSION_AUTH_KEY & SESSION_ENCRYPT_KEY are used for the session cookie.  The length of each MUST be EXACTLY 64 & 32 characters, respectively.
+#STRIPE_SECRET_KEY is provided on the Stripe Dashboard.  This allows for processing charges.  You can use the test or live key.  The key starts with "sk_".
 env_variables:
   SESSION_AUTH_KEY: "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"
   SESSION_ENCRYPT_KEY: "asdfasdfasdfasdfasdfasdfasdfasdf"
   STRIPE_SECRET_KEY: "sk_test_asdfasdfasdfasdfasdfasdf"
-  STATEMENT_DESCRIPTOR: "Example Corp"
 
+#static file handlers.
 handlers:
 - url: /css
   static_dir: website/css
-
 - url: /js
   static_dir: website/js
-
 - url: /img
   static_dir: website/img
-
 - url: /robots.txt
   static_files: website/robots/robots.txt
   upload: website/robots/robots.txt
 
+#run the app
 - url: /.*
   script: _go_app
 
+#cron tasks
 - url: /cron/remove-expired-cards/
   script: _go_app
   login: admin
 
+#handle errors
 error_handlers:
   - file: default_error.html
 
   - error_code: over_quota
-    file: over_quota.html
+    file: over_quota.htm

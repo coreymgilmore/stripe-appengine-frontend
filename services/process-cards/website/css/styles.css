@@ -143,8 +143,10 @@ body {
 hr {
 	border-color: 		#DDD;
 }
-/*divider lines for use in panels*/
-.hr-panel {
+/*divider lines for use in panels and modals*/
+/*so divider line stretches to sides*/
+.hr-panel,
+.hr-modal {
 	margin-left: 		-15px;
 	margin-right: 		-15px;
 }
@@ -322,4 +324,10 @@ footer a:hover{
 	.panel-heading-with-buttons .btn-group {
 		display:  			none;
 	}
+}
+
+/*input groups for fees in settings modal*/
+#modal-change-company-info .input-group-addon {
+	border: 1px solid #ddd;
+	width:  12px;
 }

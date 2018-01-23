@@ -8,7 +8,6 @@ that the user is "auto logged in" to the app upon loading it.
 Access rights determine what elements of the GUI the user can see and interact with as well as limits
 usage of certain endpoints.
 */
-
 package middleware
 
 import (
@@ -23,8 +22,8 @@ import (
 	"google.golang.org/appengine/log"
 )
 
-//ErrNotAuthorized is returned when user does not have access rights to certain functionality
-var ErrNotAuthorized = errors.New("userDoesNotHavePermission")
+//errNotAuthorized is returned when user does not have access rights to certain functionality
+var errNotAuthorized = errors.New("middleware: user does not have permission")
 
 //Auth checks if a user is logged in and is allowed access to the app
 //this is done on every page load and every endpoint
@@ -45,7 +44,6 @@ func Auth(next http.Handler) http.Handler {
 		}
 
 		//check if user id is in session
-		//it *should* be!
 		//otherwise show user a notice and force user to log in again
 		userID, ok := session.Values["user_id"].(int64)
 		if ok == false {
@@ -98,7 +96,7 @@ func AddCards(next http.Handler) http.Handler {
 
 		//check if user can add cards
 		if data.AddCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to add new cards.", w, r)
+			output.Error(errNotAuthorized, "You do not have permission to add new cards.", w, r)
 			return
 		}
 
@@ -126,7 +124,7 @@ func RemoveCards(next http.Handler) http.Handler {
 
 		//check if user can add cards
 		if data.RemoveCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to remove cards.", w, r)
+			output.Error(errNotAuthorized, "You do not have permission to remove cards.", w, r)
 			return
 		}
 
@@ -154,7 +152,7 @@ func ChargeCards(next http.Handler) http.Handler {
 
 		//check if user can add cards
 		if data.ChargeCards == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to charge or refund cards.", w, r)
+			output.Error(errNotAuthorized, "You do not have permission to charge or refund cards.", w, r)
 			return
 		}
 
@@ -182,7 +180,7 @@ func ViewReports(next http.Handler) http.Handler {
 
 		//check if user can add cards
 		if data.ViewReports == false {
-			output.Error(ErrNotAuthorized, "You do not have permission to view reports.", w, r)
+			output.Error(errNotAuthorized, "You do not have permission to view reports.", w, r)
 			return
 		}
 
@@ -212,7 +210,7 @@ func Administrator(next http.Handler) http.Handler {
 
 		//check if user can add cards
 		if data.Administrator == false {
-			output.Error(ErrNotAuthorized, "You are not an administrator therefore you cannot access this page.", w, r)
+			output.Error(errNotAuthorized, "You are not an administrator therefore you cannot access this page.", w, r)
 			return
 		}
 

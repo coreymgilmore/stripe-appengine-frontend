@@ -4,7 +4,6 @@ Its use is two fold:
 1) Simplify code since a one liner can now be used instead of the code blocks below (very minimal difference, I know).
 2) Reduce formatting mistakes since calls to these func will always return a datetime or timestamp with the same format.
 */
-
 package timestamps
 
 import "time"

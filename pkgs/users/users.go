@@ -1,10 +1,10 @@
 /*
 Package users implements functionality for adding users, editing a user, and logging in a user.
 */
-
 package users
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,7 +12,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
-	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"
@@ -26,8 +25,8 @@ const datastoreKind = "users"
 const adminUsername = "administrator"
 
 //minPwdLength is the shortest a new password can be for security concerns
-//this seems like a "reasonable" minimum requirement in 2016/2017
-const minPwdLength = 8
+//this seems like a "reasonable" minimum requirement in 2018
+const minPwdLength = 10
 
 //listOfUsersKey is the key name for storing the list of users in memcache
 //it is used to get the list of users faster then having to query the datastore every time
@@ -35,52 +34,40 @@ const listOfUsersKey = "list-of-users"
 
 //errors
 var (
-	ErrAdminDoesNotExist      = errors.New("adminUserDoesNotExist")
-	ErrUserDoesNotExist       = errors.New("userDoesNotExist")
-	ErrUserAlreadyExists      = errors.New("userAlreadyExists")
-	ErrPasswordsDoNotMatch    = errors.New("passwordsDoNotMatch")
-	ErrPasswordTooShort       = errors.New("passwordTooShort")
-	ErrNotAdmin               = errors.New("userIsNotAnAdmin")
-	ErrSessionMismatch        = errors.New("sessionMismatch")
-	ErrCannotUpdateSelf       = errors.New("cannotUpdateYourself")
-	ErrCannotUpdateSuperAdmin = errors.New("cannotUpdateSuperAdmin")
+	ErrAdminDoesNotExist      = errors.New("users: admin user does not exist")
+	ErrUserDoesNotExist       = errors.New("users: user does not exist")
+	errUserAlreadyExists      = errors.New("users: user already exists")
+	errPasswordsDoNotMatch    = errors.New("users: passwords do not match")
+	errPasswordTooShort       = errors.New("users: password too short")
+	errNotAdmin               = errors.New("users: user is not an admin")
+	errSessionMismatch        = errors.New("users: session mismatch")
+	errCannotUpdateSelf       = errors.New("users: cannot update yourself")
+	errCannotUpdateSuperAdmin = errors.New("users: cannot update super admin")
 )
 
 //User is the format for data saved to the datastore about a user
 type User struct {
-	//usually an email address (exception is for the super-admin created initially)
-	Username string `json:"username"`
-
-	//bcrypt encrypted password
-	Password string `json:"-"`
-
-	//permissions
-	AddCards      bool `json:"add_cards"`
-	RemoveCards   bool `json:"remove_cards"`
-	ChargeCards   bool `json:"charge_cards"`
-	ViewReports   bool `json:"view_reports"`
-	Administrator bool `json:"is_admin"`
-
-	//is the user able to access the app
-	Active bool `json:"is_active"`
-
-	//datetime of when the user was created
-	Created string `json:"datetime_created"`
+	Username      string `json:"username"`         //an email address (exception is for the super-admin created initially)
+	Password      string `json:"-"`                //bcrypt encrypted password
+	AddCards      bool   `json:"add_cards"`        //permissions
+	RemoveCards   bool   `json:"remove_cards"`     //" "
+	ChargeCards   bool   `json:"charge_cards"`     //" "
+	ViewReports   bool   `json:"view_reports"`     //" "
+	Administrator bool   `json:"is_admin"`         //" "
+	Active        bool   `json:"is_active"`        //is the user able to access the app
+	Created       string `json:"datetime_created"` //datetime of when the user was created
 }
 
 //userList is used to return the list of users able to be edited to build the gui
-//this list is used to build a select in the gui
+//This list is used to build select menus in the gui.
 type userList struct {
-	//the app engine datastore id of the user
-	ID int64 `json:"id"`
-
-	//email address
-	Username string `json:"username"`
+	ID       int64  `json:"id"`       //the app engine datastore id of the user
+	Username string `json:"username"` //email address
 }
 
 //GetAll retrieves the list of all users in the datastore
-//the data is pulled from memcache or the datastore
-//the data is returned as a json to populate select menus in the gui
+//The data is pulled from memcache or the datastore.
+//The data is returned as a json to populate select menus in the gui.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
@@ -92,7 +79,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//list of cards not found in memcache
+	//list of users not found in memcache
 	//get list from datastore
 	//only need to get username and entity key to cut down on datastore usage
 	//save the list to memcache for faster retrieval next time
@@ -124,18 +111,16 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 		//return data to clinet
 		output.Success("userList", idsAndNames, w)
-		return
 
 	} else if err != nil {
 		output.Error(err, "Unknown error retrieving list of users.", w, r)
-		return
 	}
 
 	return
 }
 
 //GetOne retrieves the full data for one user
-//this is used to fill in the edit user modal in the gui
+//This is used to fill in the edit user modal in the gui.
 func GetOne(w http.ResponseWriter, r *http.Request) {
 	//get user id from form value
 	userIDInt, _ := strconv.ParseInt(r.FormValue("userId"), 10, 64)
@@ -154,15 +139,15 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 }
 
 //getUserKeyFromID gets the full datastore key from the id
-//id is just numeric, key is a big string with the appengine name, kind name, etc.
-//key is what is actually used to find entities in the datastore
+//ID is just numeric, key is a big string with the appengine name, kind name, etc.
+//Key is what is actually used to find entities in the datastore.
 func getUserKeyFromID(c context.Context, id int64) *datastore.Key {
 	return datastore.NewKey(c, datastoreKind, "", id, nil)
 }
 
 //DoesAdminExist checks if the super-admin has already been created
-//the super-admin should be created upon initially using and setting up the app
-//this user must exist for the app to function
+//The super-admin should be created upon initially using and setting up the app.
+//This user must exist for the app to function.
 func DoesAdminExist(r *http.Request) error {
 	//query for admin user
 	var user []User
@@ -189,8 +174,8 @@ func AllowedAccess(data User) bool {
 }
 
 //doStringsMatch checks if two given input strings are the same
-//this is used when checking the two given passwords for a new user
-//just cleans up code elsewhere
+//This is used when checking the two given passwords for a new user.
+//Just cleans up code elsewhere.
 func doStringsMatch(string1, string2 string) bool {
 	if string1 == string2 {
 		return true
@@ -200,15 +185,14 @@ func doStringsMatch(string1, string2 string) bool {
 }
 
 //Find gets the data for a given user id
-//this returns all the info on a user
-//first memcache is checked for the data, then the datastore
-func Find(c context.Context, userID int64) (User, error) {
+//This returns all the info on a user.
+//First memcache is checked for the data, then the datastore.
+func Find(c context.Context, userID int64) (u User, err error) {
 	//check for card in memcache
-	var r User
 	userIDStr := strconv.FormatInt(userID, 10)
-	_, err := memcache.Gob.Get(c, userIDStr, &r)
+	_, err = memcache.Gob.Get(c, userIDStr, &u)
 	if err == nil {
-		return r, nil
+		return
 	}
 
 	//user data not found in memcache
@@ -217,37 +201,19 @@ func Find(c context.Context, userID int64) (User, error) {
 	if err == memcache.ErrCacheMiss {
 		key := getUserKeyFromID(c, userID)
 		q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
-		var result []User
-		_, err := q.GetAll(c, &result)
-		if err != nil {
-			return User{}, err
-		}
-
-		//return error if no result exists
-		if len(result) == 0 {
-			return User{}, ErrUserDoesNotExist
-		}
-
-		//one result
-		userData := result[0]
+		_, err = q.GetAll(c, &u)
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, userIDStr, userData)
-
-		//done
-		return userData, nil
-
+		memcacheutils.Save(c, userIDStr, u)
 	}
 
-	//most likely an error occured
-	return User{}, err
+	return
 }
 
-//exists checks if a given username is already being used aka the user already exists
-//this can also be used to get user data by username
-//returns error if a user by the username 'username' does not exist
-//error returned when a user cannot be found
+//exists checks if a given username is already being used
+//This can also be used to get user data by username.
+//Returns error if a user by the username 'username' does not exist.
 func exists(c context.Context, username string) (int64, User, error) {
 	q := datastore.NewQuery(datastoreKind).Filter("Username = ", username).Limit(1)
 	var result []User

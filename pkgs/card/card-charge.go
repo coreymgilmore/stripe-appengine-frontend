@@ -1,7 +1,3 @@
-/*
-File card-charge.go implements functionality to charge a card.
-*/
-
 package card
 
 import (
@@ -10,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
@@ -21,9 +18,9 @@ import (
 	"google.golang.org/appengine/log"
 )
 
-//Charge charges a credit card
+//Charge processes a charge on a credit card
 func Charge(w http.ResponseWriter, r *http.Request) {
-	//get form values
+	//get inputs
 	datastoreID := r.FormValue("datastoreId")
 	customerName := r.FormValue("customerName")
 	amount := r.FormValue("amount")
@@ -33,15 +30,16 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 
 	//validation
 	if len(datastoreID) == 0 {
-		output.Error(ErrMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
+		output.Error(errMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(ErrMissingInput, "No amount was provided. You cannot charge a card nothing!", w, r)
+		output.Error(errMissingInput, "No amount was provided. You cannot charge a card nothing!", w, r)
 		return
 	}
 
 	//get amount as cents
+	//stripe requires the amount as a whole number
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
 		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
@@ -52,7 +50,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//min charge may be greater than 0 because of transactions costs
 	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
 	if amountCents < minCharge {
-		output.Error(ErrChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
+		output.Error(errChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
 		return
 	}
 
@@ -64,7 +62,8 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 seconds is a bit over generous but covers even really strange senarios
 	c := appengine.NewContext(r)
-	c, _ = context.WithTimeout(c, 10*time.Second)
+	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
+	defer cancelFunc()
 
 	//look up stripe customer id from datastore
 	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
@@ -82,10 +81,8 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get username of logged in user
-	//used for tracking who processed a charge
-	//for reports
-	session := sessionutils.Get(r)
-	username := session.Values["username"].(string)
+	//we record this data so we can see who processed a charge in the reports
+	username := sessionutils.GetUsername(r)
 
 	//init stripe
 	sc := createAppengineStripeClient(c)
@@ -99,13 +96,23 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		poNum = "*blank*"
 	}
 
+	//get statement descriptor from company info
+	companyInfo, err := company.Get(r)
+	if err != nil {
+		output.Error(err, "Could not get statement descriptor from company info.", w, r)
+		return
+	} else if len(companyInfo.StatementDescriptor) == 0 {
+		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w, r)
+		return
+	}
+
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
 		Customer:  custData.StripeCustomerToken,
 		Amount:    amountCents,
 		Currency:  currency,
 		Desc:      "Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
-		Statement: stripeStatementDescriptor,
+		Statement: companyInfo.StatementDescriptor,
 	}
 
 	//add metadata to charge
@@ -136,41 +143,28 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		case *stripe.Error:
 			stripeErr := err.(*stripe.Error)
 			errorMsg = stripeErr.Msg
-
-			//log all responses for charge data and errors
-			//use this to research if stripe is sending back any more data when a charge is declined besides generic "card declined".
-			log.Debugf(c, "%+v", ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-			log.Debugf(c, "%+v", "   ")
-
-			log.Debugf(c, "%+v", "Stripe chg:", chg)
-			log.Debugf(c, "%+v", "Stripe chg.Outcome:", chg.Outcome)
-			log.Debugf(c, "%+v", "Stripe err:", err)
-
-			log.Debugf(c, "%+v", "   ")
-			log.Debugf(c, "%+v", "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 		}
 
-		output.Error(ErrStripe, errorMsg, w, r)
+		output.Error(errStripe, errorMsg, w, r)
 		return
 	}
 
 	//charge successful
 	//save charge to memcache
 	//less data to get from stripe if receipt is needed
-	//errors are ignored since if we can't save this data to memcache we can always get it from the datastore/stripe
+	//errors are ignored since if we can't save this data to memcache we can always get it from the stripe
 	memcacheutils.Save(c, chg.ID, chg)
 
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := RemoveDo(datastoreID, r)
+		err := Remove(datastoreID, r)
 		if err != nil {
 			log.Warningf(c, "%v", "Error removing card after charge.", err)
 		}
 	}
 
 	//save count of card types
-	//used for negotiating rates with Stripe and just extra info
 	saveChargeDetails(c, chg)
 
 	//build struct to output a success message to the client
@@ -224,7 +218,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	key := datastore.NewKey(c, kind, keyName, 0, nil)
 
 	//transaction
-	err := datastore.RunInTransaction(c, func(c context.Context) error {
+	err := datastore.RunInTransaction(c, func(tc context.Context) error {
 		//look up data from datastore
 		r := new(cardCounts)
 		err := datastore.Get(c, key, r)
@@ -266,10 +260,10 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 		return err
 	}, nil)
 	if err != nil {
-		log.Errorf(c, "%v", "Error during card brand count transaction.", err)
+		log.Errorf(c, "%v", "Error during card brand count transaction.")
+		log.Errorf(c, "%v", err)
 	}
 
 	//done
-	log.Infof(c, "%v", "Card Brand:", brand)
 	return
 }

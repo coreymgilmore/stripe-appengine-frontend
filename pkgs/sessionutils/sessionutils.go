@@ -5,7 +5,6 @@ This wraps around gorilla/sessions to make code clearer and more usable.
 Session data stores user authentication data in a cookie.
 The cookie value is encrypted and authenticated via gorilla/sessions.
 */
-
 package sessionutils
 
 import (
@@ -152,4 +151,16 @@ func ExtendExpiration(session *sessions.Session, w http.ResponseWriter, r *http.
 	session.Options = options
 	session.Save(r, w)
 	return
+}
+
+//GetUsername gets the username we have stored in a session
+func GetUsername(r *http.Request) string {
+	s := Get(r)
+	return s.Values["username"].(string)
+}
+
+//GetUserID gets the user ID we have stored in a session
+func GetUserID(r *http.Request) int64 {
+	s := Get(r)
+	return s.Values["user_id"].(int64)
 }
