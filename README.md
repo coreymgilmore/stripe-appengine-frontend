@@ -1,8 +1,5 @@
 # An App for Collecting and Charging Credit Cards
 
-#### Changelog:
-Version 3 (Late-January 2018) has breaking changes.
-
 #### Intro:
 This app is designed for business that collect credit cards and charge them upon receiving customer orders.  The best use case if for a company that sells most of its goods via phone order, purchase orders, etc. versus e-commerce.  For example: an AP assistant provides a credit card but a purchasing supervisor sends over purchase orders or calls in an order.  This stops the company who is selling goods from constantly needing to reaquire a credit card for payment (the typical "we will keep this card on file").
 
@@ -18,6 +15,9 @@ All processing and storing of credit card data is done via Stripe (https://strip
 Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-frontend/wiki) for in-depth install, usage, and other details.
 
 ***
+
+#### Changelog:
+Version 3 (Late-January 2018) has breaking changes.  See `changelog.txt`.
 
 #### What can you do with this app?:
 1. Add credit cards to charge now or in the future.
@@ -62,7 +62,7 @@ Please see the [wiki pages](https://github.com/coreymgilmore/stripe-appengine-fr
 - This app *only* works on App Engine, not in a normal Golang environment.
 
 #### Install & Setup:
-- Please see `INSTALL.md for more thorough instructions.
+- Please see `INSTALL.md` for more thorough instructions.
 
 1. Install Go.
 2. Create a Google Cloud project.
