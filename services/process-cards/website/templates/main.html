@@ -352,6 +352,8 @@
 						</div>
 						<div class="panel-body">
 							<form id="reports" method="GET" action="/card/report/" target="_blank">
+								<input id="report-customer-id" type="hidden" name="customer-id">
+								<input id="timezone" type="hidden" name="timezone">
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<datalist id="customer-ids">
@@ -372,8 +374,7 @@
 						</div>
 						<div class="panel-footer">
 							<div class="form-group">
-								<input id="report-customer-id" type="hidden" name="customer-id">
-								<input id="timezone" type="hidden" name="timezone">
+								
 								<input class="btn btn-primary" id="reports-submit" form="reports" type="submit" value="View">
 							</div>
 						</div>
