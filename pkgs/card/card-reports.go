@@ -155,12 +155,14 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 	//calculate total less fees
 	//fees should be returned as a dollar.cents number
 	companyInfo, _ := company.Get(r)
+
 	fixedFee := float64(numCharges) * companyInfo.FixedFee
-	percentFee := float64(amountTotal) * companyInfo.PercentFee
+	percentFee := float64(amountTotal) / 100 * companyInfo.PercentFee
+	fees := fixedFee + percentFee
 
 	//convert total amount to dollars
 	total = strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
-	totalLessFees = strconv.FormatFloat(float64(amountTotal/100)-fixedFee-percentFee, 'f', 2, 64)
+	totalLessFees = strconv.FormatFloat(float64(amountTotal/100)-fees, 'f', 2, 64)
 
 	return
 }
@@ -170,7 +172,7 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 //We cannot filter by company when looking up refunds, unfortunately (Stripe issue).
 //This looks up refunds by iterating through the list of events that
 //happened on our Stripe account.
-func getListOfRefunds(sc *client.API, start, end int64) (data []chargeutils.Refund, numRefunds uint16, total string) {
+func getListOfRefunds(sc *client.API, start, end int64) (refunds []chargeutils.Refund, numRefunds uint16, total string) {
 	//retrieve refunds
 	eventParams := &stripe.EventListParams{}
 	eventParams.Filters.AddFilter("created", "gte", strconv.FormatInt(start, 10))
@@ -179,7 +181,7 @@ func getListOfRefunds(sc *client.API, start, end int64) (data []chargeutils.Refu
 	eventParams.Filters.AddFilter("type", "", "charge.refunded")
 
 	events := sc.Events.List(eventParams)
-	refunds := chargeutils.ExtractRefundsFromEvents(events)
+	refunds = chargeutils.ExtractRefundsFromEvents(events)
 
 	var amountTotal uint64
 	for _, v := range refunds {
