@@ -17,12 +17,13 @@ import (
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 )
 
-//templateData is used for showing the receipt in html
-type templateData struct {
+//receiptData is used for showing the receipt in html
+type receiptData struct {
 	//information about the company that uses this app
 	//"your" company, not the company for the card
 	CompanyName,
@@ -33,6 +34,7 @@ type templateData struct {
 	Postal,
 	Country,
 	PhoneNum,
+	Email,
 	StatementDescriptor,
 
 	//information about the card that was charged
@@ -87,34 +89,25 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	d := chargeutils.ExtractDataFromCharge(chg)
 
 	//get company info
-	companyInfo, err := company.Get(r)
-	var name, street, suite, city, state, postal, country, phone, descriptor string
-	if err == company.ErrCompanyDataDoesNotExist {
-		name = "**Company info has not been set yet.**"
-		street = "**Please contact an administrator to fix this.**"
-	} else {
-		name = companyInfo.CompanyName
-		street = companyInfo.Street
-		suite = companyInfo.Suite
-		city = companyInfo.City
-		state = companyInfo.State
-		postal = companyInfo.PostalCode
-		country = companyInfo.Country
-		phone = companyInfo.PhoneNum
-		descriptor = companyInfo.StatementDescriptor
+	companyInfo, _ := company.Get(r)
+	if len(companyInfo.CompanyName) == 0 {
+		companyInfo.CompanyName = "**Company info has not been set yet.**"
+		companyInfo.Street = "**Please contact an administrator to fix this.**"
+		log.Errorf(c, "%v", "Cannot view receipt because company info hasn't been set yet.")
 	}
 
 	//display receipt
-	output := templateData{
-		CompanyName:         name,
-		Street:              street,
-		Suite:               suite,
-		City:                city,
-		State:               state,
-		Postal:              postal,
-		Country:             country,
-		PhoneNum:            phone,
-		StatementDescriptor: descriptor,
+	output := receiptData{
+		CompanyName:         companyInfo.CompanyName,
+		Street:              companyInfo.Street,
+		Suite:               companyInfo.Suite,
+		City:                companyInfo.City,
+		State:               companyInfo.State,
+		Postal:              companyInfo.PostalCode,
+		Country:             companyInfo.Country,
+		PhoneNum:            companyInfo.PhoneNum,
+		Email:               companyInfo.Email,
+		StatementDescriptor: companyInfo.StatementDescriptor,
 		Customer:            d.Customer,
 		Cardholder:          d.Cardholder,
 		CardBrand:           d.CardBrand,
@@ -128,4 +121,44 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	}
 	templates.Load(w, "receipt", output)
 	return
+}
+
+//Preview shows a demo receipt with the company info and fake transaction data
+//this is used to show the receipt when saving the company info.
+func Preview(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	//get company info
+	companyInfo, _ := company.Get(r)
+	if len(companyInfo.CompanyName) == 0 {
+		companyInfo.CompanyName = "**Company info has not been set yet.**"
+		companyInfo.Street = "**Please contact an administrator to fix this.**"
+		log.Errorf(c, "%v", "Cannot preview receipt because company info hasn't been set yet.")
+	}
+
+	//display receipt
+	output := receiptData{
+		CompanyName:         companyInfo.CompanyName,
+		Street:              companyInfo.Street,
+		Suite:               companyInfo.Suite,
+		City:                companyInfo.City,
+		State:               companyInfo.State,
+		Postal:              companyInfo.PostalCode,
+		Country:             companyInfo.Country,
+		PhoneNum:            companyInfo.PhoneNum,
+		Email:               companyInfo.Email,
+		StatementDescriptor: companyInfo.StatementDescriptor,
+		Customer:            "ACME Dynamite Corp.",
+		Cardholder:          "Wile E. Cyote",
+		CardBrand:           "VISA",
+		LastFour:            "4242",
+		Expiration:          "01/2025",
+		Captured:            "true",
+		Timestamp:           "2025-01-02T08:16:32.000Z",
+		Amount:              "256.04",
+		Invoice:             "344402",
+		Po:                  "3345",
+	}
+	templates.Load(w, "receipt", output)
+
 }

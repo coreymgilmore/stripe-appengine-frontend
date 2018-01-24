@@ -38,6 +38,13 @@ type Settings struct {
 	CustomerIDFormat  string `json:"cust_id_format"`  //the format of the customer id from a CRM system.  maybe it  start swith CUST, or ACCT, etc.
 }
 
+//defaultAppSettings is the base configuration for the app
+//default info
+var defaultAppSettings = Settings{
+	RequireCustomerID: false,
+	CustomerIDFormat:  "",
+}
+
 //GetAPI is used when viewing the data in the gui or on a receipt
 func GetAPI(w http.ResponseWriter, r *http.Request) {
 	//get info
@@ -61,27 +68,28 @@ func Get(r *http.Request) (result Settings, err error) {
 		return
 	}
 
-	log.Infof(c, "%+v", "getting app setting")
-
 	//data not found in memcache
 	//get from datastore
 	if err == memcache.ErrCacheMiss {
 		key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 		//get data
-		err := datastore.Get(c, key, &result)
-		if err == datastore.ErrNoSuchEntity {
-			log.Errorf(c, "%+v", "appsettings.Get", err)
-			err = ErrAppSettingsDoNotExist
+		er := datastore.Get(c, key, &result)
+		if er == datastore.ErrNoSuchEntity {
+			//no app settings exist yet
+			//return default values
+			log.Infof(c, "%v", "App settings don't exist yet.  Returning default values.")
+			result = defaultAppSettings
 		}
 
 		//save to memcache if results were found
-		if err == nil {
+		if er == nil {
 			memcacheutils.Save(c, memcacheKeyName, result)
 		}
 
-	} else if err != nil {
-		return
+		//make sure we don't return an error when data was found
+		//or when data wasn't found and we just set the default values
+		err = nil
 	}
 
 	return
@@ -137,17 +145,11 @@ func save(c context.Context, key *datastore.Key, memcacheKeyName string, d Setti
 //SaveDefaultInfo sets some default data when a company first starts using this app
 //This func is called when the initial super admin is created.
 func SaveDefaultInfo(c context.Context) error {
-	//default info
-	d := Settings{
-		RequireCustomerID: false,
-		CustomerIDFormat:  "",
-	}
-
 	//generate entity key
 	//keyname is hard coded so only one entity exists
 	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 	//save
-	err := save(c, key, memcacheKeyName, d)
+	err := save(c, key, memcacheKeyName, defaultAppSettings)
 	return err
 }

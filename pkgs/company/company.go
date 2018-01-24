@@ -49,9 +49,26 @@ type Info struct {
 	PostalCode          string  `json:"postal_code"`          // " "
 	Country             string  `json:"country"`              // " "
 	PhoneNum            string  `json:"phone_num"`            // " "
+	Email               string  `json:"email"`                // " "
 	PercentFee          float64 `json:"percentage_fee"`       //default is 2.90% transaction per Stripe
 	FixedFee            float64 `json:"fixed_fee"`            //default is $0.30 per transaction per Stripe
 	StatementDescriptor string  `json:"statement_descriptor"` //what is displayed on the statement with our charge
+}
+
+//defaultCompanyInfo is the minimal amount of info required
+var defaultCompanyInfo = Info{
+	CompanyName:         "",
+	Street:              "",
+	Suite:               "",
+	City:                "",
+	State:               "",
+	PostalCode:          "",
+	Country:             "",
+	PhoneNum:            "",
+	Email:               "",
+	PercentFee:          .0290,
+	FixedFee:            0.30,
+	StatementDescriptor: "",
 }
 
 //GetAPI is used when viewing the data in the gui or on a receipt
@@ -83,17 +100,22 @@ func Get(r *http.Request) (result Info, err error) {
 		key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 		//get data
-		err := datastore.Get(c, key, &result)
-		if err == datastore.ErrNoSuchEntity {
-			err = ErrCompanyDataDoesNotExist
+		er := datastore.Get(c, key, &result)
+		if er == datastore.ErrNoSuchEntity {
+			//no company info exists yet
+			//return default values
+			log.Infof(c, "%v", "Company info doesn't exist yet.  Returning default values.")
+			result = defaultCompanyInfo
 		}
 
-		//save to memcache
-		//ignore errors since we already got the data
-		memcacheutils.Save(c, memcacheKeyName, result)
+		//save to memcache if results were found
+		if er == nil {
+			memcacheutils.Save(c, memcacheKeyName, result)
+		}
 
-	} else if err != nil {
-		return
+		//make sure we don't return an error when data was found
+		//or when data wasn't found and we just set the default values
+		err = nil
 	}
 
 	return
@@ -110,6 +132,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	postal := strings.TrimSpace(r.FormValue("postal"))
 	country := strings.TrimSpace(r.FormValue("country"))
 	phone := strings.TrimSpace(r.FormValue("phone"))
+	email := strings.TrimSpace(r.FormValue("email"))
 	percentFee, _ := strconv.ParseFloat(r.FormValue("percentFee"), 64)
 	fixedFee, _ := strconv.ParseFloat(r.FormValue("fixedFee"), 64)
 	statementDesc := strings.TrimSpace(r.FormValue("descriptor"))
@@ -147,6 +170,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.PostalCode = postal
 	data.Country = strings.ToUpper(country)
 	data.PhoneNum = phone
+	data.Email = email
 	data.PercentFee = percentFee
 	data.FixedFee = fixedFee
 	data.StatementDescriptor = statementDesc
@@ -181,26 +205,11 @@ func save(c context.Context, key *datastore.Key, memcacheKeyName string, d Info)
 //SaveDefaultInfo sets some default data when a company first starts using this app
 //This func is called when the initial super admin is created.
 func SaveDefaultInfo(c context.Context) error {
-	//default info
-	d := Info{
-		CompanyName:         "",
-		Street:              "",
-		Suite:               "",
-		City:                "",
-		State:               "",
-		PostalCode:          "",
-		Country:             "",
-		PhoneNum:            "",
-		PercentFee:          .0290,
-		FixedFee:            0.30,
-		StatementDescriptor: "",
-	}
-
 	//generate entity key
 	//keyname is hard coded so only one entity exists
 	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 	//save
-	err := save(c, key, memcacheKeyName, d)
+	err := save(c, key, memcacheKeyName, defaultCompanyInfo)
 	return err
 }

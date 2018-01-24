@@ -53,10 +53,38 @@
 					</center>
 				</div>
 			</div>
+			
+			<!-- 
+				ALERTS FOR WHEN:
+				- COMPANY INFO HASN'T BEEN SET FOR RECEIPTS YET.
+				- STATEMENT DESCRIPTOR HASN'T BEEN SET.
+				
+				DON'T NEED AN ALERT FOR APP SETTINGS SINCE WE WILL JUST USE THE DEFAULT VALUES.
+			-->
+			{{if .HasCompanyInfoError}}
+			<div class="row" id="alerts-row">
+				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4">
+					{{if eq .CompanyInfo.CompanyName ""}}
+					<div class="alert alert-danger">
+						Company contact information has not been provided yet.  This information is required for printing receipts.  Please ask an administrator to fill out the required information in the Settings.
+					</div>
+					{{end}}
+
+					{{if eq .CompanyInfo.StatementDescriptor ""}}
+					<div class="alert alert-danger">
+						A statement descriptor has not been set yet.  This information is required for processing charges.  Please ask an administrator to provide a statement descriptor in the Company Info settings.
+					</div>
+					{{end}}
+				</div>
+			</div>
+			{{end}}
 
 			<!-- ADD, REMOVE, CHARGE, REPORTS, SETTINGSS PANELS -->
 			<div class="row" id="panels-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
+					{{/*HIDE EVERYTHING BUT SETTINGS IF THERE IS A COMPANY INFO OR STATEMENT DESCRIPTOR ERROR*/}}
+					{{if eq .HasCompanyInfoError false}}
+					
 					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
 					{{/*same as hiding buttons in nav, but hide the panels so the user cannot see the panels in the code*/}}
 
@@ -352,9 +380,12 @@
 					</div>
 					{{end}}
 
+					{{end}} {{/*END IF - HASCOMPANYINFOERROR*/}}
+
+
 					{{if .UserData.Administrator}}
 					<!-- SETTINGS -->
-					<div class="panel panel-default action-panels" id="panel-settings" >
+					<div class="panel panel-default action-panels {{if .HasCompanyInfoError}}show{{end}}" id="panel-settings" >
 						<div class="panel-heading">
 							<h3 class="panel-title">Settings</h3>
 						</div>
@@ -721,6 +752,18 @@
 									<input class="form-control company-phone" type="text" placeholder="Any format is acceptable." required autocomplete="off">
 								</div>
 							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Email:</label>
+								<div class="col-sm-8">
+									<input class="form-control company-email" type="email" required autocomplete="off">
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-3">Preview Receipt:</label>
+								<div class="col-sm-8">
+									<a class="form-control btn btn-default" id="preview-receipt-btn" href="/company/preview-receipt/" target="_blank">Preview Receipt</a>
+								</div>
+							</div>
 
 							<hr class="hr-modal">
 							<div class="form-group">
@@ -746,7 +789,7 @@
 							<div class="form-group">
 								<label class="control-label col-sm-3">Statement Desc.:</label>
 								<div class="col-sm-8">
-									<input class="form-control statement-descriptor" type="text" required autocomplete="off">
+									<input class="form-control statement-descriptor" type="text" maxlength="22" required autocomplete="off">
 								</div>
 							</div>
 							<div class="msg"></div>

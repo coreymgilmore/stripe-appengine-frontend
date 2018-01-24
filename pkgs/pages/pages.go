@@ -9,6 +9,7 @@ import (
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
@@ -22,13 +23,15 @@ import (
 //This data is grabbed from the url and auto filled into the app's interface so all a
 //user has to do is click the "charge" button.
 type autoloader struct {
-	Amount      float64                //the amount we want to charge, in dollars.cents.
-	Invoice     string                 //extra info
-	Po          string                 //" "
-	UserData    users.User             //data on the user who is processing this charge, retrieved from session data
-	CardData    card.CustomerDatastore //data on the customer/card we want to charge
-	AppSettings appsettings.Settings   //data to modify the look of the app
-	Error       interface{}
+	Amount              float64                //the amount we want to charge, in dollars.cents.
+	Invoice             string                 //extra info
+	Po                  string                 //" "
+	UserData            users.User             //data on the user who is processing this charge, retrieved from session data
+	CardData            card.CustomerDatastore //data on the customer/card we want to charge
+	AppSettings         appsettings.Settings   //data to modify the look of the app
+	CompanyInfo         company.Info           //data about the company, used to check if info for receipt and statement descriptor are set
+	HasCompanyInfoError bool                   //true if company info or statement descriptor are missing/blank
+	Error               interface{}
 }
 
 const (
@@ -145,6 +148,9 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	templateData.UserData = user
 
 	//look up app settings
+	//if app settings don't exist yet (upgrading from an older version of this app),
+	//this will return default values
+	//we do this so the app will still work even when app settings haven't been set yet.
 	as, err := appsettings.Get(r)
 	if err != nil {
 		log.Errorf(c, "%+v", "pages.Main: look up app settings", err)
@@ -152,6 +158,23 @@ func Main(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	templateData.AppSettings = as
+
+	//look up company data so we can check if statement descriptor is set
+	//we need the statement descriptor for charging cards
+	//this used to be in app.yaml environmental variable but is now in datastore
+	//this catches instances where this app was upgraded but the statement descriptor hasn't been set yet.
+	compData, err := company.Get(r)
+	if err != nil {
+		log.Errorf(c, "%+v", "pages.Main: look up company info", err)
+		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
+		return
+	}
+	templateData.CompanyInfo = compData
+
+	//check if company data exists (isn't blank/default)
+	if compData.CompanyName == "" || compData.StatementDescriptor == "" {
+		templateData.HasCompanyInfoError = true
+	}
 
 	//check for url form values for autofilling charge panel
 	//if data in url does not exist, just load the page with user data only

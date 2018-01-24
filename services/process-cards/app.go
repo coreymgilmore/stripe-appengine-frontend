@@ -91,6 +91,7 @@ func init() {
 	comp := r.PathPrefix("/company").Subrouter()
 	comp.Handle("/get/", a.Then(http.HandlerFunc(company.GetAPI))).Methods("GET")
 	comp.Handle("/set/", admin.Then(http.HandlerFunc(company.SaveAPI))).Methods("POST")
+	comp.Handle("/preview-receipt/", admin.Then(http.HandlerFunc(receipt.Preview))).Methods("GET")
 
 	//app settings
 	as := r.PathPrefix("/app-settings").Subrouter()

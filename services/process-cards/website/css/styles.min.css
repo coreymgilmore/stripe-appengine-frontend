@@ -332,7 +332,7 @@ footer a:hover{
 	}
 }
 
-/*input groups for fees in settings modal*/
+/* INPUT GROUPS FOR FEES IN SETTINGS MODAL */
 .input-group {
     width: 100%;
 }
@@ -340,4 +340,10 @@ footer a:hover{
     border: 1px solid #ddd;
     border-left: none;
     width: 45px;
+}
+
+/*ALERTS FOR COMPANY INFO AND STATMENT DESCRIPTOR*
+/*need some spacing below nav bar*/
+#alerts-row {
+	margin-top: 23px;
 }

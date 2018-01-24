@@ -14,28 +14,31 @@
 {{/*NOTICE: the "if .Suite" block is on the same line as ".Street".  This is done to make sure an empty line isn't displayed when no suite is provided*/}}
 <pre>
 {{.CompanyName}}
-{{.Street}}{{if .Suite}}
+{{.Street}}
+{{- if .Suite}}
 {{.Suite}}{{end}}
 {{.City}}, {{.State}} {{.Postal}}
 {{.Country}}
 {{.PhoneNum}}
+{{.Email}}
 *************************************************
 
-Customer Name:      {{.Customer}}
-Cardholder:         {{.Cardholder}}
-Card Type:          {{.CardBrand}}
-Card Ending:        {{.LastFour}}
-Expiration:         {{.Expiration}}
+Customer Name:       {{.Customer}}
+Cardholder:          {{.Cardholder}}
+Card Type:           {{.CardBrand}}
+Card Ending:         {{.LastFour}}
+Expiration:          {{.Expiration}}
 *************************************************
 
-Transaction Type:   Sale
-Captured:           {{.Captured}}
-Timestamp (UTC):    {{.Timestamp}}
+Transaction Type:    Sale
+Statement Descrip.:  {{.StatementDescriptor}}
+Captured:            {{.Captured}}
+Timestamp (UTC):     {{.Timestamp}}
 *************************************************
 
-Amount Charged:     ${{.Amount}}
-Invoice:            {{.Invoice}}
-Purchase Order:     {{.Po}}
+Amount Charged:      ${{.Amount}}
+Invoice:             {{.Invoice}}
+Purchase Order:      {{.Po}}
 *************************************************
 </pre>
 
