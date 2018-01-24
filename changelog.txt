@@ -1,3 +1,47 @@
+V3.0.0
+-------------
+- new major version number due to huge amount of changes.
+
+- a huge rework of the app.
+    - lots of code cleanup.
+    - lots of code reorganization.
+    - better commenting.
+    - better code structure.
+    - better styling of code per golang style guide.
+    - update UI styling.
+
+- use golang context package instead of appengine context package where possible.
+
+- more company settings to separate package.
+    - used to be part of receipt package.
+    - separate package to clean up code base and allow for future changes.
+
+- company settings now has fee rates
+    - fees that Stripe bills
+    - used in calculation on charges table in report.
+
+- use newest jQuery, Bootstrap, and Stripe API.
+
+- move statement descriptor from app.yaml environmental variable to setting in company info.
+    - this allow for changes "on the fly"
+    - doesn't require editting app.yaml and republishing app.
+
+- implement app settings.
+    - similar to company settings, but for stuff that influences the app.
+    - example: requiring customer id when adding a card.  Used to have to do this via change in HTML code.
+
+- show alerts if company info and statement descriptor aren't set.
+    - since statement descriptor moved from app.yaml to datastore, make sure a new value is set.
+    - make sure company info data is set for receipts.
+
+- report
+    - shows total charges less fees
+    - aligns amounts correctly
+    - shows total refunds
+
+
+
+
 V2.1.0
 -------------
 - reorganized all file per App Engine best practices.
@@ -13,7 +57,6 @@ V2.1.0
     - per changes in stripe.
 
 
-
 V2.0.1
 -------------
 - renamed version V2 to V2.0.0
@@ -26,9 +69,9 @@ V2.0.1
 
 - fix bug where report was not showing who processed a charge or refund
 
+
 V2.0.0
 -------------
-
 - use init() function to initialize packages instead of calling another function (i.e. package.Init())
     - this clean up code
     - makes code more "golang" styled
