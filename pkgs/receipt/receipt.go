@@ -149,7 +149,7 @@ func Preview(w http.ResponseWriter, r *http.Request) {
 		Email:               companyInfo.Email,
 		StatementDescriptor: companyInfo.StatementDescriptor,
 		Customer:            "ACME Dynamite Corp.",
-		Cardholder:          "Wile E. Cyote",
+		Cardholder:          "Wile E. Coyote",
 		CardBrand:           "VISA",
 		LastFour:            "4242",
 		Expiration:          "01/2025",
