@@ -24,7 +24,7 @@
 										<tr>
 											<th>Customer Name</th>
 											<th>Card Ending</th>
-											<th>Amount Charged</th>
+											<th class="charge-amount-column">Amount Charged</th>
 											<th>Invoice</th>
 											<th>User</th>
 											<th>Timestamp (UTC)</th>
@@ -44,7 +44,7 @@
 													<tr>
 														<td>{{.Customer}}</td>
 														<td>{{.LastFour}}</td>
-														<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
+														<td class="amount-dollars charge-amount-column"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
 														<td>{{.Invoice}}</td>
 														<td>{{.User}}
 														<td>{{.Timestamp}}</td>
@@ -68,9 +68,18 @@
 									{{if gt .NumCharges 0}}
 									<tfoot>
 										<tr>
-											<td><b>Total Amount Charged:</b><br>({{.NumCharges}} Charges)</td>
+											<td>
+												<b>Total Amount Charged:</b>
+												<br>
+												Total Less Fees:
+												<br>
+												({{.NumCharges}} Charges)
+											</td>
 											<td></td>
-											<td><b>$<span class="amount format-number-commas">{{.TotalAmount}}</span></b></td>
+											<td class="charge-amount-column">
+												<b>$<span class="amount format-number-commas">{{.TotalCharges}}</span></b><br>
+												$<span class="amount format-number-commas">{{.TotalChargesLessFees}}</span>
+											</td>
 											<td></td>
 											<td></td>
 											<td></td>
@@ -99,7 +108,7 @@
 										<tr>
 											<th>Customer Name</th>
 											<th>Card Ending</th>
-											<th>Amount Refunded</th>
+											<th class="charge-amount-column">Amount Refunded</th>
 											<th>Invoice</th>
 											<th>User</th>
 											<th>Timestamp (UTC)</th>
@@ -112,7 +121,9 @@
 												<tr>
 													<td>{{.Customer}}</td>
 													<td>{{.LastFour}}</td>
-													<td class="amount-dollars"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
+													<td class="amount-dollars charge-amount-column">
+														<span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span>
+													</td>
 													<td>{{.Invoice}}</td>
 													<td>{{.User}}
 													<td>{{.Timestamp}}</td>
@@ -125,7 +136,29 @@
 											</tr>
 										{{end}}
 									</tbody>
+
+									{{if gt .NumRefunds 0}}
+									<tfoot>
+										<tr>
+											<td>
+												<b>Total Amount Refunded:</b>
+												<br>
+												({{.NumRefunds}} Refunds)
+											</td>
+											<td></td>
+											<td class="charge-amount-column">
+												<b>$<span class="amount format-number-commas">{{.TotalRefunds}}</span></b><br>
+											</td>
+											<td></td>
+											<td></td>
+											<td></td>
+											<td class="hidden-print"></td>
+											<td class="hidden-print"></td>
+										</tr>
+									</tfoot>
+									{{end}}
 								</table>
+								<i class="text-muted">*Cannot calculate refunds less fees because we do not know if a refund was in full or partial and which refund (if more than one refund for a charge) the fixed fee was refunded with.</i>
 							</div>
 						</div>
 					</div>

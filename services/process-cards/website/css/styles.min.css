@@ -305,6 +305,12 @@ a:visited:after {
 	background-color: 			#F5F5F5
 }
 
+/*MAKE DOLLAR AMOUNTS IN TABLE ALIGN TO RIGHT SO DECIMAL PLACES LINE UP*/
+.table.table-condensed .charge-amount-column {
+	text-align: 	right;
+	padding-right: 	15px;
+}
+
 /*COLOR TOOLTIPS SO THEY ARE EASIER TO SEE*/
 .tooltip-inner {
 	background-color:  			#000;
