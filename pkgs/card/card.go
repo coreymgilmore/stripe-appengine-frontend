@@ -26,7 +26,6 @@ package card
 import (
 	"context"
 	"errors"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -90,10 +89,6 @@ var (
 //an error is thrown if this is missing b/c we need this value to process charges
 func init() {
 	secretKey := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
-	if len(secretKey) != stripeSecretKeyLength {
-		log.Panicln(errStripeKeyInvalid)
-		return
-	}
 
 	//save key to Stripe so we can charge cards and perform other actions
 	stripe.Key = secretKey
@@ -124,7 +119,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 
 	//check if list of cards is in memcache
-	var result []CardList
+	var result []List
 	_, err := memcache.Gob.Get(c, listOfCardsKey, &result)
 	if err == nil {
 		output.Success("cardlist-cached", result, w)
@@ -147,9 +142,9 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 		//build result
 		//format data to show just datastore id and customer name
 		//creates a map of structs
-		var idAndNames []CardList
+		var idAndNames []List
 		for i, r := range cards {
-			x := CardList{r.CustomerName, keys[i].IntID()}
+			x := List{r.CustomerName, keys[i].IntID()}
 			idAndNames = append(idAndNames, x)
 		}
 
@@ -198,12 +193,15 @@ func getCustomerKeyFromID(c context.Context, id int64) *datastore.Key {
 
 //findByDatastoreID retrieves a card's information by its datastore id
 //This returns all the info on a card that is needed to build the ui.
-func findByDatastoreID(c context.Context, datastoreID int64) (r CustomerDatastore, err error) {
+func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
+	//placeholder
+	data := CustomerDatastore{}
+
 	//check for card in memcache
 	datastoreIDStr := strconv.FormatInt(datastoreID, 10)
-	_, err = memcache.Gob.Get(c, datastoreIDStr, &r)
+	_, err := memcache.Gob.Get(c, datastoreIDStr, &data)
 	if err == nil {
-		return
+		return data, nil
 	}
 
 	//card data not found in memcache
@@ -212,27 +210,33 @@ func findByDatastoreID(c context.Context, datastoreID int64) (r CustomerDatastor
 	if err == memcache.ErrCacheMiss {
 		key := getCustomerKeyFromID(c, datastoreID)
 		fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-		r, err = datastoreFindEntity(c, "__key__ =", key, fields)
+		data, err = datastoreFindEntity(c, "__key__ =", key, fields)
 		if err != nil {
-			return
+			return CustomerDatastore{}, err
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, datastoreIDStr, r)
+		memcacheutils.Save(c, datastoreIDStr, data)
+
+	} else if err != nil {
+		return CustomerDatastore{}, err
 	}
 
-	return
+	return data, nil
 }
 
 //FindByCustomerID retrieves a card's information by the unique id from a CRM system
 //This id was provided when a card was added to this app.
 //This func is used when making api style request to semi-automate the charging of a card.
-func FindByCustomerID(c context.Context, customerID string) (r CustomerDatastore, err error) {
+func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, error) {
+	//placeholder
+	data := CustomerDatastore{}
+
 	//check for card in memcache
-	_, err = memcache.Gob.Get(c, customerID, &r)
+	_, err := memcache.Gob.Get(c, customerID, &data)
 	if err == nil {
-		return
+		return data, nil
 	}
 
 	//card data not found in memcache
@@ -241,32 +245,45 @@ func FindByCustomerID(c context.Context, customerID string) (r CustomerDatastore
 	if err == memcache.ErrCacheMiss {
 		//only getting the fields we need to show data in the charge card panel
 		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"}
-		r, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
+		data, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
 		if err != nil {
-			return
+			return CustomerDatastore{}, err
 		}
 
 		//save to memcache
 		//ignore errors since we already got the data
-		memcacheutils.Save(c, customerID, r)
+		memcacheutils.Save(c, customerID, data)
+
+	} else if err != nil {
+		return CustomerDatastore{}, err
 	}
 
-	return
+	return data, nil
 }
 
 //datastoreFindEntity finds one entity in the datastore
 //This function wraps around the datastore package to clean up the code.
 //The project input is a string slice listing the column names we would like returned.
-func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (r CustomerDatastore, err error) {
+func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (CustomerDatastore, error) {
+	//placeholder
+	multiData := []CustomerDatastore{}
+
 	//query
+	//using GetAll b/c this lets us filter.  Get can only look up by key
 	query := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	_, err = query.GetAll(c, &r)
+	_, err := query.GetAll(c, &multiData)
 	if err != nil {
-		return
+		return CustomerDatastore{}, err
+	}
+
+	//check if we found any results
+	//pretty simple, check if data is set in variable
+	if len(multiData) == 0 {
+		return CustomerDatastore{}, errCustomerNotFound
 	}
 
 	//return the result
-	return
+	return multiData[0], nil
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang

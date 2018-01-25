@@ -39,9 +39,9 @@ type chargeSuccessful struct {
 	ChargeID       string `json:"charge_id"` //the unique id returned by stripe for this charge, used to show a receipt if needed or process a refund
 }
 
-//CardList is used to return the list of cards available to be charged to build the gui
+//List is used to return the list of cards available to be charged to build the gui
 //The list is used to build the autocomplete datalist in the UI.
-type CardList struct {
+type List struct {
 	CustomerName string `json:"customer_name"` //company name for the card
 	ID           int64  `json:"id"`            //the datastore id of the card, this is what uniquely identifies the card in the datatore so we can look data.
 }
