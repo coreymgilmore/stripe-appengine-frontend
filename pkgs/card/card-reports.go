@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -152,17 +153,19 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 		numCharges++
 	}
 
-	//calculate total less fees
+	//calculate fees
 	//fees should be returned as a dollar.cents number
 	companyInfo, _ := company.Get(r)
 
 	fixedFee := float64(numCharges) * companyInfo.FixedFee
 	percentFee := float64(amountTotal) / 100 * companyInfo.PercentFee
-	fees := fixedFee + percentFee
+	percentFeeRounded := round(percentFee)
+	fees := fixedFee + percentFeeRounded
 
-	//convert total amount to dollars
-	total = strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
-	totalLessFees = strconv.FormatFloat(float64(amountTotal/100)-fees, 'f', 2, 64)
+	//convert amounts to dollars
+	amountTotalFloat := (float64(amountTotal) / 100)
+	total = strconv.FormatFloat(amountTotalFloat, 'f', 2, 64)
+	totalLessFees = strconv.FormatFloat(amountTotalFloat-fees, 'f', 2, 64)
 
 	return
 }
@@ -202,4 +205,25 @@ func getListOfRefunds(sc *client.API, start, end int64) (refunds []chargeutils.R
 	total = strconv.FormatFloat((float64(amountTotal) / 100), 'f', 2, 64)
 
 	return
+}
+
+//round rounds a number to two decimal places
+//this is used when calculating the percentage fees for a charge
+func round(f float64) float64 {
+
+	//the number of digits after the decimal point we want
+	const sigfigs float64 = 2
+
+	//the number we multiply by to shift the decimal point
+	//shift = 100, this will result in us getting the number as cents
+	var shift = 10 * sigfigs
+
+	//shift the decimal to the right
+	fShiftedRight := f * shift
+
+	//round
+	fCentsRounded := math.Floor(fShiftedRight + 0.5)
+
+	//shift the decimal back to the left to get dollar.cents value
+	return fCentsRounded / shift
 }
