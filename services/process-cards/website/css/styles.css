@@ -33,6 +33,7 @@
 /*ADD 1PX BORDER TO MAKE ALL BUTTONS THE SAME HEIGHT
 /*only btn-default usually has borders, other btn- are just colored*/
 .btn-primary {
+	border-top: 			1px solid #2196F3;
 	border-bottom: 			1px solid #2196F3;
 }
 
@@ -203,6 +204,11 @@ hr {
 	border-bottom: 				0;
 }
 
+/*make button in panel not have extra spacing*/
+.panel-footer .form-group {
+	margin-bottom: 0;
+}
+
 /*HIDE ALL PANELS ON PAGE LOAD*/
 .action-panels {
 	display: 					none;
@@ -303,7 +309,6 @@ a:visited:after {
 .table.table-condensed .charge-amount-column {
 	text-align: 	right;
 	padding-right: 	15px;
-	font-family: 	monospace;
 }
 
 /*COLOR TOOLTIPS SO THEY ARE EASIER TO SEE*/
@@ -333,8 +338,23 @@ footer a:hover{
 	}
 }
 
-/*input groups for fees in settings modal*/
-#modal-change-company-info .input-group-addon {
-	border: 1px solid #ddd;
-	width:  12px;
+/* INPUT GROUPS FOR FEES IN SETTINGS MODAL */
+.input-group {
+    width: 100%;
+}
+.input-group .input-group-addon {
+    border: 1px solid #ddd;
+    border-left: none;
+    width: 45px;
+}
+
+/*ALERTS FOR COMPANY INFO AND STATMENT DESCRIPTOR*
+/*need some spacing below nav bar*/
+#alerts-row {
+	margin-top: 23px;
+}
+
+/*ALERT MESSAGES IN PANELS*/
+.panel-body .msg .alert {
+	margin-bottom: 0;
 }

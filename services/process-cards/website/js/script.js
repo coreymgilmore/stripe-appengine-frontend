@@ -181,8 +181,6 @@ function getCards() {
 			return;
 		},
 		error: function (r) {
-			console.log(r);
-			console.log(JSON.parse(r['responseText']));
 			customerList.html('<option value="Could Not Load">');
 			return;
 		},
@@ -194,7 +192,7 @@ function getCards() {
 			customerList.html('');
 			
 			//check if no cards exist
-			if (data.length === 0) {
+			if (data === null ||data.length === 0) {
 				customerList.html('<option value="None exist yet!" data-id="0">');
 				return;
 			}
@@ -278,7 +276,6 @@ function getUsers() {
 		},
 		error: function (r) {
 			userList.html('<option value="0">Error (please see dev tools)</option>');
-			console.log(r);
 			return;
 		},
 		success: function (r) {
@@ -380,7 +377,6 @@ $('#form-new-user').submit(function (e) {
 			var j = JSON.parse(r['responseText']);
 			if (j['ok'] === false) {
 				showModalMessage(j['data']['error_msg'], 'danger', msgElem);
-				console.log(j);
 				return;
 			}
 
@@ -472,7 +468,6 @@ $('#form-change-pwd').submit(function (e) {
 		},
 		error: function (r) {
 			showModalMessage("An error occured while trying to update this user's password.", "danger", msgElem);
-			console.log(r);
 			return;
 		},
 		success: function (r) {
@@ -552,7 +547,6 @@ $('#form-update-user').on('change', '.user-list', function() {
 		},
 		error: function(r) {
 			showModalMessage("An error occured while trying to retrieve this users data. Please try again.", "danger", msgElem);
-			console.log(r);
 			return;
 		},
 		success: function (j) {
@@ -663,7 +657,6 @@ $('#form-update-user').submit(function (e) {
 			var j = JSON.parse(r['responseText']);
 			if (j['ok'] === false) {
 				showModalMessage(j['data']['error_msg'], 'danger', msgElem);
-				console.log(j);
 				return;
 			}
 			return;
@@ -830,7 +823,6 @@ $('#add-card').submit(function (e) {
 	function createTokenCallback (status, response) {
 		if (response.error) {
 			showPanelMessage('The credit card could not be saved. Please contact an administrator. Message: ' + response.error.message + '.', 'danger', msg);
-			console.log(response);
 			return;
 		}
 
@@ -850,7 +842,6 @@ $('#add-card').submit(function (e) {
 			},
 			error: function (r) {
 				var j = JSON.parse(r['responseText']);
-				console.log(j);
 
 				if (j['ok'] == false) {
 					showPanelMessage(j['data']['error_msg'], 'danger', msg);
@@ -904,7 +895,7 @@ function resetAddCardPanel() {
 }
 
 //CLEAR THE FORM WHEN THE USER CLICKS THE CLEAR BTN
-$('#add-card').on('click', '.clear-form-btn', function() {
+$('#panel-add-card').on('click', '.clear-form-btn', function() {
 	resetAddCardPanel();
 	$('#add-card .msg').html('');
 	return;
@@ -926,9 +917,6 @@ $('#remove-card').submit(function (e) {
 	if (custId === 0 || custId === "0" || custId.length === 0) {
 		e.preventDefault();
 		showPanelMessage("You must choose a customer.", "danger", msg);
-		console.log("input val: " + input.val());
-		console.log("cust id: " + custId);
-		console.log("cust id length: " + custId.length);
 		return
 	}
 
@@ -953,8 +941,6 @@ $('#remove-card').submit(function (e) {
 				showPanelMessage('An error occured while removing this card. Do not refresh or leave this screen! Please contact an administrator.', 'danger', msg);
 			}
 
-			console.log(r);
-			console.log(j);
 			return;
 		},
 		success: function (j) {
@@ -1017,7 +1003,6 @@ $('#charge-card').on('change', '.customer-name', function() {
 		error: function(r) {
 			var  j = JSON.parse(r['responseText']);
 			showPanelMessage(j['data']['error_msg'], "danger", msg);
-			console.log(r);
 			return;
 		},
 		success: function (j) {
@@ -1069,7 +1054,6 @@ $('#charge-card').submit(function (e) {
 
 	//unset the charge and remove data attribute
 	//so we don't use this by mistake for the next charge or card
-	console.log("Remove card after charging?:", chargeAndRemove);
 	btn.data("chargeandremove", "");
 
 	//charge card via ajax
@@ -1104,7 +1088,6 @@ $('#charge-card').submit(function (e) {
 			var j = JSON.parse(r['responseText']);
 			if (j['ok'] === false) {
 				showPanelMessage(j['data']['error_msg'], 'danger', msg);
-				console.log(j);
 			}
 			return;
 		},
@@ -1197,7 +1180,7 @@ function resetChargeCardPanel(msgRemove) {
 }
 
 //CLEAR THE FORM BTN
-$('#charge-card').on('click', '.clear-form-btn', function() {
+$('#panel-charge-card').on('click', '.clear-form-btn', function() {
 	resetChargeCardPanel(true);
 	return;
 });
@@ -1337,7 +1320,6 @@ $('#form-refund').submit(function (e) {
 			if (j['ok'] === false) {
 				showModalMessage(j['data']['error_msg'], 'danger', msg);
 				btn.prop('disabled', false);
-				console.log(j);
 			}
 			return;
 		},
@@ -1398,9 +1380,10 @@ $('#modal-change-company-info').on('show.bs.modal', function() {
 			$('#modal-change-company-info .company-postal').val(data['postal_code']);
 			$('#modal-change-company-info .company-country').val(data['country']);
 			$('#modal-change-company-info .company-phone').val(data['phone_num']);
-			$('#modal-change-company-info .percentage-fee').val(data['percentage_fee']);
-			$('#modal-change-company-info .fixed-fee').val(data['fixed_fee']);
-			$('#modal-change-company-info .statement-descripto').val(data['statement_descriptor']);
+			$('#modal-change-company-info .company-email').val(data['email']);
+			$('#modal-change-company-info .percentage-fee').val(parseFloat(data['percentage_fee'] * 100).toFixed(2));
+			$('#modal-change-company-info .fixed-fee').val(data['fixed_fee'].toFixed(2));
+			$('#modal-change-company-info .statement-descriptor').val(data['statement_descriptor']);
 
 			//hide the alert message
 			msg.html('');
@@ -1436,6 +1419,7 @@ $('#form-change-company-info').submit( function (e) {
 	var postal = 	 $('#modal-change-company-info .company-postal').val();
 	var country = 	 $('#modal-change-company-info .company-country').val();
 	var phone = 	 $('#modal-change-company-info .company-phone').val();
+	var email = 	 $('#modal-change-company-info .company-email').val();
 	var percentFee = parseFloat($('#modal-change-company-info .percentage-fee').val());
 	var fixedFee = 	 parseFloat($('#modal-change-company-info .fixed-fee').val());
 	var descriptor = $('#modal-change-company-info .statement-descriptor').val();
@@ -1481,6 +1465,7 @@ $('#form-change-company-info').submit( function (e) {
 			postal: 	postal,
 			country: 	country,
 			phone: 		phone,
+			email: 		email,
 			percentFee: percentFee,
 			fixedFee: 	fixedFee,
 			descriptor: descriptor,
@@ -1493,7 +1478,6 @@ $('#form-change-company-info').submit( function (e) {
 			var j = JSON.parse(r['responseText']);
 			if (j['ok'] === false) {
 				showModalMessage("An error occured and your company info could not be saved.", "danger", msg);
-				console.log(j);
 				return;
 			}
 		},
@@ -1509,6 +1493,112 @@ $('#form-change-company-info').submit( function (e) {
 				msg.html('');
 				return;
 			}, 3000);
+			
+			return;
+		}
+	});
+
+	return false;
+});
+
+//*******************************************************************************
+//GET AND SET APP SETTINGS INFO
+
+//GET INFO
+$('#modal-app-settings').on('show.bs.modal', function() {
+	var msg = $('#modal-app-settings .msg');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/app-settings/get/",
+		beforeSend: function() {
+			showModalMessage("Loading app settings...", "info", msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+
+				//another error occured
+				showModalMessage("An error occured and your app settings could not be loaded.  Please try again.", "danger", msg);
+				$('#app-settings-submit').prop('disabled', true);
+				return;
+			}
+		},
+		success: function (j) {
+			//load data into fields
+			var data = j['data'];
+			if (data['require_cust_id']) {
+				$('#form-change-app-settings .require-cust-id input[value=true]').attr('checked', true).parent().addClass('active');
+			}
+			else {
+				$('#form-change-app-settings .require-cust-id input[value=false]').attr('checked', true).parent().addClass('active');
+			}
+
+			$('#modal-app-settings .cust-id-format').val(data['cust_id_format']);
+
+			//hide the alert message
+			msg.html('');
+
+			//enable the submit btn
+			$('#app-settings-submit').prop('disabled', false);
+			return;
+		}
+	});
+
+	return;
+});
+
+//RESET MODAL TO DEFAULTS ON CLOSE
+$('#modal-app-settings').on('hidden.bs.modal', function() {
+	$('#modal-app-settings .msg').html('');
+	$('#app-settings-submit').prop('disabled', true);
+	$('#modal-app-settings input').val('');
+	return;
+});
+
+//SAVE APP SETTINGS
+$('#form-change-app-settings').submit( function (e) {
+	//prevent form submission
+	e.preventDefault();
+
+	//gather input values
+	var requireCustID = $('#modal-app-settings .require-cust-id label.active input').val();
+	var custIDFormat =  $('#modal-app-settings .cust-id-format').val();
+	var msg = 		 	$('#modal-app-settings .msg');
+	var btn = 		 	$('#app-settings-submit');
+
+	//use ajax to update datastore
+	$.ajax({
+		type: 	"POST",
+		url: 	"/app-settings/set/",
+		data: {
+			requireCustID: requireCustID,
+			custIDFormat: custIDFormat,
+		},
+		beforeSend: function() {
+			showModalMessage("Saving app settings...", "info", msg);
+			btn.prop("disabled", true);
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage("An error occured and your app settings could not be saved.", "danger", msg);
+				return;
+			}
+		},
+		success: function (j) {
+			//show success message
+			showModalMessage("App settings saved! Refresh the app to see the changes applied.", "success", msg);
+			
+			//re-enable button to allow further changes
+			btn.prop('disabled', false);
+
+			//hide the message after a few seconds
+			setTimeout(function() {
+				msg.html('');
+				return;
+			}, 5000);
 			
 			return;
 		}
