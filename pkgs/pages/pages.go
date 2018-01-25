@@ -54,7 +54,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//check that stripe private key and statement desecriptor were read correctly
+	//check that stripe private key was set correctly
 	if err := card.CheckInit(); err != nil {
 		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
 		return
