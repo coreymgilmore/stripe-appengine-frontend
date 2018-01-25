@@ -41,11 +41,11 @@ func init() {
 	//**********************************************************************
 	//Middleware
 	a := alice.New(middleware.Auth)
-	admin := alice.New(middleware.Auth, middleware.Administrator)
-	add := admin.Append(middleware.AddCards)
-	remove := admin.Append(middleware.RemoveCards)
-	charge := admin.Append(middleware.ChargeCards)
-	reports := admin.Append(middleware.ViewReports)
+	admin := a.Append(middleware.Administrator)
+	add := a.Append(middleware.AddCards)
+	remove := a.Append(middleware.RemoveCards)
+	charge := a.Append(middleware.ChargeCards)
+	reports := a.Append(middleware.ViewReports)
 
 	//**********************************************************************
 	//Router
