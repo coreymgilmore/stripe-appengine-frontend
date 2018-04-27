@@ -141,7 +141,7 @@ $('#create-init-admin').submit(function (e) {
 	//make sure the passwords are not very easy to guess
 	if (isSimplePassword(pass1) === true) {
 		e.preventDefault();
-		essage("The password you provided is too simple. Please choose a better password.", 'danger', msg);
+		showPanelMessage("The password you provided is too simple. Please choose a better password.", 'danger', msg);
 		return false;
 	}
 
