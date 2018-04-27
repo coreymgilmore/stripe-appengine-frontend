@@ -99,6 +99,7 @@ func init() {
 	as := r.PathPrefix("/app-settings").Subrouter()
 	as.Handle("/get/", a.Then(http.HandlerFunc(appsettings.GetAPI))).Methods("GET")
 	as.Handle("/set/", admin.Then(http.HandlerFunc(appsettings.SaveAPI))).Methods("POST")
+	as.Handle("/generate-api-key", admin.Then(http.HandlerFunc(appsettings.GenerateAPIKey))).Methods("GET")
 
 	//Pages that don't exist
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)

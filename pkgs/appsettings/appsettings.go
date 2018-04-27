@@ -8,10 +8,13 @@ package appsettings
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -36,6 +39,7 @@ var ErrAppSettingsDoNotExist = errors.New("appsettings: info does not exist")
 type Settings struct {
 	RequireCustomerID bool   `json:"require_cust_id"` //is the customer id field required when adding a new card
 	CustomerIDFormat  string `json:"cust_id_format"`  //the format of the customer id from a CRM system.  maybe it  start swith CUST, or ACCT, etc.
+	APIKey            string `json:"api_key"`         //the api key to access this app to automatically charge cards
 }
 
 //defaultAppSettings is the base configuration for the app
@@ -43,6 +47,7 @@ type Settings struct {
 var defaultAppSettings = Settings{
 	RequireCustomerID: false,
 	CustomerIDFormat:  "",
+	APIKey:            "",
 }
 
 //GetAPI is used when viewing the data in the gui or on a receipt
@@ -152,4 +157,39 @@ func SaveDefaultInfo(c context.Context) error {
 	//save
 	err := save(c, key, memcacheKeyName, defaultAppSettings)
 	return err
+}
+
+//GenerateAPIKey creates a new api key and saves it to the datastore
+//the key is also returned to update the gui
+//limit api key length so it is easier to use
+//multiple calls to this func will "rotate" the api key
+func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+	//generate a new api key
+	//just a simple sha256 string off the current time
+	ts := strconv.FormatInt(time.Now().UnixNano(), 10)
+	h := sha256.New()
+	h.Write([]byte(ts))
+	apiKey := strings.ToUpper(hex.EncodeToString(h.Sum(nil))[:20])
+
+	//get the existing api key to update
+	var settings Settings
+	c := appengine.NewContext(r)
+	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	err := datastore.Get(c, key, &settings)
+	if err != nil {
+		log.Infof(c, "Error occured looking up old api key", err)
+		return
+	}
+
+	//set the new api key
+	settings.APIKey = apiKey
+	err = save(c, key, memcacheKeyName, settings)
+	if err != nil {
+		log.Infof(c, "Could not save new api key", err)
+		return
+	}
+
+	output.Success("generateAPIKey", apiKey, w)
+	return
+
 }

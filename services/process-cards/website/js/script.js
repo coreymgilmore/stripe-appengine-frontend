@@ -1537,6 +1537,14 @@ $('#modal-app-settings').on('show.bs.modal', function() {
 
 			$('#modal-app-settings .cust-id-format').val(data['cust_id_format']);
 
+			if (data['api_key'] === '') {
+				$('#api-key-displayed').val("Not created yet.");
+			}
+			else {
+				$('#api-key-displayed').val(data['api_key']);
+			}
+
+
 			//hide the alert message
 			msg.html('');
 
@@ -1605,4 +1613,41 @@ $('#form-change-app-settings').submit( function (e) {
 	});
 
 	return false;
+});
+
+//GET A NEW API KEY
+$('#form-change-app-settings').on('click', '#generate-api-key', function() {
+	var msg = $('#modal-app-settings .msg');
+
+	$.ajax({
+		type: 	"GET",
+		url: 	"/app-settings/generate-api-key/",
+		beforeSend: function() {
+			showModalMessage("Getting new API key...", "info", msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+
+				//another error occured
+				showModalMessage("An error occured and an API key could not be generated.  Try again.", "danger", msg);
+				return;
+			}
+		},
+		success: function (j) {
+			//display the new api key in the gui
+			$('#api-key-displayed').val(j['data']);
+
+			//show success message
+			showModalMessage("New API key generated.", "success", msg);
+			setTimeout(function() {
+				msg.html('');
+				return;
+			}, 3000);
+			return;
+		}
+	});
+
+	return;
 });
