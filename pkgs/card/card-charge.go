@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -272,6 +273,9 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 //this is used to charge a card without using the gui
 //the api key must be used and the request must have certain data
 func AutoCharge(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	log.Infof(c, "Auto charging...")
+
 	//get inputs
 	customerID := r.FormValue("customer_id") //the id in the CRM system, not the datastore ID since we dont store that off of appengine
 	amount := r.FormValue("amount")          //in cents
@@ -303,11 +307,29 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//convert amount to uint
+	amountCents, err := strconv.ParseUint(amount, 10, 64)
+	if err != nil {
+		output.Error(err, "Could not convert amount to integer.", w, r)
+		return
+	}
+
 	//check if amount is greater than the minimum charge
 	//min charge may be greater than 0 because of transactions costs
 	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
 	if amountCents < minCharge {
 		output.Error(errChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
+		return
+	}
+
+	//verify api key
+	settings, err := appsettings.Get(r)
+	if err != nil {
+		output.Error(err, "Could not get app settings to verify api key.", w, r)
+		return
+	}
+	if settings.APIKey != apiKey {
+		output.Error(errMissingInput, "The api key provided in the request is not correct.", w, r)
 		return
 	}
 
@@ -318,28 +340,15 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 seconds is a bit over generous but covers even really strange senarios
-	c := appengine.NewContext(r)
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
 
 	//look up stripe customer id from datastore
-	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
-	custData, err := findByDatastoreID(c, datastoreIDInt)
+	custData, err := FindByCustomerID(c, customerID)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
 		return
 	}
-
-	//make sure customer name matches
-	//just another catch in case of strange errors and mismatched data
-	if customerName != custData.CustomerName {
-		output.Error(err, "The customer name did not match the data for the customer ID. Please log out and try again.", w, r)
-		return
-	}
-
-	//get username of logged in user
-	//we record this data so we can see who processed a charge in the reports
-	username := sessionutils.GetUsername(r)
 
 	//init stripe
 	sc := createAppengineStripeClient(c)
@@ -374,12 +383,11 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 
 	//add metadata to charge
 	//used for reports and receipts
-	chargeParams.AddMeta("customer_name", customerName)
-	chargeParams.AddMeta("appengine_datastore_id", datastoreID)
+	chargeParams.AddMeta("auto_charged", "true")
+	chargeParams.AddMeta("auto_charge_referrer", referrer)
 	chargeParams.AddMeta("customer_id", custData.CustomerID)
 	chargeParams.AddMeta("invoice_num", invoice)
 	chargeParams.AddMeta("po_num", poNum)
-	chargeParams.AddMeta("processed_by", username)
 
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
@@ -412,21 +420,11 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//errors are ignored since if we can't save this data to memcache we can always get it from the stripe
 	memcacheutils.Save(c, chg.ID, chg)
 
-	//check if we need to remove this card
-	//remove it if necessary
-	if chargeAndRemove {
-		err := Remove(datastoreID, r)
-		if err != nil {
-			log.Warningf(c, "%v", "Error removing card after charge.", err)
-		}
-	}
-
 	//save count of card types
 	saveChargeDetails(c, chg)
 
 	//build struct to output a success message to the client
 	out := chargeSuccessful{
-		CustomerName:   customerName,
 		Cardholder:     custData.Cardholder,
 		CardExpiration: custData.CardExpiration,
 		CardLast4:      custData.CardLast4,

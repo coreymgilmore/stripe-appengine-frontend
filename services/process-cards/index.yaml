@@ -24,6 +24,15 @@ indexes:
   - name: CardLast4
   - name: Cardholder
   - name: CustomerName
+  - name: StripeCustomerToken
+
+- kind: card
+  properties:
+  - name: CustomerId
+  - name: CardExpiration
+  - name: CardLast4
+  - name: Cardholder
+  - name: CustomerName
 
 - kind: card
   properties:

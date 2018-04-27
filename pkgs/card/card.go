@@ -244,7 +244,7 @@ func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, 
 	//save card to memcache after it is found
 	if err == memcache.ErrCacheMiss {
 		//only getting the fields we need to show data in the charge card panel
-		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration"}
+		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
 		data, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
 		if err != nil {
 			return CustomerDatastore{}, err
