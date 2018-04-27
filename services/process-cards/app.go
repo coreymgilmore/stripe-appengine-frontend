@@ -87,6 +87,8 @@ func init() {
 	c.Handle("/report/", reports.Then(http.HandlerFunc(card.Report))).Methods("GET")
 	c.Handle("/refund/", charge.Then(http.HandlerFunc(card.Refund))).Methods("POST")
 
+	C.Handle("/auto-charge/", card.AutoCharge).Methods("POST")
+
 	//company info
 	comp := r.PathPrefix("/company").Subrouter()
 	comp.Handle("/get/", a.Then(http.HandlerFunc(company.GetAPI))).Methods("GET")
