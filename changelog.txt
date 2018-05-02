@@ -1,6 +1,6 @@
 V3.1.0
 -------------
-- new minor version due to new functionality being added (auto remove expired cards)
+- new minor version due to new functionality being added
 
 - auto remove expired cards
     - this is a cron task that runs on the first of every month
@@ -8,6 +8,12 @@ V3.1.0
     - this task can be manually run by browsing to same endpoint
         - used for removing cards with an older than previous month expiration
     - note new index added
+
+- enable automatically charging cards using API request
+    - generate and show API key in GUI so user can grab API and use in their application making the charge request.
+    - handle authentication of API requests to charge a card.
+    - process charges automatically when an API request is made.
+    - this is served off a different endpoint to keep things separate and b/c of different authentication requirements.
 
 V3.0.0
 -------------
