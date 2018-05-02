@@ -7,6 +7,7 @@ V3.1.0
     - this will remove cards that expired in the previous month
     - this task can be manually run by browsing to same endpoint
         - used for removing cards with an older than previous month expiration
+    - note new index added
 
 V3.0.0
 -------------
