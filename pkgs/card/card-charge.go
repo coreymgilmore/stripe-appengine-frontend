@@ -383,11 +383,13 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 
 	//add metadata to charge
 	//used for reports and receipts
+	chargeParams.AddMeta("customer_name", custData.CustomerName)
 	chargeParams.AddMeta("auto_charged", "true")
 	chargeParams.AddMeta("auto_charge_referrer", referrer)
 	chargeParams.AddMeta("customer_id", custData.CustomerID)
 	chargeParams.AddMeta("invoice_num", invoice)
 	chargeParams.AddMeta("po_num", poNum)
+	chargeParams.AddMeta("processed_by", "api")
 
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
@@ -434,6 +436,8 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		Datetime:       timestamps.ISO8601(),
 		ChargeID:       chg.ID,
 	}
+
+	log.Infof(c, "Auto charging...done")
 	output.Success("cardCharged", out, w)
 	return
 }
