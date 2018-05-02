@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/stripe/stripe-go"
-
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/stripe/stripe-go"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/memcache"

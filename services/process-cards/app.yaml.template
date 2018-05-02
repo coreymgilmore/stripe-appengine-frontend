@@ -31,7 +31,7 @@ handlers:
 #cron tasks
 - url: /cron/remove-expired-cards/
   script: _go_app
-  login: admin
+  #login: admin #commented out so that users can browse to this endpoint and provide url form value to remove cards with a different expiration
 
 #handle errors
 error_handlers:

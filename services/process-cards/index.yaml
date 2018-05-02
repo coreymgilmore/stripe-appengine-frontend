@@ -24,7 +24,6 @@ indexes:
   - name: CardLast4
   - name: Cardholder
   - name: CustomerName
-  - name: StripeCustomerToken
 
 - kind: card
   properties:
@@ -33,6 +32,7 @@ indexes:
   - name: CardLast4
   - name: Cardholder
   - name: CustomerName
+  - name: StripeCustomerToken
 
 - kind: card
   properties:
@@ -41,5 +41,11 @@ indexes:
   - name: CardLast4
   - name: Cardholder
   - name: CustomerId
+  - name: CustomerName
+  - name: StripeCustomerToken
+
+- kind: card
+  properties:
+  - name: CardExpiration
   - name: CustomerName
   - name: StripeCustomerToken

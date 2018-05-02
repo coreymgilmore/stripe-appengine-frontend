@@ -62,4 +62,5 @@
     * Exchange `--promote` with `--no-promote` to stop this version of the app from automatically taking over traffic.  Do this when you want to test the new version first.
     * Add `--version [YOUR_VERSION_ID]` if you want to give this version of the app your own version number.  Otherwise you will be assigned a version number based on the current datetime.
     * You will see a confirmation prompt.  Click 'y'.
-4. When the deployment is complete you will be able to use the app on the `https://[YOUR-PROJECT-ID].appspot.com`.
+4. You will also need to upload the indexes: `gcloud app deploy index.yaml`.
+5. When the deployment is complete you will be able to use the app on the `https://[YOUR-PROJECT-ID].appspot.com`.

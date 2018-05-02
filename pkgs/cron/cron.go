@@ -2,72 +2,71 @@ package cron
 
 import (
 	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
 )
 
 //RemoveExpiredCards removes old cards
-//This works by removing any card whose expiration is in the past.
+//This works by removing any card whose expiration is in in the prior past month.
 //This is designed to run monthly as a cron task.
 func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
+	//get context
+	c := appengine.NewContext(r)
 
-	/*
-		//get context
-		c := appengine.NewContext(r)
+	//get previous month as a 1 or 2 digit number
+	now := time.Now()
+	month := int(now.Month() - 1)
+	year := now.Year()
 
-		//query datastore
-		fields := []string{"CustomerId", "CustomerName", "CardExpiration", "StripeCustomerToken"}
-		q := datastore.NewQuery("card").Project(fields...).Limit(10)
+	//build month and year into string as we store expiration dates in datastore
+	monthYear := strconv.Itoa(month) + "/" + strconv.Itoa(year)
 
-		//get current datetime
-		//even though we only need date
-		//do this outside of for loop so we don't redo it constantly
-		now := time.Now()
+	//user can also pass in monthYear as a form value
+	//useful for removing cards more than 1 year in the past
+	fv := r.FormValue("monthYear")
+	if fv != "" {
+		monthYear = fv
+	}
 
-		//iterate through results
-		for t := q.Run(c); ; {
-			var customer card.CustomerDatastore
+	log.Infof(c, "%s", "Removing expired cards for: ", monthYear)
 
-			//get one customer result
-			datastoreKey, err := t.Next(&customer)
-			if err == datastore.Done {
-				break
-			}
-			if err != nil {
-				log.Errorf(c, "%s", "cron.RemoveExpiredCards: Could not retrieve customer data. ", err)
-			}
+	//query datastore
+	//need customer name for logging and stripe token to remove card from stripe
+	fields := []string{"CustomerName", "StripeCustomerToken"}
+	q := datastore.NewQuery("card").Filter("CardExpiration =", monthYear).Project(fields...)
 
-			//expiration in datastore is stored as MM/YYYY or M/YYYY if month is Jan. through Sep.
-			//split the expiration into month and year so we can check if the month is in format M or MM
-			expSplit := strings.Split(customer.CardExpiration, "/")
-			if len(expSplit[0]) == 1 {
-				customer.CardExpiration = "0" + customer.CardExpiration
-			}
-
-			//parse expiration into a time.Time
-			expiration, err := time.Parse("01/2006", customer.CardExpiration)
-			if err != nil {
-				log.Errorf(c, "%s", "cron.RemoveExpiredCards: Could not parse expiration into a time.Time. ", customer.CardExpiration, err)
-			}
-
-			//check if expiration is in the past
-			if expiration.Sub(now) < 0 {
-				//card is expired
-				//remove the card from the datastore, from stripe, and refresh memcache
-				log.Infof(c, "%s", "cron.RemoveExpiredCards: Card is expired. ", customer.CustomerName, customer.CardExpiration)
-
-				//get datastore id as a string
-				datastoreID := strconv.FormatInt(datastoreKey.IntID(), 10)
-
-				err := card.RemoveDo(datastoreID, r)
-				if err != nil {
-					log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
-				}
-			}
+	//iterate through results
+	//only results should be cards that expired last month
+	cardsRemovedCount := 0
+	for t := q.Run(c); ; {
+		var customer card.CustomerDatastore
+		datastoreKey, err := t.Next(&customer)
+		if err == datastore.Done {
+			break
+		}
+		if err != nil {
+			log.Errorf(c, "%s", "cron.RemoveExpiredCards: Could not retrieve customer data. ", err)
+			return
 		}
 
-		log.Infof(c, "%s", "cron.RemoveExpiredCards: Time elapsed: ", time.Since(now))
-		fmt.Fprint(w, "done")
-		return
+		//remove the card from the datastore, from stripe, and refresh memcache
+		datastoreID := strconv.FormatInt(datastoreKey.IntID(), 10)
+		_ = datastoreID
+		err = card.Remove(datastoreID, r)
+		if err != nil {
+			log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
+			return
+		}
 
-	*/
+		cardsRemovedCount++
+	}
+
+	log.Infof(c, "%s", "Removed cards:", cardsRemovedCount)
+	log.Infof(c, "%s", "Removing expired cards...done")
 	return
 }

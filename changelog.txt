@@ -1,3 +1,13 @@
+V3.1.0
+-------------
+- new minor version due to new functionality being added (auto remove expired cards)
+
+- auto remove expired cards
+    - this is a cron task that runs on the first of every month
+    - this will remove cards that expired in the previous month
+    - this task can be manually run by browsing to same endpoint
+        - used for removing cards with an older than previous month expiration
+
 V3.0.0
 -------------
 - new major version number due to huge amount of changes.
