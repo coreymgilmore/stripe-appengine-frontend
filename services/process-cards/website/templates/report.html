@@ -46,7 +46,7 @@
 														<td>{{.LastFour}}</td>
 														<td class="amount-dollars charge-amount-column"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
 														<td>{{.Invoice}}</td>
-														<td>{{.User}}
+														<td>{{if .AutoCharge}}{{.AutoChargeReferrer}}{{else}}{{.User}}{{end}}
 														<td>{{.Timestamp}}</td>
 														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														

@@ -20,22 +20,27 @@ import (
 //stripe returns a bunch of data when a charge is made (or when looking up a charge by the charge id)
 //this is the data we need from that charge object
 type Charge struct {
-	ID            string `json:"charge_id"`          //the stripe charge id
-	AmountCents   uint64 `json:"amount_cents"`       //the amount of the charge in cents
-	AmountDollars string `json:"amount_dollars"`     //amount of the charge in dollars (without $ symbol)
-	Captured      bool   `json:"captured"`           //determines if the charge was successfully placed on a real credit card
-	CapturedStr   string `json:"captured_string"`    //see above
-	Timestamp     string `json:"timestamp"`          //unix timestamp of the time that stripe charged the card
-	Invoice       string `json:"invoice_num"`        //some extra info that was provided when the user processed the charge
-	Po            string `json:"po_num"`             // " " " "
-	StripeCustID  string `json:"stripe_customer_id"` //this is the id given to the customer by stripe and is used to charge the card
-	Customer      string `json:"customer_name"`      //name of the customer from the app engine datastore, the name of the company a card belongs to
-	CustomerID    string `json:"customer_id"`        //the unique id you gave the customer when you saved the card, from a CRM
-	User          string `json:"username"`           //username of the user who charged the card
-	Cardholder    string `json:"cardholder"`         //name on the card
-	LastFour      string `json:"last4"`              //used to identify the card when looking at the receipt or in a report
-	Expiration    string `json:"expiration"`         // " " " "
-	CardBrand     string `json:"card_brand"`         // " " " "
+	ID            string `json:"charge_id,omitempty"`          //the stripe charge id
+	AmountCents   uint64 `json:"amount_cents,omitempty"`       //the amount of the charge in cents
+	AmountDollars string `json:"amount_dollars,omitempty"`     //amount of the charge in dollars (without $ symbol)
+	Captured      bool   `json:"captured,omitempty"`           //determines if the charge was successfully placed on a real credit card
+	CapturedStr   string `json:"captured_string,omitempty"`    //see above
+	Timestamp     string `json:"timestamp,omitempty"`          //unix timestamp of the time that stripe charged the card
+	Invoice       string `json:"invoice_num,omitempty"`        //some extra info that was provided when the user processed the charge
+	Po            string `json:"po_num,omitempty"`             // " " " "
+	StripeCustID  string `json:"stripe_customer_id,omitempty"` //this is the id given to the customer by stripe and is used to charge the card
+	Customer      string `json:"customer_name,omitempty"`      //name of the customer from the app engine datastore, the name of the company a card belongs to
+	CustomerID    string `json:"customer_id,omitempty"`        //the unique id you gave the customer when you saved the card, from a CRM
+	User          string `json:"username,omitempty"`           //username of the user who charged the card
+	Cardholder    string `json:"cardholder,omitempty"`         //name on the card
+	LastFour      string `json:"last4,omitempty"`              //used to identify the card when looking at the receipt or in a report
+	Expiration    string `json:"expiration,omitempty"`         // " " " "
+	CardBrand     string `json:"card_brand,omitempty"`         // " " " "
+
+	//data for automatically completed charges (api request charges)
+	AutoCharge         bool   `json:"auto_charge,omitempty"`          //true if we made this charge automatically through api request
+	AutoChargeReferrer string `json:"auto_charge_referrer,omitempty"` //the name of the app that requested the charge
+	AutoChargeReason   string `json:"auto_charge_reason,omitempty"`   //if one app/referrer will place charges for many reasons, detail that reason here; so we know what process/func caused the charge
 }
 
 //Refund is the format in which we return data that is part of a refund
@@ -79,6 +84,10 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data Charge) {
 	po := meta["po_num"]
 	username := meta["processed_by"]
 
+	autoCharge, _ := strconv.ParseBool(meta["auto_charge"])
+	autoChargeReferrer := meta["auto_charge_referrer"]
+	autoChargeReason := meta["auto_charge_reason"]
+
 	//customer info
 	customer := chg.Customer
 	j, _ := json.Marshal(customer)
@@ -121,6 +130,10 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data Charge) {
 		LastFour:      last4,
 		Expiration:    exp,
 		CardBrand:     cardBrand,
+
+		AutoCharge:         autoCharge,
+		AutoChargeReferrer: autoChargeReferrer,
+		AutoChargeReason:   autoChargeReason,
 	}
 
 	return

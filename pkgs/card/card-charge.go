@@ -282,7 +282,8 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
 	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge"))
-	referrer := r.FormValue("referrer")
+	referrer := r.FormValue("auto_charge_referrer")
+	reason := r.FormValue("auto_charge_reason")
 	apiKey := r.FormValue("api_key")
 
 	//validation
@@ -384,8 +385,9 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//add metadata to charge
 	//used for reports and receipts
 	chargeParams.AddMeta("customer_name", custData.CustomerName)
-	chargeParams.AddMeta("auto_charged", "true")
+	chargeParams.AddMeta("auto_charge", "true")
 	chargeParams.AddMeta("auto_charge_referrer", referrer)
+	chargeParams.AddMeta("auto_charge_reason", reason)
 	chargeParams.AddMeta("customer_id", custData.CustomerID)
 	chargeParams.AddMeta("invoice_num", invoice)
 	chargeParams.AddMeta("po_num", poNum)
