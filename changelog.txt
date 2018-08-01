@@ -1,3 +1,8 @@
+V3.1.1
+-------------
+- fix some non important bugs/typos
+
+
 V3.1.0
 -------------
 - new minor version due to new functionality being added
