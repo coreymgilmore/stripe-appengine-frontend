@@ -2,7 +2,9 @@ package card
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
@@ -12,6 +14,7 @@ import (
 	"github.com/stripe/stripe-go"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
 )
 
 //Add saves a new card the the datastore
@@ -80,9 +83,37 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	custParams.SetSource(cardToken)
 	cust, err := sc.Customers.New(custParams)
 	if err != nil {
-		stripeErr := err.(*stripe.Error)
-		stripeErrMsg := stripeErr.Msg
-		output.Error(errStripe, stripeErrMsg, w, r)
+		var errorErr error
+		errorMsg := ""
+
+		switch err.(type) {
+		default:
+			errorErr = errors.New("unknown error while adding card")
+			errorMsg = "There was an error adding this card.  Please contact the administrator."
+			break
+
+		case *stripe.Error:
+			stripeError := err.(*stripe.Error)
+			stripeErrorErr := stripeError.Err
+			stripeErrorMsg := stripeError.Msg
+			log.Errorf(c, "%+v", stripeError)
+
+			errorErr = stripeErrorErr
+			errorMsg = stripeErrorMsg
+
+			break
+
+		case *url.Error:
+			urlError := err.(*url.Error)
+			urlErrorErr := urlError.Err
+			log.Errorf(c, "%+v", urlError)
+
+			errorErr = urlErrorErr
+			errorMsg = "A url error occured.  Contact the administrator to diagnose this issue."
+			break
+		}
+
+		output.Error(errorErr, errorMsg, w, r)
 		return
 	}
 
