@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -58,6 +59,15 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//get context
 	c := appengine.NewContext(r)
 
+	//need to adjust deadline in case stripe takes longer than 5 seconds
+	//default timeout for a urlfetch is 5 seconds
+	//sometimes adding a card through stripe api takes longer
+	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
+	//the call might still complete via stripe but appengine will return to the gui that it failed
+	//10 seconds is a bit over generous but covers even really strange senarios
+	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
+	defer cancelFunc()
+
 	//if customerID was given, make sure it is unique
 	//this id should be unique in the user's company's crm
 	//the customerID is used to autofill the charge card panel when performing the api-like semi-automated charges
@@ -109,7 +119,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(c, "%+v", urlError)
 
 			errorErr = urlErrorErr
-			errorMsg = "A url error occured.  Contact the administrator to diagnose this issue."
+			errorMsg = "A url error occured (" + urlError.Error() + "). Contact the administrator to diagnose this issue."
 			break
 		}
 
