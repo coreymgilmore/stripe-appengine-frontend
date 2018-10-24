@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 )
 
 //CreateAdmin saves the initial super-admin for the app
@@ -84,14 +84,14 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//and user will see errors about missing stuff in the app
 	err = company.SaveDefaultInfo(c)
 	if err != nil {
-		log.Errorf(c, "%v", "Could not save default company info.", err)
+		log.Println("users.CreateAdmin", "Could not save default company info.", err)
 		return
 	}
 
 	//save the default app settings
 	err = appsettings.SaveDefaultInfo(c)
 	if err != nil {
-		log.Errorf(c, "%v", "Could not save default company info.", err)
+		log.Println("users.CreateAdmin", "Could not save default company info.", err)
 		return
 	}
 

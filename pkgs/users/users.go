@@ -196,6 +196,15 @@ func exists(c context.Context, username string) (int64, User, error) {
 //notificationPage is used to show html page for errors
 //same as pages.notificationPage but have to have separate function b/c of dependency circle
 func notificationPage(w http.ResponseWriter, panelType, title string, err interface{}, btnType, btnPath, btnText string) {
-	templates.Load(w, "notifications", templates.NotificationPage{panelType, title, err, btnType, btnPath, btnText})
+	data := templates.NotificationPage{
+		PanelColor: panelType,
+		Title:      title,
+		Message:    err,
+		BtnColor:   btnType,
+		LinkHref:   btnPath,
+		BtnText:    btnText,
+	}
+
+	templates.Load(w, "notifications", data)
 	return
 }

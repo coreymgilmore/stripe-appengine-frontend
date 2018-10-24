@@ -14,9 +14,8 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
-	"google.golang.org/appengine/urlfetch"
 )
 
 //receiptData is used for showing the receipt in html
@@ -52,15 +51,12 @@ type receiptData struct {
 //the receipt is generated from the charge id
 //the data for the charge will have to be retrieved from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
-	c := r.Context()
-
 	//get charge id from form value
 	chargeID := r.FormValue("chg_id")
 
 	//init stripe
-	sc := r.Context()
 	stripe.SetBackend(stripe.APIBackend, nil)
-	stripe.SetHTTPClient(urlfetch.Client(sc))
+	stripe.SetHTTPClient(&http.Client{})
 
 	//get charge data
 	chg, err := charge.Get(chargeID, nil)

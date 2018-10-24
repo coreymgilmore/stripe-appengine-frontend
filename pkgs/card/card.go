@@ -28,23 +28,33 @@ import (
 	"errors"
 	"math"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
+	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/urlfetch"
 )
 
-const (
-	//stripeSecretKeyLength is the exact length of a stripe secret key
-	//this is used to make sure a valid stripe secret key was provided
-	stripeSecretKeyLength = 32
+//config is the set of configuraton option for processing charges on cards
+//this struct is used when SetConfig is run in package main init()
+type config struct {
+	StripeSecretKey      string //a 32 character long string starting with "sk_live_" or "sk_test_"
+	StripePublishableKey string //a 32 character long string starting with "pk_live_" or "pk_test_"
+}
 
+//Config is a copy of the config struct with some defaults set
+var Config = config{
+	StripeSecretKey:      "",
+	StripePublishableKey: "",
+}
+
+//stripeKeyLength is the required size of the stripe keys
+const stripeKeyLength = 32
+
+const (
 	//datastoreKind is the name of the "table" or "collection" where card data is stored
 	//we store the name to the "kind" in a const for easy reference in other code
 	datastoreKind = "card"
@@ -59,12 +69,11 @@ const (
 	minCharge = 50
 )
 
-//stripeSecretKey is the private api key from stripe used to charge cards
-//this is read from app.yaml during init() and when creating a stripe client to process cards
-var stripeSecretKey string
-
-//errStripeKeyInvalid is used to describe an error with getting the Stripe secret key from and app.yaml when the app loads
-var errStripeKeyInvalid = errors.New("card: the stripe secret key in app.yaml is invalid")
+//configuration errors
+var (
+	errSecretKeyInvalid      = errors.New("card: the stripe secret key in app.yaml is invalid")
+	errPublishableKeyInvalid = errors.New("card: the stripe publishable key in app.yaml is invalid")
+)
 
 //other errors
 var (
@@ -80,27 +89,22 @@ var (
 	errCustIDAlreadyExists  = errors.New("card: customer id already exists")
 )
 
-//init reads the stripe private key into the app
-//an error is thrown if this is missing b/c we need this value to process charges
-func init() {
-	secretKey := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
-
-	//save key to Stripe so we can charge cards and perform other actions
-	stripe.Key = secretKey
-
-	//save key to create stripe client later
-	stripeSecretKey = secretKey
-
-	//done
-	return
-}
-
-//CheckInit makes sure the init() ran successfully by checking if the
-//stripeSecretKey was loaded
-func CheckInit() error {
-	if len(stripeSecretKey) == 0 {
-		return errStripeKeyInvalid
+//SetConfig saves the configuration options for charging cards
+//these config options are references in other code directly from the variable Config
+func SetConfig(c config) error {
+	//validate config options
+	secretKey := strings.TrimSpace(c.StripeSecretKey)
+	if len(secretKey) != stripeKeyLength {
+		return errSecretKeyInvalid
 	}
+
+	publishableKey := strings.TrimSpace(c.StripePublishableKey)
+	if len(publishableKey) != stripeKeyLength {
+		return errSecretKeyInvalid
+	}
+
+	//save config to package variable
+	Config = c
 
 	return nil
 }
@@ -112,13 +116,17 @@ func CheckInit() error {
 //to charge.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	//connect to datastore
-	client := datastoreutils.Client
+	c := r.Context()
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		output.Error(err, "Could not connect to datastore", w, r)
+		return
+	}
 
 	//get list from datastore
 	//only need to get entity keys and customer names which cuts down on datastore usage
 	q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
 	var cards []CustomerDatastore
-	c := r.Context()
 	keys, err := client.GetAll(c, q, &cards)
 	if err != nil {
 		output.Error(err, "Error retrieving list of cards from datastore.", w, r)
@@ -130,7 +138,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//creates a map of structs
 	var idAndNames []List
 	for i, r := range cards {
-		x := List{r.CustomerName, keys[i].IntID()}
+		x := List{r.CustomerName, keys[i].ID}
 		idAndNames = append(idAndNames, x)
 	}
 
@@ -200,24 +208,29 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 //The project input is a string slice listing the column names we would like returned.
 func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (data CustomerDatastore, err error) {
 	//connect to datastore
-	client := datastoreutils.Client
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
 
 	//query
 	//using GetAll b/c this lets us filter.  Get can only look up by key
+	result := []CustomerDatastore{}
 	q := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	_, err := client.GetAll(c, q, &data)
+	_, err = client.GetAll(c, q, &data)
 	if err != nil {
 		return
 	}
 
 	//check if we found any results
 	//pretty simple, check if data is set in variable
-	if len(data) == 0 {
+	if len(result) == 0 {
 		return CustomerDatastore{}, errCustomerNotFound
 	}
 
 	//return the result
-	return data[0], nil
+	data = result[0]
+	return
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang
@@ -269,8 +282,8 @@ func calcTzOffset(hoursToUTC string) string {
 func createAppengineStripeClient(c context.Context) *client.API {
 	//create http client
 	//returns stripe client to use to process charges
-	httpClient := urlfetch.Client(c)
-	return client.New(stripeSecretKey, stripe.NewBackends(httpClient))
+	httpClient := &http.Client{}
+	return client.New(Config.StripeSecretKey, stripe.NewBackends(httpClient))
 }
 
 //getAmountAsIntCents converts a dollar amount as a string into a cents integer value

@@ -16,8 +16,9 @@ import (
 	"strconv"
 	"strings"
 
+	"cloud.google.com/go/datastore"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
-	"google.golang.org/appengine/datastore"
 )
 
 //for referencing when looking up or setting data in datastore
@@ -83,14 +84,20 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 //Get actually retrienves the information from the datastore
 //putting this into a separate func cleans up code elsewhere
 func Get(r *http.Request) (result Info, err error) {
+
+	//connect to datastore
 	c := r.Context()
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
 
 	//get from datastore
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
 	//get data
-	er := datastore.Get(c, key, &result)
-	if er == datastore.ErrNoSuchEntity {
+	err = client.Get(c, key, &result)
+	if err == datastore.ErrNoSuchEntity {
 		//no company info exists yet
 		//return default values
 		log.Println("company.Get", "Company info doesn't exist yet.  Returning default values.")
@@ -115,13 +122,6 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	percentFee, _ := strconv.ParseFloat(r.FormValue("percentFee"), 64)
 	fixedFee, _ := strconv.ParseFloat(r.FormValue("fixedFee"), 64)
 	statementDesc := strings.TrimSpace(r.FormValue("descriptor"))
-
-	//context
-	c := r.Context()
-
-	//generate entity key
-	//keyname is hard coded so only one entity exists
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 	//shorten up statement descriptor if needed
 	if len(statementDesc) > maxStatementDescriptorLength {
@@ -150,6 +150,8 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.StatementDescriptor = statementDesc
 
 	//save company info
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	c := r.Context()
 	err := save(c, key, data)
 	if err != nil {
 		output.Error(err, "", w, r)
@@ -163,8 +165,14 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 //save does the actual saving to the datastore
 func save(c context.Context, key *datastore.Key, d Info) error {
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return err
+	}
+
 	//save company info
-	_, err := datastore.Put(c, key, &d)
+	_, err = client.Put(c, key, &d)
 	if err != nil {
 		return err
 	}
@@ -177,7 +185,7 @@ func save(c context.Context, key *datastore.Key, d Info) error {
 func SaveDefaultInfo(c context.Context) error {
 	//generate entity key
 	//keyname is hard coded so only one entity exists
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
 	//save
 	err := save(c, key, defaultCompanyInfo)

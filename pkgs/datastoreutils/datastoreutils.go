@@ -2,35 +2,42 @@ package datastoreutils
 
 import (
 	"context"
-	"os"
+	"errors"
 
 	"cloud.google.com/go/datastore"
 )
 
-//projectID is the project we are using this datastore connection for
-//this is provided in app.yaml environmental variable
-//we store this as a package level variable for reuse if needed
-var projectID string
+//config is the set of configuration options for the datastore
+//this struct is used when SetConfig is run in package main init()
+type config struct {
+	ProjectID string //the project on Google Cloud and noted in app.yaml
+}
 
-//Client is the connection to the datastore
-//we save the connection once it is established so we don't need to re-establish it
-//every time
-var Client *datastore.Client
+//Config is a copy of the config struct with some defaults set
+var Config = config{
+	ProjectID: "",
+}
 
-//Connect connects to the datastore
-func Connect() error {
-	//get project id from app.yaml
-	projectID = os.Getenv("PROJECT_ID")
+//configuration errors
+var (
+	errInvalidProjectID = errors.New("datastoreutils: A project ID wasn't given or is invalid")
+)
 
-	//connect to datastore
-	ctx := context.Background()
-	client, err := datastore.NewClient(ctx, projectID)
-	if err != nil {
-		return nil
+//SetConfig saves the configuration for the datastore
+func SetConfig(c config) error {
+	//validate config options
+	if len(c.ProjectID) < 1 {
+		return errInvalidProjectID
 	}
 
-	//save the client
-	Client = client
+	//save config to package variable
+	Config = c
 
 	return nil
+}
+
+//Connect connects to the datastore
+func Connect(c context.Context) (client *datastore.Client, err error) {
+	client, err = datastore.NewClient(c, Config.ProjectID)
+	return
 }

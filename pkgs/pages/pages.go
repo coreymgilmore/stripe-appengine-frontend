@@ -4,6 +4,7 @@ Package pages implements functions to display the app's interface, the UI.
 package pages
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -13,8 +14,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 //autoLoader is used when making api-style semi-automated request to charge a card
@@ -48,17 +47,6 @@ const (
 //Otherwise a user is shown the log in prompt.
 //This also handles the "first run" of the app in which no users exist yet. It forces creation of the "super admin".
 func Root(w http.ResponseWriter, r *http.Request) {
-	//check that session store was initialized correctly
-	if err := sessionutils.CheckInit(r); err != nil {
-		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
-		return
-	}
-
-	//check that stripe private key was set correctly
-	if err := card.CheckInit(); err != nil {
-		notificationPage(w, "panel-danger", sessionInitError, err, "btn-default", "/", "Go Back")
-		return
-	}
 
 	//check if the admin user exists
 	//redirect user to create admin if it does not exist
@@ -141,7 +129,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	user, err := users.Find(c, userID)
 	if err != nil {
-		log.Errorf(c, "%+v", "pages.Main: look up user data", err)
+		log.Println("pages.Main: look up user data", err)
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return
 	}
@@ -153,7 +141,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//we do this so the app will still work even when app settings haven't been set yet.
 	as, err := appsettings.Get(r)
 	if err != nil {
-		log.Errorf(c, "%+v", "pages.Main: look up app settings", err)
+		log.Println("pages.Main: look up app settings", err)
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return
 	}
@@ -165,7 +153,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//this catches instances where this app was upgraded but the statement descriptor hasn't been set yet.
 	compData, err := company.Get(r)
 	if err != nil {
-		log.Errorf(c, "%+v", "pages.Main: look up company info", err)
+		log.Println("pages.Main: look up company info", err)
 		notificationPage(w, "panel-danger", "Cannot Load Page", err, "btn-default", "/", "Try Again")
 		return
 	}
@@ -234,25 +222,35 @@ func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 //btnType is "ben-default", etc.
 //btnPath is the link to the page where the btn redirects
 func notificationPage(w http.ResponseWriter, panelType, title string, err interface{}, btnType, btnPath, btnText string) {
-	templates.Load(w, "notifications", templates.NotificationPage{panelType, title, err, btnType, btnPath, btnText})
-	return
-}
-
-//Diagnostics shows a bunch of app engine's information for the app/project
-//useful for figuring out which version of an app is serving
-func Diagnostics(w http.ResponseWriter, r *http.Request) {
-	c := r.Context()
-
-	out := map[string]interface{}{
-		"App ID":                   appengine.AppID(c),
-		"Instance ID":              appengine.InstanceID(),
-		"Default Version Hostname": appengine.DefaultVersionHostname(c),
-		"Version ID":               appengine.VersionID(c),
-		"Datacenter":               appengine.Datacenter(c),
-		"Module Name":              appengine.ModuleName(c),
-		"Server Software":          appengine.ServerSoftware(),
+	data := templates.NotificationPage{
+		PanelColor: panelType,
+		Title:      title,
+		Message:    err,
+		BtnColor:   btnType,
+		LinkHref:   btnPath,
+		BtnText:    btnText,
 	}
 
-	templates.Load(w, "diagnostics", out)
+	templates.Load(w, "notifications", data)
 	return
 }
+
+// This was removed as the appengine package is not available on go111
+// //Diagnostics shows a bunch of app engine's information for the app/project
+// //useful for figuring out which version of an app is serving
+// func Diagnostics(w http.ResponseWriter, r *http.Request) {
+// 	c := r.Context()
+
+// 	out := map[string]interface{}{
+// 		"App ID":                   appengine.AppID(c),
+// 		"Instance ID":              appengine.InstanceID(),
+// 		"Default Version Hostname": appengine.DefaultVersionHostname(c),
+// 		"Version ID":               appengine.VersionID(c),
+// 		"Datacenter":               appengine.Datacenter(c),
+// 		"Module Name":              appengine.ModuleName(c),
+// 		"Server Software":          appengine.ServerSoftware(),
+// 	}
+
+// 	templates.Load(w, "diagnostics", out)
+// 	return
+// }

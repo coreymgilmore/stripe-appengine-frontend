@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/datastore"
-
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
@@ -209,13 +208,16 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	brand := string(chg.Source.Card.Brand)
 
 	//connect to datastore
-	dsClient := datastoreutils.Client
+	dsClient, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
 
 	//get the key we are saving to
 	key := datastore.NameKey(kind, keyName, nil)
 
 	//transaction
-	_, err := dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
+	_, err = dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
 		//look up data from datastore
 		var r cardCounts
 		err := tx.Get(key, &r)

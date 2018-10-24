@@ -1,13 +1,13 @@
 package cron
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 )
 
 //RemoveExpiredCards removes old cards
@@ -49,7 +49,7 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		if err != nil {
-			log.Errorf(c, "%s", "cron.RemoveExpiredCards: Could not retrieve customer data. ", err)
+			log.Println("cron.RemoveExpiredCards: Could not retrieve customer data. ", err)
 			return
 		}
 
@@ -58,7 +58,7 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 		_ = datastoreID
 		err = card.Remove(datastoreID, r)
 		if err != nil {
-			log.Errorf(c, "%v", "cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
+			log.Println("cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
 			return
 		}
 

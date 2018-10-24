@@ -10,32 +10,48 @@ package sessionutils
 import (
 	"errors"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gorilla/sessions"
-	"google.golang.org/appengine/log"
 )
 
-//default cookie info
-const (
-	sessionCookieName   = "session_id"
-	sessionCookieDomain = "."
-)
+//config is the set of configuration options for the session store
+//this struct is used when SetConfig is run in package main init()
+type config struct {
+	SessionAuthKey    string //a 64 character long string
+	SessionEncryptKey string //a 32 character long string
+	SessionLifetime   uint8  //number of days a user will remain logged in for
+}
 
-//keys are a fixed and required size
-//this is the strongest settings as defined by gorilla/sessions
+//Config is a copy of the config struct with some defaults set
+var Config = config{
+	SessionAuthKey:    "",
+	SessionEncryptKey: "",
+	SessionLifetime:   7,
+}
+
+//this is the required sizes of the SessionAuthKey and SessionEncryptKey
+//these values are the strongest possible per gorilla/session
 const (
 	authKeyLength    = 64
 	encryptKeyLength = 32
 )
 
+//configuration errors
+var (
+	errAuthKeyWrongSize   = errors.New("session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long")
+	errEncyptKeyWrongSize = errors.New("session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long")
+)
+
+//sessionCookieName is the name of the cookie saved to clients that stores our session information
+var sessionCookieName = "session_id"
+
 //store is a variable for dealing with session data
 var store *sessions.CookieStore
 
-//options for sessions
+//options for session store
 var options = &sessions.Options{
-	Domain: sessionCookieDomain,
+	Domain: ".",
 	Path:   "/",
 
 	//cookie for session expires in 7 days
@@ -51,58 +67,34 @@ var options = &sessions.Options{
 	Secure: false,
 }
 
-//init func errors
-//since init() cannot return errors, we check for errors upon the app starting up
-var (
-	initError             error
-	initErrorVal          interface{}
-	ErrAuthKeyWrongSize   = errors.New("Session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long.")
-	ErrEncyptKeyWrongSize = errors.New("Session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long.")
-)
-
-//init initializes the session store
-//this reads and sets the auth and encryption keys for session cookie
-func init() {
-	//get the auth and encypt keys from app.yaml
-	authKey := strings.TrimSpace(os.Getenv("SESSION_AUTH_KEY"))
+//SetConfig saves the configuration for the session store and starts the session store
+func SetConfig(c config) error {
+	//validate config options
+	authKey := strings.TrimSpace(c.SessionAuthKey)
 	if len(authKey) != authKeyLength {
-		initError = ErrAuthKeyWrongSize
-		return
+		return errAuthKeyWrongSize
 	}
 
-	encryptKey := strings.TrimSpace(os.Getenv("SESSION_ENCRYPT_KEY"))
+	encryptKey := strings.TrimSpace(c.SessionEncryptKey)
 	if len(encryptKey) != encryptKeyLength {
-		initError = ErrEncyptKeyWrongSize
-		initErrorVal = len(encryptKey)
-		return
+		return errEncyptKeyWrongSize
 	}
 
-	//init the session store
+	//initialize the session store
 	s := sessions.NewCookieStore(
 		[]byte(authKey),
 		[]byte(encryptKey),
 	)
 
 	//set session options
+	options.MaxAge = 60 * 60 * 24 * int(c.SessionLifetime)
 	s.Options = options
 
-	//store sessions to global variable
+	//save session store for use later
 	store = s
 
-	//done
-	return
-}
-
-//CheckInit makes sure no errors occured during init()
-//since init() cannot return errors and we need to make sure init() completed successfully
-func CheckInit(r *http.Request) error {
-	c := r.Context()
-
-	if initError != nil {
-		log.Errorf(c, "%v", "Error during session initialization.")
-		log.Errorf(c, "%v", initError)
-		return initError
-	}
+	//save config to package variable
+	Config = c
 
 	return nil
 }

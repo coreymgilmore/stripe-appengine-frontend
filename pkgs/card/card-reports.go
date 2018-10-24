@@ -15,7 +15,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"google.golang.org/appengine"
 )
 
 //Report gets the data for charges and refunds by the defined filters (date range and customer) and builds the reports page

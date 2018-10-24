@@ -52,7 +52,10 @@ func Remove(datastoreID string, r *http.Request) error {
 	sc.Customers.Del(stripeCustID, &stripe.CustomerParams{})
 
 	//delete customer from datastore
-	client := datastoreutils.Client
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return err
+	}
 	completeKey := getCustomerKeyFromID(datastoreIDInt)
 	err = client.Delete(c, completeKey)
 	if err != nil {

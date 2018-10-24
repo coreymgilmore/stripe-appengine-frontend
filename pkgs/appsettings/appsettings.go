@@ -63,18 +63,21 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 //putting this into a separate func cleans up code elsewhere
 func Get(r *http.Request) (result Settings, err error) {
 	//connect to datastore
-	client := datastoreutils.Client
+	c := r.Context()
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
 
 	//get the key we are looking up
 	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
 	//get data
-	c := r.Context()
 	err = client.Get(c, key, &result)
 	if err == datastore.ErrNoSuchEntity {
 		//no app settings exist yet
 		//return default values
-		log.Println("App settings don't exist yet.  Returning default values.")
+		log.Println("appsettings.Get", "App settings don't exist yet.  Returning default values.")
 		result = defaultAppSettings
 	}
 
@@ -112,10 +115,13 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 //save does the actual saving to the datastore
 func save(c context.Context, key *datastore.Key, d Settings) error {
 	//connect to datastore
-	client := datastoreutils.Client
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return err
+	}
 
 	//save company info
-	_, err := client.Put(c, key, &d)
+	_, err = client.Put(c, key, &d)
 	if err != nil {
 		return err
 	}

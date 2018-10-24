@@ -164,7 +164,10 @@ func createNewCustomerKey() *datastore.Key {
 //separate function to clean up code
 func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
 	//connect to datastore
-	client := datastoreutils.Client
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return key, err
+	}
 
 	//save customer
 	completeKey, err := client.Put(c, key, &customer)
