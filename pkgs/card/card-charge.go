@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
+
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
@@ -14,7 +16,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
 	"golang.org/x/net/context"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -62,7 +63,7 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 seconds is a bit over generous but covers even really strange senarios
-	c := appengine.NewContext(r)
+	c := r.Context()
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
 
@@ -150,17 +151,12 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//charge successful
-	//save charge to memcache
-	//less data to get from stripe if receipt is needed
-	//errors are ignored since if we can't save this data to memcache we can always get it from the stripe
-	memcacheutils.Save(c, chg.ID, chg)
-
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
 		err := Remove(datastoreID, r)
 		if err != nil {
-			log.Warningf(c, "%v", "Error removing card after charge.", err)
+			log.Println("Error removing card after charge.", err)
 		}
 	}
 
@@ -213,17 +209,20 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	//get card brand from charge
 	brand := string(chg.Source.Card.Brand)
 
-	//get complete datastore key to lookup and update
-	//this is the key of the entity that store the card count data
-	key := datastore.NewKey(c, kind, keyName, 0, nil)
+	//connect to datastore
+	dsClient := datastoreutils.Client
+
+	//get the key we are saving to
+	key := datastore.NameKey(kind, keyname, nil)
 
 	//transaction
-	err := datastore.RunInTransaction(c, func(tc context.Context) error {
+	err := dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
 		//look up data from datastore
-		r := new(cardCounts)
-		err := datastore.Get(c, key, r)
+		var r cardCounts
+		err := tx.Get(key, &r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
-			log.Warningf(c, "%v", "Error looking up card brand count.", err)
+			log.Println("card.saveChargeDetails", "Error looking up card brand count.", err)
+			return
 		}
 
 		//increment counter for total
@@ -245,23 +244,25 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 			r.DinersClub++
 		default:
 			r.Unknown++
-			log.Warningf(c, "%v", "%v", "Unknown card type:", brand)
+			log.Println("card.saveChargeDetails", "Unknown card type:", brand)
+			return err
 		}
 
 		//save data back to db
 		//perform "update"
-		_, err = datastore.Put(c, key, r)
+		_, err = tx.Put(key, r)
 		if err != nil {
-			log.Warningf(c, "%v", "Error saving card brand count.", err)
+			log.Println("card.saveChargeDetails", "Error saving card brand count.", err)
+			return err
 		}
 
 		//done
 		//returns nill if everything is ok and update was performed
 		return err
-	}, nil)
+	})
 	if err != nil {
-		log.Errorf(c, "%v", "Error during card brand count transaction.")
-		log.Errorf(c, "%v", err)
+		log.Println("card.saveChargeDetails", "Error during card brand count transaction.", err)
+		return
 	}
 
 	//done
@@ -272,7 +273,7 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 //this is used to charge a card without using the gui
 //the api key must be used and the request must have certain data
 func AutoCharge(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	log.Infof(c, "Auto charging...")
 
 	//get inputs

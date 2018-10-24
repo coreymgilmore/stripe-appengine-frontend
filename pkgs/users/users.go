@@ -69,7 +69,7 @@ type userList struct {
 //The data is pulled from memcache or the datastore.
 //The data is returned as a json to populate select menus in the gui.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//check if list of users is in memcache
 	var result []userList
@@ -126,7 +126,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	userIDInt, _ := strconv.ParseInt(r.FormValue("userId"), 10, 64)
 
 	//get user data
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	data, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "Cannot look up user data.", w, r)
@@ -151,7 +151,7 @@ func getUserKeyFromID(c context.Context, id int64) *datastore.Key {
 func DoesAdminExist(r *http.Request) error {
 	//query for admin user
 	var user []User
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	q := datastore.NewQuery(datastoreKind).Filter("Username = ", adminUsername).KeysOnly()
 	keys, err := q.GetAll(c, &user)
 	if err != nil {

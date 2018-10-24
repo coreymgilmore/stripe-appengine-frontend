@@ -116,7 +116,7 @@ func CheckInit() error {
 //to build the datalist drop down where the user can choose what customer
 //to charge.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//check if list of cards is in memcache
 	var result []List
@@ -166,7 +166,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 //This is used to fill in the "charge card" panel with identifying info on
 //the card so the user can verify they are charging the correct card.
 func GetOne(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//get input
 	datstoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)

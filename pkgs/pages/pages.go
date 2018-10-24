@@ -76,7 +76,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	session := sessionutils.Get(r)
 	if session.IsNew == false {
 		userID := session.Values["user_id"].(int64)
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		u, err := users.Find(c, userID)
 		if err != nil {
 			sessionutils.Destroy(w, r)
@@ -138,7 +138,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	userID := session.Values["user_id"].(int64)
 
 	//look up data for this user
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	user, err := users.Find(c, userID)
 	if err != nil {
 		log.Errorf(c, "%+v", "pages.Main: look up user data", err)
@@ -241,7 +241,7 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 //Diagnostics shows a bunch of app engine's information for the app/project
 //useful for figuring out which version of an app is serving
 func Diagnostics(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	out := map[string]interface{}{
 		"App ID":                   appengine.AppID(c),

@@ -3,19 +3,18 @@ package card
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
+	"cloud.google.com/go/datastore"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 )
 
 //Add saves a new card the the datastore
@@ -57,7 +56,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get context
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//need to adjust deadline in case stripe takes longer than 5 seconds
 	//default timeout for a urlfetch is 5 seconds
@@ -106,7 +105,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 			stripeError := err.(*stripe.Error)
 			stripeErrorErr := stripeError.Err
 			stripeErrorMsg := stripeError.Msg
-			log.Errorf(c, "%+v", stripeError)
+			log.Println("card.Add", stripeError)
 
 			errorErr = stripeErrorErr
 			errorMsg = stripeErrorMsg
@@ -116,7 +115,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		case *url.Error:
 			urlError := err.(*url.Error)
 			urlErrorErr := urlError.Err
-			log.Errorf(c, "%+v", urlError)
+			log.Println("card.Add", urlError)
 
 			errorErr = urlErrorErr
 			errorMsg = "A url error occured (" + urlError.Error() + "). Contact the administrator to diagnose this issue."
@@ -162,25 +161,20 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 //createNewCustomerKey generates a new datastore key for saving a new customer/card
 //Appengine's datastore does not generate this key automatically when an entity is saved.
-func createNewCustomerKey(c context.Context) *datastore.Key {
-	return datastore.NewIncompleteKey(c, datastoreKind, nil)
+func createNewCustomerKey() *datastore.Key {
+	return datatore.IncompleteKey(datastoreKind, nil)
 }
 
 //save does the actual saving of a card to the datastore
 //separate function to clean up code
 func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
+	//connect to datastore
+	client := datastoreutils.Client
+
 	//save customer
-	completeKey, err := datastore.Put(c, key, &customer)
+	completeKey, err := client.Put(c, key, &customer)
 	if err != nil {
 		return key, err
-	}
-
-	//save customer to memcache
-	//have to generate a memcache key b/c memcache keys must be strings
-	mKey := strconv.FormatInt(completeKey.IntID(), 10)
-	err = memcacheutils.Save(c, mKey, customer)
-	if err != nil {
-		return completeKey, err
 	}
 
 	//done

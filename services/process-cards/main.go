@@ -1,28 +1,35 @@
 /*
-Package stripeappenginefrontend implements a simple web app for collecting and charging
-credit cards.
+Package main implements a simple web app for collecting and charging credit cards.
 
 This app was designed for use in companies that collect their clients cards and process
-charges without the client needing to provide card information with every purchase.  This
-is sort of a "virtual terminal".  Companies that use this app don't have to store credit
-card information to reduce security issues (or PCI compliance).  The app provides one main
-user interface and follows a "single page app" style.
+charges without the client needing to provide card information with every purchase.
+Companies that use this app don't have to store credit card information, or ask for it with
+every purchase, to reduce security issues or remove need for PCI compliance.
 
-This app was designed to run on Google App Engine and will not work in a normal golang environment.
-Data is stored in Google Cloud Datastore.  This is a NoSQL like database.  The only data we really
-store is user credentials, basic company information for receipts, and a list of customers who
-we will process charges for.  Most of this data is also stored in memcache to reduce the usage of
-Cloud Datastore for less latency and less Google Cloud fees.
+This app was designed to run on Google App Engine and will not work in a normal golang
+environment.  You must have a Google Cloud account.
 
-Payment are processed by either manually entering the payment amount or via an api-style http request.
-There is no need to store the credit card's information (number, expiration, security code).
-The card's information is saved to Stripe and only an id is saved to the App Engine datastore. This id
-is used to process the card with Stripe.
+This app uses Stripe as the payment processor.  You must have a Stripe account set up.
+
+The only data stored for this app is user credentials, basic company information for
+receipts, and a list of customers who we will process charges for.  Most of this data is
+also cached to reduce the usage of Cloud Datastore for less latency and less Google Cloud
+fees.  There is no need to store the credit card's information (number, expiration, security
+code).  The card's information is saved to Stripe and only an id is saved to this app. This
+id is used to process the card with Stripe.
+
+Payment are processed by either manually choosing the customer and entering the payment amount
+or via an api-style http request.
 */
-package stripeappenginefrontend
+package main
 
 import (
+	"fmt"
+	"log"
 	"net/http"
+	"os"
+
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
@@ -36,10 +43,19 @@ import (
 	"github.com/justinas/alice"
 )
 
-func init() {
+//defaultPort is the port used when serving in the dev environment
+const defaultPort = "8005"
 
-	//**********************************************************************
-	//Middleware
+func init() {
+	err := datastoreutils.Connect()
+	if err != nil {
+		log.Fatalln("Could not connect to datastore.", err)
+		return
+	}
+}
+
+func main() {
+	//middleware
 	a := alice.New(middleware.Auth)
 	admin := a.Append(middleware.Administrator)
 	add := a.Append(middleware.AddCards)
@@ -47,8 +63,7 @@ func init() {
 	charge := a.Append(middleware.ChargeCards)
 	reports := a.Append(middleware.ViewReports)
 
-	//**********************************************************************
-	//Router
+	//router
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 
@@ -60,7 +75,7 @@ func init() {
 	r.HandleFunc("/logout/", users.Logout)
 	r.HandleFunc("/diagnostics/", pages.Diagnostics)
 
-	//cron
+	//cron tasks
 	r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
 
 	//main app page once user is logged in
@@ -104,6 +119,15 @@ func init() {
 	//Pages that don't exist
 	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)
 
-	//Have the server listen on all router endpoints
-	http.Handle("/", r)
+	//Have the server listen
+	log.Println("Starting stripe-appengine-frontend...")
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8005"
+		log.Printf("Defaulting to port %s", port)
+	}
+
+	log.Printf("Listening on port %s", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
 }

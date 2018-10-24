@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/sessions"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
 )
 
@@ -97,7 +96,7 @@ func init() {
 //CheckInit makes sure no errors occured during init()
 //since init() cannot return errors and we need to make sure init() completed successfully
 func CheckInit(r *http.Request) error {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	if initError != nil {
 		log.Errorf(c, "%v", "Error during session initialization.")

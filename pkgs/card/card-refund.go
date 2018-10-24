@@ -61,7 +61,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	sc := createAppengineStripeClient(c)
 
 	//create refund with stripe

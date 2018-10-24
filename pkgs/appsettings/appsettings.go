@@ -11,25 +11,22 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"cloud.google.com/go/datastore"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/memcache"
 )
 
-//for referencing when looking up or setting data in datastore or memcache
+//for referencing when looking up or setting data in datastore
 //so we don't need to type in key names anywhere
 const (
-	memcacheKeyName = "app-settings-memcache-key"
-	datastoreKind   = "appSettings"
-	datastoreKey    = "appSettingsKey"
+	datastoreKind = "appSettings"
+	datastoreKey  = "appSettingsKey"
 )
 
 //ErrAppSettingsDoNotExist is thrown when no app settings exist yet
@@ -63,38 +60,23 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//Get actually retrienves the information from memcache or the datastore
+//Get actually retrienves the information from the datastore
 //putting this into a separate func cleans up code elsewhere
 func Get(r *http.Request) (result Settings, err error) {
-	//check memcache
-	c := appengine.NewContext(r)
-	_, err = memcache.Gob.Get(c, memcacheKeyName, &result)
-	if err == nil {
-		return
-	}
+	//connect to datastore
+	client := datastoreutils.Client
 
-	//data not found in memcache
-	//get from datastore
-	if err == memcache.ErrCacheMiss {
-		key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	//get the key we are looking up
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
-		//get data
-		er := datastore.Get(c, key, &result)
-		if er == datastore.ErrNoSuchEntity {
-			//no app settings exist yet
-			//return default values
-			log.Infof(c, "%v", "App settings don't exist yet.  Returning default values.")
-			result = defaultAppSettings
-		}
-
-		//save to memcache if results were found
-		if er == nil {
-			memcacheutils.Save(c, memcacheKeyName, result)
-		}
-
-		//make sure we don't return an error when data was found
-		//or when data wasn't found and we just set the default values
-		err = nil
+	//get data
+	c := r.Context()
+	err = client.Get(c, key, &result)
+	if err == datastore.ErrNoSuchEntity {
+		//no app settings exist yet
+		//return default values
+		log.Println("App settings don't exist yet.  Returning default values.")
+		result = defaultAppSettings
 	}
 
 	return
@@ -106,13 +88,8 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	reqCustID, _ := strconv.ParseBool(r.FormValue("requireCustID"))
 	custIDFormat := strings.TrimSpace(r.FormValue("custIDFormat"))
 
-	//context
-	c := appengine.NewContext(r)
-	log.Infof(c, "%+v", "getting app setting")
-
-	//generate entity key
-	//keyname is hard coded so only one entity exists
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	//get the key we are saving to
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
 	//build entity to save
 	//or update existing entity
@@ -121,7 +98,8 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.CustomerIDFormat = custIDFormat
 
 	//save company info
-	err := save(c, key, memcacheKeyName, data)
+	c := r.Context()
+	err := save(c, key, data)
 	if err != nil {
 		output.Error(err, "", w, r)
 		return
@@ -133,16 +111,15 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 //save does the actual saving to the datastore
-func save(c context.Context, key *datastore.Key, memcacheKeyName string, d Settings) error {
+func save(c context.Context, key *datastore.Key, d Settings) error {
+	//connect to datastore
+	client := datastoreutils.Client
+
 	//save company info
-	_, err := datastore.Put(c, key, &d)
+	_, err := client.Put(c, key, &d)
 	if err != nil {
 		return err
 	}
-
-	//save company into to memcache
-	//ignoring errors since we can always get data from the datastore
-	memcacheutils.Save(c, memcacheKeyName, d)
 
 	return nil
 }
@@ -152,10 +129,10 @@ func save(c context.Context, key *datastore.Key, memcacheKeyName string, d Setti
 func SaveDefaultInfo(c context.Context) error {
 	//generate entity key
 	//keyname is hard coded so only one entity exists
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
 
 	//save
-	err := save(c, key, memcacheKeyName, defaultAppSettings)
+	err := save(c, key, defaultAppSettings)
 	return err
 }
 
@@ -172,24 +149,24 @@ func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	apiKey := strings.ToUpper(hex.EncodeToString(h.Sum(nil))[:20])
 
 	//get the existing api key to update
-	var settings Settings
-	c := appengine.NewContext(r)
-	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
-	err := datastore.Get(c, key, &settings)
+	settings, err := Get(r)
 	if err != nil {
-		log.Infof(c, "Error occured looking up old api key", err)
+		output.Error(err, "", w, r)
 		return
 	}
 
+	//get the key we are saving to
+	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+
 	//set the new api key
 	settings.APIKey = apiKey
-	err = save(c, key, memcacheKeyName, settings)
+	c := r.Context()
+	err = save(c, key, settings)
 	if err != nil {
-		log.Infof(c, "Could not save new api key", err)
+		log.Println("Could not save new api key", err)
 		return
 	}
 
 	output.Success("generateAPIKey", apiKey, w)
 	return
-
 }

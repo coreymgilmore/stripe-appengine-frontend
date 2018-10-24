@@ -42,7 +42,7 @@ func Remove(datastoreID string, r *http.Request) error {
 	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
 
 	//init stripe
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	sc := createAppengineStripeClient(c)
 
 	//delete customer on stripe

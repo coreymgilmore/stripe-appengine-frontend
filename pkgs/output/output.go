@@ -12,11 +12,10 @@ package output
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 //returnObj is the basic format for returning data to the client
@@ -79,9 +78,7 @@ func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
 	}
 
 	//log errors into appengine log
-	//"%+v" is formatting for the error
-	c := appengine.NewContext(r)
-	log.Warningf(c, "%+v", "output.Error:", d)
+	log.Println("output.Error:", d)
 
 	//send message to client
 	returnData(false, "error", d, http.StatusBadRequest, w)

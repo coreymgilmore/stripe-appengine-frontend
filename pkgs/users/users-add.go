@@ -63,7 +63,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save to datastore
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	incompleteKey := createNewUserKey(c)
 	completeKey, err := saveUser(c, incompleteKey, u)
 	if err != nil {
@@ -116,7 +116,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	isActive, _ := strconv.ParseBool(r.FormValue("active"))
 
 	//check if this user already exists
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	_, _, err := exists(c, username)
 	if err == nil {
 		//user already exists

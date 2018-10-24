@@ -1,0 +1,30 @@
+convert to go111 appengine version
+
+set use of redis as memcache in environmental variable
+
+redo organization of project too fit go111 styling
+
+remove appengine packages and move to google cloud packages
+
+regex for customer id?
+
+integrity for all external css and js
+
+allow serving external css and js from local domain
+    - set this in environmental variable
+    - have to get templates to build differently
+
+better step-by-step document of how to install/set up
+
+
+
+
+sqlite/local install instead of appengine
+    - allow using sqlite instead of appengine datastore
+    - use flag to set this (--use-sqlite) which then looks up path to sqlite.db from app.yaml
+        - reuse app.yaml to get environmental variables instead of having to create a separate .conf (config) file
+    - have to switch between sqlite/datastore as needed in code
+    - try to keep sample table structure in sqlite as datastore
+    - have to create a golang-sqlite-datastore abstraction layer
+        - try to keep most of the code the same as datastore package funcs just with a connection to sqlite
+    - instead of having to maintain two versions of this app: google appengine based and local server based

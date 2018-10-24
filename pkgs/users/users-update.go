@@ -36,7 +36,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	hashedPwd := pwds.Create(password1)
 
 	//get user data
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "Error while retreiving user data to update user's password.", w, r)
@@ -95,7 +95,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get user data to update
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "We could not retrieve this user's information. This user could not be updated.", w, r)

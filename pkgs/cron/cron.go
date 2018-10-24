@@ -16,7 +16,7 @@ import (
 //This is designed to run monthly as a cron task.
 func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 	//get context
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//get previous month as a 1 or 2 digit number
 	now := time.Now()

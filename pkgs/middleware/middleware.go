@@ -29,7 +29,7 @@ var errNotAuthorized = errors.New("middleware: user does not have permission")
 //this is done on every page load and every endpoint
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 
 		//get user data from session
 		session := sessionutils.Get(r)
@@ -86,7 +86,7 @@ func AddCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
@@ -114,7 +114,7 @@ func RemoveCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
@@ -142,7 +142,7 @@ func ChargeCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
@@ -170,7 +170,7 @@ func ViewReports(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
@@ -200,7 +200,7 @@ func Administrator(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {

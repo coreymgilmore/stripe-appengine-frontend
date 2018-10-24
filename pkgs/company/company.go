@@ -88,7 +88,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 //putting this into a separate func cleans up code elsewhere
 func Get(r *http.Request) (result Info, err error) {
 	//check memcache
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 	_, err = memcache.Gob.Get(c, memcacheKeyName, &result)
 	if err == nil {
 		return
@@ -138,7 +138,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	statementDesc := strings.TrimSpace(r.FormValue("descriptor"))
 
 	//context
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//generate entity key
 	//keyname is hard coded so only one entity exists

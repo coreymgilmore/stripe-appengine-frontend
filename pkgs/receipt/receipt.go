@@ -55,7 +55,7 @@ type receiptData struct {
 //the receipt is generated from the charge id
 //the data for the charge may be in memcache or will have to be retrieved from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//get charge id from form value
 	chargeID := r.FormValue("chg_id")
@@ -68,7 +68,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	//look up charge data from stripe
 	if err == memcache.ErrCacheMiss {
 		//init stripe
-		c := appengine.NewContext(r)
+		c := r.Context(r)
 		stripe.SetBackend(stripe.APIBackend, nil)
 		stripe.SetHTTPClient(urlfetch.Client(c))
 
@@ -126,7 +126,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 //Preview shows a demo receipt with the company info and fake transaction data
 //this is used to show the receipt when saving the company info.
 func Preview(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
+	c := r.Context(r)
 
 	//get company info
 	companyInfo, _ := company.Get(r)
