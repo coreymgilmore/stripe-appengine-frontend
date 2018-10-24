@@ -16,7 +16,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	//get user data
-	c := r.Context(r)
+	c := r.Context()
 	id, data, err := exists(c, username)
 	if err == ErrUserDoesNotExist {
 		notificationPage(w, "panel-danger", "Cannot Log In", "The username you provided does not exist.", "btn-default", "/", "Try Again")

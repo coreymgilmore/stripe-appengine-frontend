@@ -1,6 +1,5 @@
 /*
-Package appsettings implements functions for changing settings of the
-app.
+Package appsettings implements functions for changing settings of the app.
 
 App settings are anything that changes functionality of the app.
 */
@@ -29,9 +28,6 @@ const (
 	datastoreKey  = "appSettingsKey"
 )
 
-//ErrAppSettingsDoNotExist is thrown when no app settings exist yet
-var ErrAppSettingsDoNotExist = errors.New("appsettings: info does not exist")
-
 //Settings is used for setting or getting the app settings from the datastore
 type Settings struct {
 	RequireCustomerID bool   `json:"require_cust_id"` //is the customer id field required when adding a new card
@@ -46,6 +42,9 @@ var defaultAppSettings = Settings{
 	CustomerIDFormat:  "",
 	APIKey:            "",
 }
+
+//ErrAppSettingsDoNotExist is thrown when no app settings exist yet
+var ErrAppSettingsDoNotExist = errors.New("appsettings: info does not exist")
 
 //GetAPI is used when viewing the data in the gui or on a receipt
 func GetAPI(w http.ResponseWriter, r *http.Request) {

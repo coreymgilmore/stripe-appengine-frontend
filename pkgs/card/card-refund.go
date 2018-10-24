@@ -7,7 +7,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/refund"
-	"google.golang.org/appengine"
 )
 
 //Refund handles refunding a charge on a card
@@ -61,7 +60,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	c := r.Context(r)
+	c := r.Context()
 	sc := createAppengineStripeClient(c)
 
 	//create refund with stripe

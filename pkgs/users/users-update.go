@@ -4,12 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 //ChangePwd is used to change a user's password
@@ -36,7 +33,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	hashedPwd := pwds.Create(password1)
 
 	//get user data
-	c := r.Context(r)
+	c := r.Context()
 	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "Error while retreiving user data to update user's password.", w, r)
@@ -45,15 +42,6 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//set new password
 	userData.Password = hashedPwd
-
-	//clear memcache for this userID & username
-	err = memcacheutils.Delete(c, userID)
-	err1 := memcacheutils.Delete(c, userData.Username)
-	if err != nil {
-		log.Errorf(c, "%v", "users.ChangePwd clear cache for user id", err)
-	} else if err1 != nil {
-		log.Errorf(c, "%v", "users.ChangePwd clear cache for username", err)
-	}
 
 	//generate full datastore key for user
 	fullKey := getUserKeyFromID(c, userIDInt)
@@ -95,7 +83,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get user data to update
-	c := r.Context(r)
+	c := r.Context()
 	userData, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "We could not retrieve this user's information. This user could not be updated.", w, r)
@@ -122,15 +110,6 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	userData.ViewReports = viewReports
 	userData.Administrator = isAdmin
 	userData.Active = isActive
-
-	//clear memcache
-	err = memcacheutils.Delete(c, userID)
-	err1 := memcacheutils.Delete(c, userData.Username)
-	if err != nil {
-		log.Errorf(c, "%v", "users.ChangePwd clear cache for user id", err)
-	} else if err1 != nil {
-		log.Errorf(c, "%v", "users.ChangePwd clear cache for username", err)
-	}
 
 	//generate complete key for user
 	completeKey := getUserKeyFromID(c, userIDInt)

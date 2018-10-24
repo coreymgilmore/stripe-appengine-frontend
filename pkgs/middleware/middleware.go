@@ -12,14 +12,13 @@ package middleware
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 //errNotAuthorized is returned when user does not have access rights to certain functionality
@@ -29,7 +28,7 @@ var errNotAuthorized = errors.New("middleware: user does not have permission")
 //this is done on every page load and every endpoint
 func Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c := r.Context(r)
+		c := r.Context()
 
 		//get user data from session
 		session := sessionutils.Get(r)
@@ -38,7 +37,7 @@ func Auth(next http.Handler) http.Handler {
 		//this is a new session
 		//redirect user to log in page
 		if session.IsNew {
-			log.Infof(c, "%v", "middleware.Auth: Session data does not exist yet.")
+			log.Println("middleware.Auth", "Session data does not exist yet.")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -52,7 +51,7 @@ func Auth(next http.Handler) http.Handler {
 			return
 		}
 
-		//look up user in memcache and/or datastore
+		//look up user in datastore
 		data, err := users.Find(c, userID)
 		if err != nil {
 			sessionutils.Destroy(w, r)
@@ -64,7 +63,7 @@ func Auth(next http.Handler) http.Handler {
 		//this is a setting the app's administrators can toggle for each user
 		if users.AllowedAccess(data) == false {
 			sessionutils.Destroy(w, r)
-			log.Infof(c, "%v", "middleware.Auth: User not allowed access.")
+			log.Println("middleware.Auth", "User not allowed access.")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -86,11 +85,11 @@ func AddCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := r.Context(r)
+		c := r.Context()
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
-			log.Errorf(c, "%+v", "middleware.AddCards: ", err)
+			log.Println("middleware.AddCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -114,11 +113,11 @@ func RemoveCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := r.Context(r)
+		c := r.Context()
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
-			log.Errorf(c, "%+v", "middleware.RemoveCards: ", err)
+			log.Println("middleware.RemoveCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -142,11 +141,11 @@ func ChargeCards(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := r.Context(r)
+		c := r.Context()
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
-			log.Errorf(c, "%+v", "middleware.ChargeCards: ", err)
+			log.Println("middleware.ChargeCards: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -170,11 +169,11 @@ func ViewReports(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := r.Context(r)
+		c := r.Context()
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
-			log.Errorf(c, "%+v", "middleware.ViewReports: ", err)
+			log.Println("middleware.ViewReports: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}
@@ -200,11 +199,11 @@ func Administrator(next http.Handler) http.Handler {
 		session := sessionutils.Get(r)
 
 		//look up user data
-		c := r.Context(r)
+		c := r.Context()
 		userID := session.Values["user_id"].(int64)
 		data, err := users.Find(c, userID)
 		if err != nil {
-			log.Errorf(c, "%+v", "middleware.Administrator: ", err)
+			log.Println("middleware.Administrator: ", err)
 			output.Error(err, "An error occurred in the middleware.", w, r)
 			return
 		}

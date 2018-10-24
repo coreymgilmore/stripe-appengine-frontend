@@ -16,7 +16,7 @@ allow serving external css and js from local domain
 
 better step-by-step document of how to install/set up
 
-
+show time in reports according to local time, not UTC
 
 
 sqlite/local install instead of appengine

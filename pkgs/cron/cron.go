@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -16,7 +15,7 @@ import (
 //This is designed to run monthly as a cron task.
 func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 	//get context
-	c := r.Context(r)
+	c := r.Context()
 
 	//get previous month as a 1 or 2 digit number
 	now := time.Now()
@@ -33,7 +32,7 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 		monthYear = fv
 	}
 
-	log.Infof(c, "%s", "Removing expired cards for: ", monthYear)
+	log.Println("cron.RemoveExpiredCards", "Removing expired cards for: ", monthYear)
 
 	//query datastore
 	//need customer name for logging and stripe token to remove card from stripe
@@ -54,7 +53,7 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		//remove the card from the datastore, from stripe, and refresh memcache
+		//remove the card from the datastore and from stripe
 		datastoreID := strconv.FormatInt(datastoreKey.IntID(), 10)
 		_ = datastoreID
 		err = card.Remove(datastoreID, r)
@@ -66,7 +65,5 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 		cardsRemovedCount++
 	}
 
-	log.Infof(c, "%s", "Removed cards:", cardsRemovedCount)
-	log.Infof(c, "%s", "Removing expired cards...done")
 	return
 }

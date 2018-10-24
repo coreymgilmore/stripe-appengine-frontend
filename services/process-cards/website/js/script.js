@@ -864,10 +864,9 @@ $('#add-card').submit(function (e) {
 					submitBtn.prop("disabled", false).text("Add Card");
 
 					//reload list of cards
-					//this needs to be delayed for a few seconds so the memcache can clear
 					//this was creating problems (list was not up to date) when it was updating right away on success
 					getCards();
-				}, 2000);
+				}, 500);
 				return;
 			}
 		});
@@ -955,10 +954,9 @@ $('#remove-card').submit(function (e) {
 				msg.html('');
 
 				//reload list of cards
-				//this needs to be delayed for a few seconds so the memcache can clear
 				//this was creating problems (list was not up to date) when it was updating right away on success
 				getCards();
-			}, 2000);
+			}, 500);
 
 			return;
 		}
@@ -1128,12 +1126,11 @@ $('#charge-card').submit(function (e) {
 
 			//if this card was a "charge and remove", refresh the list of cards
 			//reload list of cards
-			//this needs to be delayed for a few seconds so the memcache can clear
 			//this was creating problems (list was not up to date) when it was updating right away on success
 			if (chargeAndRemove) {
 				setTimeout(function() {
 					getCards();
-				}, 2000);
+				}, 500);
 			}
 
 			return;

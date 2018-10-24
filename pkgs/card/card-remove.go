@@ -4,14 +4,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/stripe/stripe-go"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/memcache"
 )
 
-//RemoveAPI removes a card from the datastore, memcache, and stripe
+//RemoveAPI removes a card from the datastore and stripe
 //This removes a card based upon the datastore ID.  This ID is tied into
 //one Stripe customer and one card.
 func RemoveAPI(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +40,7 @@ func Remove(datastoreID string, r *http.Request) error {
 	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
 
 	//init stripe
-	c := r.Context(r)
+	c := r.Context()
 	sc := createAppengineStripeClient(c)
 
 	//delete customer on stripe
@@ -54,28 +52,11 @@ func Remove(datastoreID string, r *http.Request) error {
 	sc.Customers.Del(stripeCustID, &stripe.CustomerParams{})
 
 	//delete customer from datastore
-	completeKey := getCustomerKeyFromID(c, datastoreIDInt)
-	err = datastore.Delete(c, completeKey)
+	client := datastoreutils.Client
+	completeKey := getCustomerKeyFromID(datastoreIDInt)
+	err = client.Delete(c, completeKey)
 	if err != nil {
 		return err
-	}
-
-	//delete customer from memcache
-	//delete list of cards in memcache since this list is now stale
-	//all memcache.Delete operations are listed first so error handling doesn't return
-	//if one fails...each call does not depend on another so this is safe
-	//obviously, if the card is not in the cache it cannot be removed
-	err1 := memcache.Delete(c, datastoreID)
-	err2 := memcache.Delete(c, custData.CustomerID)
-	err3 := memcache.Delete(c, listOfCardsKey)
-	if err1 != nil && err1 != memcache.ErrCacheMiss {
-		return err1
-	}
-	if err2 != nil && err2 != memcache.ErrCacheMiss {
-		return err2
-	}
-	if err3 != nil && err3 != memcache.ErrCacheMiss {
-		return err3
 	}
 
 	//customer removed

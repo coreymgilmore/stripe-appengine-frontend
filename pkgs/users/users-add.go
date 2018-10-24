@@ -8,12 +8,10 @@ import (
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 )
@@ -63,7 +61,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save to datastore
-	c := r.Context(r)
+	c := r.Context()
 	incompleteKey := createNewUserKey(c)
 	completeKey, err := saveUser(c, incompleteKey, u)
 	if err != nil {
@@ -116,7 +114,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	isActive, _ := strconv.ParseBool(r.FormValue("active"))
 
 	//check if this user already exists
-	c := r.Context(r)
+	c := r.Context()
 	_, _, err := exists(c, username)
 	if err == nil {
 		//user already exists
@@ -161,9 +159,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//clear list of users saved in memcache since a new user was added
-	memcacheutils.Delete(c, listOfUsersKey)
-
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
 	return
@@ -180,13 +175,6 @@ func createNewUserKey(c context.Context) *datastore.Key {
 func saveUser(c context.Context, key *datastore.Key, user User) (*datastore.Key, error) {
 	//save to datastore
 	completeKey, err := datastore.Put(c, key, &user)
-	if err != nil {
-		return completeKey, err
-	}
-
-	//save user to memcache
-	mKey := strconv.FormatInt(completeKey.IntID(), 10)
-	err = memcacheutils.Save(c, mKey, user)
 	if err != nil {
 		return completeKey, err
 	}

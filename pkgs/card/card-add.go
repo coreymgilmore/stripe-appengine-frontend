@@ -10,7 +10,6 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
@@ -56,7 +55,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get context
-	c := r.Context(r)
+	c := r.Context()
 
 	//need to adjust deadline in case stripe takes longer than 5 seconds
 	//default timeout for a urlfetch is 5 seconds
@@ -131,7 +130,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	username := sessionutils.GetUsername(r)
 
 	//save customer & card data to datastore
-	newCustKey := createNewCustomerKey(c)
+	newCustKey := createNewCustomerKey()
 	newCustomer := CustomerDatastore{
 		CustomerID:          customerID,
 		CustomerName:        customerName,
@@ -152,17 +151,13 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//return to client
 	output.Success("createCustomer", nil, w)
 
-	//delete list of cards in memcache
-	//since a card was added, memcache is wrong
-	//clients will retreive new list when refreshing page/app
-	memcacheutils.Delete(c, listOfCardsKey)
 	return
 }
 
 //createNewCustomerKey generates a new datastore key for saving a new customer/card
 //Appengine's datastore does not generate this key automatically when an entity is saved.
 func createNewCustomerKey() *datastore.Key {
-	return datatore.IncompleteKey(datastoreKind, nil)
+	return datastore.IncompleteKey(datastoreKind, nil)
 }
 
 //save does the actual saving of a card to the datastore

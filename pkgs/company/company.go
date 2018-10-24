@@ -11,24 +11,20 @@ package company
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/memcache"
 )
 
-//for referencing when looking up or setting data in datastore or memcache
+//for referencing when looking up or setting data in datastore
 //so we don't need to type in key names anywhere
 const (
-	memcacheKeyName = "company-info-memcache-key"
-	datastoreKind   = "companyInfo"
-	datastoreKey    = "companyInfoKey"
+	datastoreKind = "companyInfo"
+	datastoreKey  = "companyInfoKey"
 )
 
 //maxStatementDescriptorLength is the maximum length of the statement description
@@ -84,38 +80,21 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//Get actually retrienves the information from memcache or the datastore
+//Get actually retrienves the information from the datastore
 //putting this into a separate func cleans up code elsewhere
 func Get(r *http.Request) (result Info, err error) {
-	//check memcache
-	c := r.Context(r)
-	_, err = memcache.Gob.Get(c, memcacheKeyName, &result)
-	if err == nil {
-		return
-	}
+	c := r.Context()
 
-	//data not found in memcache
 	//get from datastore
-	if err == memcache.ErrCacheMiss {
-		key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
+	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
-		//get data
-		er := datastore.Get(c, key, &result)
-		if er == datastore.ErrNoSuchEntity {
-			//no company info exists yet
-			//return default values
-			log.Infof(c, "%v", "Company info doesn't exist yet.  Returning default values.")
-			result = defaultCompanyInfo
-		}
-
-		//save to memcache if results were found
-		if er == nil {
-			memcacheutils.Save(c, memcacheKeyName, result)
-		}
-
-		//make sure we don't return an error when data was found
-		//or when data wasn't found and we just set the default values
-		err = nil
+	//get data
+	er := datastore.Get(c, key, &result)
+	if er == datastore.ErrNoSuchEntity {
+		//no company info exists yet
+		//return default values
+		log.Println("company.Get", "Company info doesn't exist yet.  Returning default values.")
+		result = defaultCompanyInfo
 	}
 
 	return
@@ -138,7 +117,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	statementDesc := strings.TrimSpace(r.FormValue("descriptor"))
 
 	//context
-	c := r.Context(r)
+	c := r.Context()
 
 	//generate entity key
 	//keyname is hard coded so only one entity exists
@@ -151,13 +130,8 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 	//save the percentage fee as a decimal number with up to 4 decimal places
 	//2.85% = 0.0285
-	log.Debugf(c, "%v", percentFee)
-
 	percentFeeStr := "0.0" + strconv.FormatFloat(percentFee*100, 'f', 0, 64)
 	percentFee, _ = strconv.ParseFloat(percentFeeStr, 64)
-
-	log.Debugf(c, "%v", percentFeeStr)
-	log.Debugf(c, "%v", percentFee)
 
 	//build entity to save
 	//or update existing entity
@@ -176,7 +150,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.StatementDescriptor = statementDesc
 
 	//save company info
-	err := save(c, key, memcacheKeyName, data)
+	err := save(c, key, data)
 	if err != nil {
 		output.Error(err, "", w, r)
 		return
@@ -188,16 +162,12 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 //save does the actual saving to the datastore
-func save(c context.Context, key *datastore.Key, memcacheKeyName string, d Info) error {
+func save(c context.Context, key *datastore.Key, d Info) error {
 	//save company info
 	_, err := datastore.Put(c, key, &d)
 	if err != nil {
 		return err
 	}
-
-	//save company into to memcache
-	//ignoring errors since we can always get data from the datastore
-	memcacheutils.Save(c, memcacheKeyName, d)
 
 	return nil
 }
@@ -210,6 +180,6 @@ func SaveDefaultInfo(c context.Context) error {
 	key := datastore.NewKey(c, datastoreKind, datastoreKey, 0, nil)
 
 	//save
-	err := save(c, key, memcacheKeyName, defaultCompanyInfo)
+	err := save(c, key, defaultCompanyInfo)
 	return err
 }

@@ -9,28 +9,23 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/memcache"
 )
 
-//datastoreKind is the appengine datastore "kind" is similar to a "collection" or "table" in other dbs.
-const datastoreKind = "users"
+const (
+	//datastoreKind is the appengine datastore "kind" is similar to a "collection" or "table" in other dbs.
+	datastoreKind = "users"
 
-//adminUsername is the default "super admin" username
-//this is created the first time the app is run and no datastore data exists yet
-const adminUsername = "administrator"
+	//adminUsername is the default "super admin" username
+	//this is created the first time the app is run and no datastore data exists yet
+	adminUsername = "administrator"
 
-//minPwdLength is the shortest a new password can be for security concerns
-//this seems like a "reasonable" minimum requirement in 2018
-const minPwdLength = 10
-
-//listOfUsersKey is the key name for storing the list of users in memcache
-//it is used to get the list of users faster then having to query the datastore every time
-const listOfUsersKey = "list-of-users"
+	//minPwdLength is the shortest a new password can be for security concerns
+	//this seems like a "reasonable" minimum requirement in 2018
+	minPwdLength = 10
+)
 
 //errors
 var (
@@ -66,55 +61,36 @@ type userList struct {
 }
 
 //GetAll retrieves the list of all users in the datastore
-//The data is pulled from memcache or the datastore.
+//The data is pulled from the datastore.
 //The data is returned as a json to populate select menus in the gui.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
+	c := r.Context()
 
-	//check if list of users is in memcache
-	var result []userList
-	_, err := memcache.Gob.Get(c, listOfUsersKey, &result)
-	if err == nil {
-		output.Success("userList-cached", result, w)
+	//get list from datastore
+	//only need to get username and entity key to cut down on datastore usage
+	q := datastore.NewQuery(datastoreKind).Order("Username").Project("Username")
+	var users []User
+	keys, err := q.GetAll(c, &users)
+	if err != nil {
+		output.Error(err, "Error retrieving list of users from datastore.", w, r)
 		return
 	}
 
-	//list of users not found in memcache
-	//get list from datastore
-	//only need to get username and entity key to cut down on datastore usage
-	//save the list to memcache for faster retrieval next time
-	if err == memcache.ErrCacheMiss {
-		q := datastore.NewQuery(datastoreKind).Order("Username").Project("Username")
-		var users []User
-		keys, err := q.GetAll(c, &users)
-		if err != nil {
-			output.Error(err, "Error retrieving list of users from datastore.", w, r)
-			return
+	//build result
+	//format data to show just datastore id and username
+	//creates a map of structs
+	var idsAndNames []userList
+	for i, r := range users {
+		x := userList{
+			Username: r.Username,
+			ID:       keys[i].IntID(),
 		}
 
-		//build result
-		//format data to show just datastore id and username
-		//creates a map of structs
-		var idsAndNames []userList
-		for i, r := range users {
-			x := userList{
-				Username: r.Username,
-				ID:       keys[i].IntID(),
-			}
-
-			idsAndNames = append(idsAndNames, x)
-		}
-
-		//save the list of users to memcache
-		//ignore errors since we still retrieved the data
-		memcacheutils.Save(c, listOfUsersKey, idsAndNames)
-
-		//return data to clinet
-		output.Success("userList", idsAndNames, w)
-
-	} else if err != nil {
-		output.Error(err, "Unknown error retrieving list of users.", w, r)
+		idsAndNames = append(idsAndNames, x)
 	}
+
+	//return data to clinet
+	output.Success("userList", idsAndNames, w)
 
 	return
 }
@@ -126,7 +102,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	userIDInt, _ := strconv.ParseInt(r.FormValue("userId"), 10, 64)
 
 	//get user data
-	c := r.Context(r)
+	c := r.Context()
 	data, err := Find(c, userIDInt)
 	if err != nil {
 		output.Error(err, "Cannot look up user data.", w, r)
@@ -151,7 +127,7 @@ func getUserKeyFromID(c context.Context, id int64) *datastore.Key {
 func DoesAdminExist(r *http.Request) error {
 	//query for admin user
 	var user []User
-	c := r.Context(r)
+	c := r.Context()
 	q := datastore.NewQuery(datastoreKind).Filter("Username = ", adminUsername).KeysOnly()
 	keys, err := q.GetAll(c, &user)
 	if err != nil {
@@ -186,32 +162,15 @@ func doStringsMatch(string1, string2 string) bool {
 
 //Find gets the data for a given user id
 //This returns all the info on a user.
-//First memcache is checked for the data, then the datastore.
 func Find(c context.Context, userID int64) (u User, err error) {
-	//check for card in memcache
-	userIDStr := strconv.FormatInt(userID, 10)
-	_, err = memcache.Gob.Get(c, userIDStr, &u)
-	if err == nil {
-		return
-	}
+	var uu []User
+	key := getUserKeyFromID(c, userID)
+	q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
+	_, err = q.GetAll(c, &uu)
 
-	//user data not found in memcache
-	//look up data in datastore
-	//save to memcache after it is found
-	if err == memcache.ErrCacheMiss {
-		var uu []User
-		key := getUserKeyFromID(c, userID)
-		q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
-		_, err = q.GetAll(c, &uu)
-
-		//get one and only result
-		if len(uu) > 0 {
-			u = uu[0]
-		}
-
-		//save to memcache
-		//ignore errors since we already got the data
-		memcacheutils.Save(c, userIDStr, u)
+	//get one and only result
+	if len(uu) > 0 {
+		u = uu[0]
 	}
 
 	return

@@ -96,7 +96,7 @@ func init() {
 //CheckInit makes sure no errors occured during init()
 //since init() cannot return errors and we need to make sure init() completed successfully
 func CheckInit(r *http.Request) error {
-	c := r.Context(r)
+	c := r.Context()
 
 	if initError != nil {
 		log.Errorf(c, "%v", "Error during session initialization.")

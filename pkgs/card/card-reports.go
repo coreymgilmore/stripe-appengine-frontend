@@ -70,7 +70,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	endUnix := endDt.Unix()
 
 	//init stripe
-	c := r.Context(r)
+	c := r.Context()
 	sc := createAppengineStripeClient(c)
 
 	//get data on charges

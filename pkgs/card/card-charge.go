@@ -1,23 +1,22 @@
 package card
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
+	"cloud.google.com/go/datastore"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
-	"golang.org/x/net/context"
-	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/log"
 )
 
 //Charge processes a charge on a credit card
@@ -213,16 +212,16 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 	dsClient := datastoreutils.Client
 
 	//get the key we are saving to
-	key := datastore.NameKey(kind, keyname, nil)
+	key := datastore.NameKey(kind, keyName, nil)
 
 	//transaction
-	err := dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
+	_, err := dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
 		//look up data from datastore
 		var r cardCounts
 		err := tx.Get(key, &r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
 			log.Println("card.saveChargeDetails", "Error looking up card brand count.", err)
-			return
+			return err
 		}
 
 		//increment counter for total
@@ -273,8 +272,6 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 //this is used to charge a card without using the gui
 //the api key must be used and the request must have certain data
 func AutoCharge(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
-	log.Infof(c, "Auto charging...")
 
 	//get inputs
 	customerID := r.FormValue("customer_id") //the id in the CRM system, not the datastore ID since we dont store that off of appengine
@@ -341,6 +338,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 seconds is a bit over generous but covers even really strange senarios
+	c := r.Context()
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
 
@@ -418,11 +416,6 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//charge successful
-	//save charge to memcache
-	//less data to get from stripe if receipt is needed
-	//errors are ignored since if we can't save this data to memcache we can always get it from the stripe
-	memcacheutils.Save(c, chg.ID, chg)
-
 	//save count of card types
 	saveChargeDetails(c, chg)
 
@@ -438,7 +431,6 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		ChargeID:       chg.ID,
 	}
 
-	log.Infof(c, "Auto charging...done")
 	output.Success("cardCharged", out, w)
 	return
 }

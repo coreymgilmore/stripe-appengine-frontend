@@ -32,40 +32,35 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
-	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
-	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 )
 
-//stripeSecretKeyLength is the exact length of a stripe secret key
-//this is used to make sure a valid stripe secret key was provided
-const stripeSecretKeyLength = 32
+const (
+	//stripeSecretKeyLength is the exact length of a stripe secret key
+	//this is used to make sure a valid stripe secret key was provided
+	stripeSecretKeyLength = 32
 
-//datastoreKind is the name of the "table" or "collection" where card data is stored
-//we store the name to the "kind" in a const for easy reference in other code
-const datastoreKind = "card"
+	//datastoreKind is the name of the "table" or "collection" where card data is stored
+	//we store the name to the "kind" in a const for easy reference in other code
+	datastoreKind = "card"
 
-//listOfCardsKey is the key name for storing the list of cards in memcache
-//this key holds a value that is equal to the json of all cards we have stored in the datastore
-//it is used to get the list of cards faster then having to query the datastore every time
-const listOfCardsKey = "list-of-cards"
+	//currency for transactions
+	//this should be a simple change for other currencies, but you will need to change the "$" symbol elsewhere in this code base
+	currency = "usd"
 
-//currency for transactions
-//this should be a simple change for other currencies, but you will need to change the "$" symbol elsewhere in this code base
-const currency = "usd"
-
-//minCharge is the lowest charge the app will allow
-//Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
-//this is in cents
-const minCharge = 50
+	//minCharge is the lowest charge the app will allow
+	//Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
+	//this is in cents
+	minCharge = 50
+)
 
 //stripeSecretKey is the private api key from stripe used to charge cards
-//this is read in during init() and when creating a stripe client to process cards
+//this is read from app.yaml during init() and when creating a stripe client to process cards
 var stripeSecretKey string
 
 //errStripeKeyInvalid is used to describe an error with getting the Stripe secret key from and app.yaml when the app loads
@@ -101,7 +96,7 @@ func init() {
 }
 
 //CheckInit makes sure the init() ran successfully by checking if the
-//stirpeSecretKey was loaded
+//stripeSecretKey was loaded
 func CheckInit() error {
 	if len(stripeSecretKey) == 0 {
 		return errStripeKeyInvalid
@@ -112,66 +107,48 @@ func CheckInit() error {
 
 //GetAll retrieves the list of all cards in the datastore
 //This only gets the datastore id and customer name.
-//The data is pulled from memcache or the datastore and is returned as json
+//The data is pulled from the datastore and is returned as json
 //to build the datalist drop down where the user can choose what customer
 //to charge.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
+	//connect to datastore
+	client := datastoreutils.Client
 
-	//check if list of cards is in memcache
-	var result []List
-	_, err := memcache.Gob.Get(c, listOfCardsKey, &result)
-	if err == nil {
-		output.Success("cardlist-cached", result, w)
-		return
-	}
-
-	//list of cards not found in memcache
 	//get list from datastore
 	//only need to get entity keys and customer names which cuts down on datastore usage
-	//save the list to memcache for faster retrieval next time
-	if err == memcache.ErrCacheMiss {
-		q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
-		var cards []CustomerDatastore
-		keys, err := q.GetAll(c, &cards)
-		if err != nil {
-			output.Error(err, "Error retrieving list of cards from datastore.", w, r)
-			return
-		}
-
-		//build result
-		//format data to show just datastore id and customer name
-		//creates a map of structs
-		var idAndNames []List
-		for i, r := range cards {
-			x := List{r.CustomerName, keys[i].IntID()}
-			idAndNames = append(idAndNames, x)
-		}
-
-		//save list of cards to memcache
-		//ignore errors since we already got the data
-		memcacheutils.Save(c, listOfCardsKey, idAndNames)
-
-		//return data to client
-		output.Success("cardList-datastore", idAndNames, w)
-		return
-
-	} else if err != nil {
-		output.Error(err, "Unknown error retrieving list of cards.", w, r)
+	q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
+	var cards []CustomerDatastore
+	c := r.Context()
+	keys, err := client.GetAll(c, q, &cards)
+	if err != nil {
+		output.Error(err, "Error retrieving list of cards from datastore.", w, r)
 		return
 	}
+
+	//build result
+	//format data to show just datastore id and customer name
+	//creates a map of structs
+	var idAndNames []List
+	for i, r := range cards {
+		x := List{r.CustomerName, keys[i].IntID()}
+		idAndNames = append(idAndNames, x)
+	}
+
+	//return data to client
+	output.Success("cardList-datastore", idAndNames, w)
+	return
+
 }
 
 //GetOne retrieves the full data for one card from the datastore
 //This is used to fill in the "charge card" panel with identifying info on
 //the card so the user can verify they are charging the correct card.
 func GetOne(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
-
 	//get input
 	datstoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)
 
 	//get customer card data
+	c := r.Context()
 	data, err := findByDatastoreID(c, datstoreID)
 	if err != nil {
 		output.Error(err, "Could not find this customer's data.", w, r)
@@ -187,103 +164,60 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 //ID is just numeric while key is a long string with the appengine
 //app name, kind name, etc.
 //Key is what is actually used to find entities in the datastore.
-func getCustomerKeyFromID(c context.Context, id int64) *datastore.Key {
-	return datastore.NewKey(c, datastoreKind, "", id, nil)
+func getCustomerKeyFromID(id int64) *datastore.Key {
+	return datastore.IDKey(datastoreKind, id, nil)
 }
 
 //findByDatastoreID retrieves a card's information by its datastore id
 //This returns all the info on a card that is needed to build the ui.
-func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
-	//placeholder
-	data := CustomerDatastore{}
-
-	//check for card in memcache
-	datastoreIDStr := strconv.FormatInt(datastoreID, 10)
-	_, err := memcache.Gob.Get(c, datastoreIDStr, &data)
-	if err == nil {
-		return data, nil
+func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatastore, err error) {
+	key := getCustomerKeyFromID(datastoreID)
+	fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
+	data, err = datastoreFindEntity(c, "__key__ =", key, fields)
+	if err != nil {
+		return
 	}
 
-	//card data not found in memcache
-	//look up data in datastore
-	//save card to memcache after it is found
-	if err == memcache.ErrCacheMiss {
-		key := getCustomerKeyFromID(c, datastoreID)
-		fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-		data, err = datastoreFindEntity(c, "__key__ =", key, fields)
-		if err != nil {
-			return CustomerDatastore{}, err
-		}
-
-		//save to memcache
-		//ignore errors since we already got the data
-		memcacheutils.Save(c, datastoreIDStr, data)
-
-	} else if err != nil {
-		return CustomerDatastore{}, err
-	}
-
-	return data, nil
+	return
 }
 
 //FindByCustomerID retrieves a card's information by the unique id from a CRM system
 //This id was provided when a card was added to this app.
 //This func is used when making api style request to semi-automate the charging of a card.
-func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, error) {
-	//placeholder
-	data := CustomerDatastore{}
-
-	//check for card in memcache
-	_, err := memcache.Gob.Get(c, customerID, &data)
-	if err == nil {
-		return data, nil
+//only getting the fields we need to show data in the charge card panel
+func FindByCustomerID(c context.Context, customerID string) (data CustomerDatastore, err error) {
+	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
+	data, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
+	if err != nil {
+		return
 	}
 
-	//card data not found in memcache
-	//look up data in datastore
-	//save card to memcache after it is found
-	if err == memcache.ErrCacheMiss {
-		//only getting the fields we need to show data in the charge card panel
-		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-		data, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
-		if err != nil {
-			return CustomerDatastore{}, err
-		}
-
-		//save to memcache
-		//ignore errors since we already got the data
-		memcacheutils.Save(c, customerID, data)
-
-	} else if err != nil {
-		return CustomerDatastore{}, err
-	}
-
-	return data, nil
+	return
 }
 
 //datastoreFindEntity finds one entity in the datastore
 //This function wraps around the datastore package to clean up the code.
 //The project input is a string slice listing the column names we would like returned.
-func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (CustomerDatastore, error) {
-	//placeholder
-	multiData := []CustomerDatastore{}
+func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (data CustomerDatastore, err error) {
+	//connect to datastore
+	client := datastoreutils.Client
 
 	//query
 	//using GetAll b/c this lets us filter.  Get can only look up by key
-	query := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	_, err := query.GetAll(c, &multiData)
+	q := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
+	_, err := client.GetAll(c, q, &data)
 	if err != nil {
-		return CustomerDatastore{}, err
+		return
 	}
 
 	//check if we found any results
 	//pretty simple, check if data is set in variable
-	if len(multiData) == 0 {
+	if len(data) == 0 {
 		return CustomerDatastore{}, errCustomerNotFound
 	}
 
 	//return the result
-	return multiData[0], nil
+	return data[0], nil
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang

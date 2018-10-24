@@ -8,17 +8,14 @@ package receipt
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/memcacheutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/charge"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
-	"google.golang.org/appengine/memcache"
 	"google.golang.org/appengine/urlfetch"
 )
 
@@ -53,36 +50,24 @@ type receiptData struct {
 //Show builds an html page that display a receipt
 //this is a very boring, plain text, monospaced font page designed for easy printing and reading
 //the receipt is generated from the charge id
-//the data for the charge may be in memcache or will have to be retrieved from stripe
+//the data for the charge will have to be retrieved from stripe
 func Show(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
+	c := r.Context()
 
 	//get charge id from form value
 	chargeID := r.FormValue("chg_id")
 
-	//try looking up charge data in memcache
-	var chg *stripe.Charge
-	_, err := memcache.Gob.Get(c, chargeID, &chg)
+	//init stripe
+	sc := r.Context()
+	stripe.SetBackend(stripe.APIBackend, nil)
+	stripe.SetHTTPClient(urlfetch.Client(sc))
 
-	//charge not found in memcache
-	//look up charge data from stripe
-	if err == memcache.ErrCacheMiss {
-		//init stripe
-		c := r.Context(r)
-		stripe.SetBackend(stripe.APIBackend, nil)
-		stripe.SetHTTPClient(urlfetch.Client(c))
-
-		//get charge data
-		chg, err = charge.Get(chargeID, nil)
-		if err != nil {
-			fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
-			fmt.Fprint(w, err)
-			return
-		}
-
-		//save to memcache
-		//just in case we want to view the receipt again
-		memcacheutils.Save(c, chg.ID, chg)
+	//get charge data
+	chg, err := charge.Get(chargeID, nil)
+	if err != nil {
+		fmt.Fprint(w, "An error occured and the receipt cannot be displayed.\n")
+		fmt.Fprint(w, err)
+		return
 	}
 
 	//extract charge data
@@ -93,7 +78,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	if len(companyInfo.CompanyName) == 0 {
 		companyInfo.CompanyName = "**Company info has not been set yet.**"
 		companyInfo.Street = "**Please contact an administrator to fix this.**"
-		log.Errorf(c, "%v", "Cannot view receipt because company info hasn't been set yet.")
+		log.Println("receipt.Show", "Cannot view receipt because company info hasn't been set yet.")
 	}
 
 	//display receipt
@@ -126,14 +111,12 @@ func Show(w http.ResponseWriter, r *http.Request) {
 //Preview shows a demo receipt with the company info and fake transaction data
 //this is used to show the receipt when saving the company info.
 func Preview(w http.ResponseWriter, r *http.Request) {
-	c := r.Context(r)
-
 	//get company info
 	companyInfo, _ := company.Get(r)
 	if len(companyInfo.CompanyName) == 0 {
 		companyInfo.CompanyName = "**Company info has not been set yet.**"
 		companyInfo.Street = "**Please contact an administrator to fix this.**"
-		log.Errorf(c, "%v", "Cannot preview receipt because company info hasn't been set yet.")
+		log.Println("receipt.Preview", "Cannot preview receipt because company info hasn't been set yet.")
 	}
 
 	//display receipt
