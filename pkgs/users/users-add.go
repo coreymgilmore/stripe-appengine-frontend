@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
-	"google.golang.org/appengine/datastore"
 )
 
 //CreateAdmin saves the initial super-admin for the app
@@ -34,7 +35,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//make sure passwords match
 	if doStringsMatch(pass1, pass2) == false {
-		notificationPage(w, "panel-danger", "Error", "The passwords id not match.", "btn-default", "/setup/", "Try Again")
+		notificationPage(w, "panel-danger", "Error", "The passwords did not match.", "btn-default", "/setup/", "Try Again")
 		return
 	}
 
@@ -62,7 +63,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//save to datastore
 	c := r.Context()
-	incompleteKey := createNewUserKey(c)
+	incompleteKey := createNewUserKey()
 	completeKey, err := saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
@@ -76,7 +77,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionutils.AddValue(session, "username", adminUsername)
-	sessionutils.AddValue(session, "user_id", completeKey.IntID())
+	sessionutils.AddValue(session, "user_id", completeKey.ID)
 	sessionutils.Save(session, w, r)
 
 	//save the default company info
@@ -152,7 +153,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save to datastore
-	incompleteKey := createNewUserKey(c)
+	incompleteKey := createNewUserKey()
 	_, err = saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
@@ -166,15 +167,21 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 //createNewCustomerKey generates a new datastore key for saving a new user
 //Appengine's datastore does not generate this key automatically when an entity is saved.
-func createNewUserKey(c context.Context) *datastore.Key {
-	return datastore.NewIncompleteKey(c, datastoreKind, nil)
+func createNewUserKey() *datastore.Key {
+	return datastore.IncompleteKey(datastoreKind, nil)
 }
 
 //saveUser does the actual saving of a user to the datastore
 //Separate function to clean up code.
 func saveUser(c context.Context, key *datastore.Key, user User) (*datastore.Key, error) {
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return key, err
+	}
+
 	//save to datastore
-	completeKey, err := datastore.Put(c, key, &user)
+	completeKey, err := client.Put(c, key, &user)
 	if err != nil {
 		return completeKey, err
 	}

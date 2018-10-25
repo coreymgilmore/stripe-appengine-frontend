@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"cloud.google.com/go/datastore"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
-	"google.golang.org/appengine/datastore"
 )
 
 const (
@@ -64,13 +65,19 @@ type userList struct {
 //The data is pulled from the datastore.
 //The data is returned as a json to populate select menus in the gui.
 func GetAll(w http.ResponseWriter, r *http.Request) {
+	//connect to datastore
 	c := r.Context()
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		output.Error(err, "Could not connect to datastore", w, r)
+		return
+	}
 
 	//get list from datastore
 	//only need to get username and entity key to cut down on datastore usage
 	q := datastore.NewQuery(datastoreKind).Order("Username").Project("Username")
 	var users []User
-	keys, err := q.GetAll(c, &users)
+	keys, err := client.GetAll(c, q, &users)
 	if err != nil {
 		output.Error(err, "Error retrieving list of users from datastore.", w, r)
 		return
@@ -83,7 +90,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	for i, r := range users {
 		x := userList{
 			Username: r.Username,
-			ID:       keys[i].IntID(),
+			ID:       keys[i].ID,
 		}
 
 		idsAndNames = append(idsAndNames, x)
@@ -117,19 +124,24 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 //getUserKeyFromID gets the full datastore key from the id
 //ID is just numeric, key is a big string with the appengine name, kind name, etc.
 //Key is what is actually used to find entities in the datastore.
-func getUserKeyFromID(c context.Context, id int64) *datastore.Key {
-	return datastore.NewKey(c, datastoreKind, "", id, nil)
+func getUserKeyFromID(id int64) *datastore.Key {
+	return datastore.IDKey(datastoreKind, id, nil)
 }
 
 //DoesAdminExist checks if the super-admin has already been created
 //The super-admin should be created upon initially using and setting up the app.
 //This user must exist for the app to function.
 func DoesAdminExist(r *http.Request) error {
-	//query for admin user
-	var user []User
+	//connect to datastore
 	c := r.Context()
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return err
+	}
+
+	var user []User
 	q := datastore.NewQuery(datastoreKind).Filter("Username = ", adminUsername).KeysOnly()
-	keys, err := q.GetAll(c, &user)
+	keys, err := client.GetAll(c, q, &user)
 	if err != nil {
 		return err
 	}
@@ -163,10 +175,16 @@ func doStringsMatch(string1, string2 string) bool {
 //Find gets the data for a given user id
 //This returns all the info on a user.
 func Find(c context.Context, userID int64) (u User, err error) {
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
+
 	var uu []User
-	key := getUserKeyFromID(c, userID)
+	key := getUserKeyFromID(userID)
 	q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
-	_, err = q.GetAll(c, &uu)
+	_, err = client.GetAll(c, q, &uu)
 
 	//get one and only result
 	if len(uu) > 0 {
@@ -180,9 +198,15 @@ func Find(c context.Context, userID int64) (u User, err error) {
 //This can also be used to get user data by username.
 //Returns error if a user by the username 'username' does not exist.
 func exists(c context.Context, username string) (int64, User, error) {
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return 0, User{}, ErrUserDoesNotExist
+	}
+
 	q := datastore.NewQuery(datastoreKind).Filter("Username = ", username).Limit(1)
 	var result []User
-	keys, _ := q.GetAll(c, &result)
+	keys, _ := client.GetAll(c, q, &result)
 
 	//user was not found
 	if len(keys) == 0 {
@@ -190,7 +214,7 @@ func exists(c context.Context, username string) (int64, User, error) {
 	}
 
 	//return user found data
-	return keys[0].IntID(), result[0], nil
+	return keys[0].ID, result[0], nil
 }
 
 //notificationPage is used to show html page for errors

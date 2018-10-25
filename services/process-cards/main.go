@@ -50,6 +50,16 @@ import (
 //defaultPort is the port used when serving in the dev environment
 const defaultPort = "8005"
 
+const (
+	//staticWebDir is the directory off of the root domain from which static files are served
+	//www.example.com/static/ -? /static
+	//leave off trailing slash
+	staticWebDir = "/static"
+
+	//staticLocalDir is the location on the server's filesystem where we store static files
+	staticLocalDir = "./website/static/"
+)
+
 //appYaml is the format of the app.yaml file
 type appYaml struct {
 	Runtime           string `yaml:"runtime"`
@@ -79,7 +89,7 @@ func init() {
 	//appengine is the default deployment
 	//need to do this so we can parse app.yaml in a development environment so we don't need to specify each env_var manually on PATH
 	//this also allows us in the future to create other deployment types such as a sqlite backed version instead of using cloud datastore
-	deploymentType := flag.String("deploy-type", "appengine", "Set to appengine or development.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
+	deploymentType := flag.String("type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
 	pathToAppYaml := flag.String("pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
 	pathToDatastoreCredentials := flag.String("datastore-credentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
 	flag.Parse()
@@ -115,7 +125,7 @@ func init() {
 			return
 		}
 
-	case "development":
+	case "appengine-dev":
 		//check for and parse the app.yaml file
 		yamlData, err := parseAppYaml(*pathToAppYaml)
 		if err != nil {
@@ -230,8 +240,12 @@ func main() {
 	as.Handle("/set/", admin.Then(http.HandlerFunc(appsettings.SaveAPI))).Methods("POST")
 	as.Handle("/generate-api-key", admin.Then(http.HandlerFunc(appsettings.GenerateAPIKey))).Methods("GET")
 
-	//Pages that don't exist
-	r.NotFoundHandler = http.HandlerFunc(pages.NotFound)
+	//serve static assets
+	r.PathPrefix(staticWebDir).Handler(setStaticFileHeaders(http.StripPrefix(staticWebDir, http.FileServer(http.Dir(staticLocalDir)))))
+
+	//serve anything off of the root directory
+	//manifest.json, robots.txt, etc.
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticLocalDir + "root_files/")))
 
 	//Have the server listen
 	log.Println("Starting stripe-appengine-frontend...")
@@ -263,4 +277,21 @@ func parseAppYaml(path string) (yamlData appYaml, err error) {
 
 	//done
 	return
+}
+
+//setStaticFileHeaders is used to set cache control headers for static files
+func setStaticFileHeaders(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//Cache-Control
+		//25200 is 7 days
+		// w.Header().Set("Cache-Control", "no-transform,public,max-age=25200")
+
+		//FOR DEV aka no caching
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
+		//SERVE CONTENT
+		h.ServeHTTP(w, r)
+	})
 }

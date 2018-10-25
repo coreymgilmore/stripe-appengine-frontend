@@ -44,7 +44,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	userData.Password = hashedPwd
 
 	//generate full datastore key for user
-	fullKey := getUserKeyFromID(c, userIDInt)
+	fullKey := getUserKeyFromID(userIDInt)
 
 	//save user
 	_, err = saveUser(c, fullKey, userData)
@@ -112,7 +112,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	userData.Active = isActive
 
 	//generate complete key for user
-	completeKey := getUserKeyFromID(c, userIDInt)
+	completeKey := getUserKeyFromID(userIDInt)
 
 	//save user
 	_, err = saveUser(c, completeKey, userData)

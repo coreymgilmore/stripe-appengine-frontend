@@ -7,3 +7,4 @@ app.yaml
 services/process-cards/app.yaml
 
 datastore-service-account.json
+services/process-cards/website/static/js/stripe-public-key.js
