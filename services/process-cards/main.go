@@ -74,7 +74,7 @@ type appYaml struct {
 		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`    //session cookie
 		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`      //used for charging cards
 		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"` //used for creating customers and saving cards
-		CacheDays            int    `yaml:CACHE_DAYS"`              //number of days to cache static files
+		CacheDays            int    `yaml:"CACHE_DAYS"`             //number of days to cache static files
 	} `yaml:"env_variables"`
 	Handlers []struct {
 		URL       string `yaml:"url"`
