@@ -31,6 +31,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
@@ -60,16 +61,20 @@ const (
 	staticLocalDir = "./website/static/"
 )
 
+//cacheDays is the number of days to cache static files
+//this is set in init() and used when serving static files
+var cacheDays = 0
+
 //appYaml is the format of the app.yaml file
 type appYaml struct {
-	Runtime           string `yaml:"runtime"`
-	DefaultExpiration string `yaml:"default_expiration"`
-	EnvVars           struct {
-		ProjectID            string `yaml:"PROJECT_ID"`
-		SessionAuthKey       string `yaml:"SESSION_AUTH_KEY"`
-		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`
-		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`
-		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"`
+	Runtime string `yaml:"runtime"` //should be go111 for deployments to appengine
+	EnvVars struct {
+		ProjectID            string `yaml:"PROJECT_ID"`             //the project id on google cloud
+		SessionAuthKey       string `yaml:"SESSION_AUTH_KEY"`       //session cookie
+		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`    //session cookie
+		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`      //used for charging cards
+		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"` //used for creating customers and saving cards
+		CacheDays            int    `yaml:CACHE_DAYS"`              //number of days to cache static files
 	} `yaml:"env_variables"`
 	Handlers []struct {
 		URL       string `yaml:"url"`
@@ -125,6 +130,9 @@ func init() {
 			return
 		}
 
+		//set cache max age
+		cacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))
+
 	case "appengine-dev":
 		//check for and parse the app.yaml file
 		yamlData, err := parseAppYaml(*pathToAppYaml)
@@ -155,6 +163,8 @@ func init() {
 
 		//connect to the google cloud datastore
 		//need to set an environmental variable here since it provide credentials to the datastore, see https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go
+		//by default, this will connect to the Cloud datastore.
+		//if you want to use a local development datastore, see https://cloud.google.com/datastore/docs/tools/datastore-emulator
 		err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", *pathToDatastoreCredentials)
 		if err != nil {
 			log.Fatalln("Could not set Google Datastore credentials environmental variable.", err)
@@ -169,6 +179,9 @@ func init() {
 			return
 		}
 
+		//set cache max age
+		cacheDays = yamlData.EnvVars.CacheDays
+
 	case "sqlite":
 		//a version of this app that can run without appengine and is backed by sqlite
 
@@ -177,6 +190,14 @@ func init() {
 		log.Fatalln("An invalid deployment type was given as a flag.")
 		return
 	}
+
+	//handle cache control for static files
+	yamlData, err := parseAppYaml(*pathToAppYaml)
+	if err != nil {
+		log.Fatalln("Error while parsing app.yaml.", err)
+		return
+	}
+
 }
 
 func main() {
@@ -279,17 +300,13 @@ func parseAppYaml(path string) (yamlData appYaml, err error) {
 	return
 }
 
-//setStaticFileHeaders is used to set cache control headers for static files
+//setStaticFileHeaders is used to set cache headers for static files
+//this determines how long files will be cached on the client
 func setStaticFileHeaders(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Cache-Control
-		//25200 is 7 days
-		// w.Header().Set("Cache-Control", "no-transform,public,max-age=25200")
-
-		//FOR DEV aka no caching
-		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		w.Header().Set("Pragma", "no-cache")
-		w.Header().Set("Expires", "0")
+		//max-age is seconds
+		maxAge := cacheDays * 24 * 60 * 60
+		w.Header().Set("Cache-Control", "no-transform,public,max-age="+strconv.Itoa(maxAge))
 
 		//SERVE CONTENT
 		h.ServeHTTP(w, r)
