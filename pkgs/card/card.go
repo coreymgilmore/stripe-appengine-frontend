@@ -9,13 +9,13 @@ environmental variable.
 When a card is added to the app, very minimal (expiration and last 4) of the card's data
 is actually stored in App Engine. The card's information is sent to Stripe who then
 returns an id for this card. When a charge is processed, this id is sent to Stripe and
-Stripe looks up the card's information to charge it.
+Stripe looks up the card's information to charge it. The information stored in App Engine
+is safe, as in if someone were to get the data, it could not be used to process charges.
+No credit card number is stored.  The data is just used to identify the card so users of
+the app know which card they are charging.
 
-The information stored in App Engine is safe; no credit card number is stored.  The data is
-just used to identify the card so users of the app know which card they are charging.
-
-Datastore ID: the ID the entity in the App Engine Datastore.
-Customer ID: the ID that the user provides that links the card to a company.  This is usually from a CRM.
+Datastore ID: the ID of the entity (think sql "row") in the App Engine Datastore.
+Customer ID: the ID that the user provides that links the card to a company.  This is usually from a CRM software.
 Stripe ID: the ID stripe uses to process a charge.  Also known as the stripe customer token.
 For each datastore ID, there should be one and only one customer ID and stripe ID.
 For each customer ID, there can be many datastore IDs and stripe IDs; one for each card added.
@@ -111,9 +111,8 @@ func SetConfig(c config) error {
 
 //GetAll retrieves the list of all cards in the datastore
 //This only gets the datastore id and customer name.
-//The data is pulled from the datastore and is returned as json
-//to build the datalist drop down where the user can choose what customer
-//to charge.
+//The data is pulled from the datastore and is returned as json to build
+//the datalist drop down where the user can choose what customer to charge.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	//connect to datastore
 	c := r.Context()
@@ -169,8 +168,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 }
 
 //getCustomerKeyFromID gets the full datastore key from the datastore id
-//ID is just numeric while key is a long string with the appengine
-//app name, kind name, etc.
+//ID is just numeric while key is as an alphanumeric string
 //Key is what is actually used to find entities in the datastore.
 func getCustomerKeyFromID(id int64) *datastore.Key {
 	return datastore.IDKey(datastoreKind, id, nil)

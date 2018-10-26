@@ -4,22 +4,22 @@ Package main implements a simple web app for collecting and charging credit card
 This app was designed for use in companies that collect their clients cards and process
 charges without the client needing to provide card information with every purchase.
 Companies that use this app don't have to store credit card information, or ask for it with
-every purchase, to reduce security issues or remove need for PCI compliance.
+every purchase to reduce security issues or remove need for PCI compliance.
 
 This app was designed to run on Google App Engine and will not work in a normal golang
-environment.  You must have a Google Cloud account.
+environment (as of Oct 2018).  This app was designed for the  Appengine Standard Environment
+and the go111 runtime.  You must have a Google Cloud account.
 
-This app uses Stripe as the payment processor.  You must have a Stripe account set up.
+This app uses Stripe as the payment processor.  You must have a Stripe account.
 
-The only data stored for this app is user credentials, basic company information for
-receipts, and a list of customers who we will process charges for.  Most of this data is
-also cached to reduce the usage of Cloud Datastore for less latency and less Google Cloud
-fees.  There is no need to store the credit card's information (number, expiration, security
-code).  The card's information is saved to Stripe and only an id is saved to this app. This
-id is used to process the card with Stripe.
+The only data stored for this app is user credentials, basic company information,
+and a list of customers for which charges are processed against.  There is no need to store
+the credit card's information (number, expiration, security code).  The card's information
+is saved to Stripe and only an identifier is saved to this app. This id is used to process
+the card with Stripe.
 
-Payment are processed by either manually choosing the customer and entering the payment amount
-or via an api-style http request.
+Payment are processed by either manually by choosing the customer and entering the payment
+amount or via an api-style http request.
 */
 package main
 
