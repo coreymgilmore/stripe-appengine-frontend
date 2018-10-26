@@ -191,13 +191,7 @@ func init() {
 		return
 	}
 
-	//handle cache control for static files
-	yamlData, err := parseAppYaml(*pathToAppYaml)
-	if err != nil {
-		log.Fatalln("Error while parsing app.yaml.", err)
-		return
-	}
-
+	return
 }
 
 func main() {
