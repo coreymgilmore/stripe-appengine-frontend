@@ -163,14 +163,14 @@ func init() {
 
 		//connect to the google cloud datastore
 		//need to set an environmental variable here since it provide credentials to the datastore, see https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go
-		//by default, this will connect to the Cloud datastore.
-		//if you want to use a local development datastore, see https://cloud.google.com/datastore/docs/tools/datastore-emulator
 		err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", *pathToDatastoreCredentials)
 		if err != nil {
 			log.Fatalln("Could not set Google Datastore credentials environmental variable.", err)
 			return
 		}
 
+		//by default, this will connect to the Cloud datastore.
+		//if you want to use a local development datastore, see https://cloud.google.com/datastore/docs/tools/datastore-emulator
 		ccc := datastoreutils.Config
 		ccc.ProjectID = yamlData.EnvVars.ProjectID
 		err = datastoreutils.SetConfig(ccc)
