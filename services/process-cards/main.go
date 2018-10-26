@@ -236,7 +236,7 @@ func main() {
 	c.Handle("/get/", a.Then(http.HandlerFunc(card.GetOne))).Methods("GET")
 	c.Handle("/get/all/", a.Then(http.HandlerFunc(card.GetAll))).Methods("GET")
 	c.Handle("/remove/", remove.Then(http.HandlerFunc(card.RemoveAPI))).Methods("POST")
-	c.Handle("/charge/", charge.Then(http.HandlerFunc(card.Charge))).Methods("POST")
+	c.Handle("/charge/", charge.Then(http.HandlerFunc(card.ManualCharge))).Methods("POST")
 	c.Handle("/receipt/", a.Then(http.HandlerFunc(receipt.Show))).Methods("GET")
 	c.Handle("/report/", reports.Then(http.HandlerFunc(card.Report))).Methods("GET")
 	c.Handle("/refund/", charge.Then(http.HandlerFunc(card.Refund))).Methods("POST")

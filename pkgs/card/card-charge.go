@@ -18,18 +18,18 @@ import (
 	"github.com/stripe/stripe-go"
 )
 
-//Charge processes a charge on a credit card
-func Charge(w http.ResponseWriter, r *http.Request) {
+//ManualCharge processes a charge on a credit card
+//this is used when a user clicks the charge button in the gui
+func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//get inputs
-	datastoreID := r.FormValue("datastoreId")
-	customerName := r.FormValue("customerName")
-	amount := r.FormValue("amount")
+	datastoreID, _ := strconv.ParseInt(r.FormValue("datastoreId"), 10, 64) //id from datastore
+	amount := r.FormValue("amount")                                        //in dollars
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
-	chargeAndRemove, _ := strconv.ParseBool(r.FormValue("chargeAndRemove"))
+	chargeAndRemove, _ := strconv.ParseBool(r.FormValue("chargeAndRemove")) //true if card should be removed after charging
 
 	//validation
-	if len(datastoreID) == 0 {
+	if datastoreID == 0 {
 		output.Error(errMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
 		return
 	}
@@ -37,6 +37,10 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		output.Error(errMissingInput, "No amount was provided. You cannot charge a card nothing!", w, r)
 		return
 	}
+
+	//get username of logged in user
+	//we record this data so we can see who processed a charge in the reports
+	username := sessionutils.GetUsername(r)
 
 	//get amount as cents
 	//stripe requires the amount as a whole number
@@ -46,54 +50,17 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//check if amount is greater than the minimum charge
-	//min charge may be greater than 0 because of transactions costs
-	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
-	if amountCents < minCharge {
-		output.Error(errChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
-		return
-	}
-
 	//create context
 	//need to adjust deadline in case stripe takes longer than 5 seconds
-	//default timeout for a urlfetch is 5 seconds
-	//sometimes charging a card through stripe api takes longer
-	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
-	//the call might still complete via stripe but appengine will return to the gui that it failed
-	//10 seconds is a bit over generous but covers even really strange senarios
 	c := r.Context()
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
 
 	//look up stripe customer id from datastore
-	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
-	custData, err := findByDatastoreID(c, datastoreIDInt)
+	custData, err := findByDatastoreID(c, datastoreID)
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
 		return
-	}
-
-	//make sure customer name matches
-	//just another catch in case of strange errors and mismatched data
-	if customerName != custData.CustomerName {
-		output.Error(err, "The customer name did not match the data for the customer ID. Please log out and try again.", w, r)
-		return
-	}
-
-	//get username of logged in user
-	//we record this data so we can see who processed a charge in the reports
-	username := sessionutils.GetUsername(r)
-
-	//init stripe
-	sc := createAppengineStripeClient(c)
-
-	//check if invoice or po number are blank
-	//so that the description on stripe's dashboard makes sense if values are missing
-	if len(invoice) == 0 {
-		invoice = "*blank*"
-	}
-	if len(poNum) == 0 {
-		poNum = "*blank*"
 	}
 
 	//get statement descriptor from company info
@@ -106,45 +73,9 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//build charge object
-	chargeParams := &stripe.ChargeParams{
-		Customer:  custData.StripeCustomerToken,
-		Amount:    amountCents,
-		Currency:  currency,
-		Desc:      "Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
-		Statement: companyInfo.StatementDescriptor,
-	}
-
-	//add metadata to charge
-	//used for reports and receipts
-	chargeParams.AddMeta("customer_name", customerName)
-	chargeParams.AddMeta("customer_id", custData.CustomerID)
-	chargeParams.AddMeta("invoice_num", invoice)
-	chargeParams.AddMeta("po_num", poNum)
-	chargeParams.AddMeta("processed_by", username)
-
-	//process the charge
-	chg, err := sc.Charges.New(chargeParams)
-
-	//handle errors
-	//*url.Error can be thrown if urlfetch reaches timeout (request took too long to complete)
-	//*stripe.Error is a error with the stripe api and should return a human readable error message
+	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, username, "", "")
 	if err != nil {
-		errorMsg := ""
-
-		switch err.(type) {
-		default:
-			errorMsg = "There was an error processing this charge. Please check the Report to see if this charge was successful."
-			break
-		case *url.Error:
-			errorMsg = "Charging this card timed out. The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
-			break
-		case *stripe.Error:
-			stripeErr := err.(*stripe.Error)
-			errorMsg = stripeErr.Msg
-		}
-
-		output.Error(errStripe, errorMsg, w, r)
+		output.Error(err, errMsg, w, r)
 		return
 	}
 
@@ -152,27 +83,12 @@ func Charge(w http.ResponseWriter, r *http.Request) {
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := Remove(datastoreID, r)
+		err := Remove(strconv.FormatInt(datastoreID, 10), r)
 		if err != nil {
 			log.Println("Error removing card after charge.", err)
 		}
 	}
 
-	//save count of card types
-	saveChargeDetails(c, chg)
-
-	//build struct to output a success message to the client
-	out := chargeSuccessful{
-		CustomerName:   customerName,
-		Cardholder:     custData.Cardholder,
-		CardExpiration: custData.CardExpiration,
-		CardLast4:      custData.CardLast4,
-		Amount:         amount,
-		Invoice:        invoice,
-		Po:             poNum,
-		Datetime:       timestamps.ISO8601(),
-		ChargeID:       chg.ID,
-	}
 	output.Success("cardCharged", out, w)
 	return
 }
@@ -272,18 +188,16 @@ func saveChargeDetails(c context.Context, chg *stripe.Charge) {
 
 //AutoCharge processes a charge on a credit card automatically
 //this is used to charge a card without using the gui
-//the api key must be used and the request must have certain data
 func AutoCharge(w http.ResponseWriter, r *http.Request) {
-
 	//get inputs
 	customerID := r.FormValue("customer_id") //the id in the CRM system, not the datastore ID since we dont store that off of appengine
 	amount := r.FormValue("amount")          //in cents
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
-	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge"))
-	referrer := r.FormValue("auto_charge_referrer")
-	reason := r.FormValue("auto_charge_reason")
 	apiKey := r.FormValue("api_key")
+	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge")) //true if we should actually charge the card, false for testing
+	referrer := r.FormValue("auto_charge_referrer")                //the name or other identifier for the app making this request to charge the card
+	reason := r.FormValue("auto_charge_reason")                    //the action or other identifier within the app making this request (if the referrer has many actions to charge a card, this lets you figure out which action charged the card)
 
 	//validation
 	if customerID == "" {
@@ -307,21 +221,6 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//convert amount to uint
-	amountCents, err := strconv.ParseUint(amount, 10, 64)
-	if err != nil {
-		output.Error(err, "Could not convert amount to integer.", w, r)
-		return
-	}
-
-	//check if amount is greater than the minimum charge
-	//min charge may be greater than 0 because of transactions costs
-	//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
-	if amountCents < minCharge {
-		output.Error(errChargeAmountTooLow, "You must charge at least "+strconv.FormatInt(minCharge, 10)+" cents.", w, r)
-		return
-	}
-
 	//verify api key
 	settings, err := appsettings.Get(r)
 	if err != nil {
@@ -333,13 +232,15 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//convert amount to uint
+	amountCents, err := strconv.ParseUint(amount, 10, 64)
+	if err != nil {
+		output.Error(err, "Could not convert amount to integer.", w, r)
+		return
+	}
+
 	//create context
 	//need to adjust deadline in case stripe takes longer than 5 seconds
-	//default timeout for a urlfetch is 5 seconds
-	//sometimes charging a card through stripe api takes longer
-	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
-	//the call might still complete via stripe but appengine will return to the gui that it failed
-	//10 seconds is a bit over generous but covers even really strange senarios
 	c := r.Context()
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
@@ -349,18 +250,6 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
 		return
-	}
-
-	//init stripe
-	sc := createAppengineStripeClient(c)
-
-	//check if invoice or po number are blank
-	//so that the description on stripe's dashboard makes sense if values are missing
-	if len(invoice) == 0 {
-		invoice = "*blank*"
-	}
-	if len(poNum) == 0 {
-		poNum = "*blank*"
 	}
 
 	//get statement descriptor from company info
@@ -373,24 +262,69 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, "api", referrer, reason)
+	if err != nil {
+		output.Error(err, errMsg, w, r)
+		return
+	}
+
+	output.Success("cardCharged", out, w)
+	return
+}
+
+//isBelowMinCharge checks if an amount to charge is too low and returns an error message
+//min charge may be greater than 0 because of transactions costs
+//for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
+func isBelowMinCharge(amount uint64) (string, error) {
+	if amount < minCharge {
+		return "You must charge at least " + strconv.FormatInt(minCharge, 10) + " cents.", errChargeAmountTooLow
+	}
+
+	return "", nil
+}
+
+//processCharge peforms most of the actions required to actually charge a card
+//this func removes a lot of retyping between ManualCharge and AutoCharge
+//c: used for stripe client
+//amountCents: amount to charge
+//invoiceNum & poNum: details about the order charge is for
+//companyInfo: statement descriptor
+//custData: data about the customer who this charge is for
+//user: either the logged in user or "api" when charged automatically
+//referrer & reason: only given when charge is automatically processed
+func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum string, companyInfo company.Info, custData CustomerDatastore, user, referrer, reason string) (out chargeSuccessful, errMsg string, err error) {
+	//get stripe client
+	sc := createAppengineStripeClient(c)
+
+	//check if invoice or po number are blank
+	//so that the description on stripe's dashboard makes sense if values are missing
+	if len(invoiceNum) == 0 {
+		invoiceNum = "*not provided*"
+	}
+	if len(poNum) == 0 {
+		poNum = "*not provided*"
+	}
+
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
 		Customer:  custData.StripeCustomerToken,
 		Amount:    amountCents,
 		Currency:  currency,
-		Desc:      "Charge for invoice: " + invoice + ", purchase order: " + poNum + ".",
+		Desc:      "Charge for invoice: " + invoiceNum + ", purchase order: " + poNum + ".",
 		Statement: companyInfo.StatementDescriptor,
 	}
 
-	//add metadata to charge
-	//used for reports and receipts
+	//add metadata
 	chargeParams.AddMeta("customer_name", custData.CustomerName)
 	chargeParams.AddMeta("customer_id", custData.CustomerID)
-	chargeParams.AddMeta("invoice_num", invoice)
+	chargeParams.AddMeta("invoice_num", invoiceNum)
 	chargeParams.AddMeta("po_num", poNum)
-	chargeParams.AddMeta("processed_by", "api")
-	chargeParams.AddMeta("auto_charge_referrer", referrer)
-	chargeParams.AddMeta("auto_charge_reason", reason)
+	chargeParams.AddMeta("processed_by", user)
+
+	if user == "api" {
+		chargeParams.AddMeta("auto_charge_referrer", referrer)
+		chargeParams.AddMeta("auto_charge_reason", reason)
+	}
 
 	//process the charge
 	chg, err := sc.Charges.New(chargeParams)
@@ -399,40 +333,33 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//*url.Error can be thrown if urlfetch reaches timeout (request took too long to complete)
 	//*stripe.Error is a error with the stripe api and should return a human readable error message
 	if err != nil {
-		errorMsg := ""
-
 		switch err.(type) {
 		default:
-			errorMsg = "There was an error processing this charge. Please check the Report to see if this charge was successful."
-			break
+			errMsg = "There was an error processing this charge. Please check the Report to see if this charge was successful."
+			return
 		case *url.Error:
-			errorMsg = "Charging this card timed out. The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
-			break
+			errMsg = "Charging this card timed out. The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
+			return
 		case *stripe.Error:
 			stripeErr := err.(*stripe.Error)
-			errorMsg = stripeErr.Msg
+			errMsg = stripeErr.Msg
+			return
 		}
-
-		output.Error(errStripe, errorMsg, w, r)
-		return
 	}
 
-	//charge successful
 	//save count of card types
 	saveChargeDetails(c, chg)
 
 	//build struct to output a success message to the client
-	out := chargeSuccessful{
+	out = chargeSuccessful{
 		Cardholder:     custData.Cardholder,
 		CardExpiration: custData.CardExpiration,
 		CardLast4:      custData.CardLast4,
-		Amount:         amount,
-		Invoice:        invoice,
+		Amount:         strconv.Itoa(int(amountCents) / 100),
+		Invoice:        invoiceNum,
 		Po:             poNum,
 		Datetime:       timestamps.ISO8601(),
 		ChargeID:       chg.ID,
 	}
-
-	output.Success("cardCharged", out, w)
 	return
 }
