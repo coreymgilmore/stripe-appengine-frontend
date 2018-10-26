@@ -51,7 +51,7 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	//get info
 	info, err := Get(r)
 	if err != nil {
-		output.Error(err, "", w, r)
+		output.Error(err, "", w)
 		return
 	}
 
@@ -103,7 +103,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	err := save(c, key, data)
 	if err != nil {
-		output.Error(err, "", w, r)
+		output.Error(err, "", w)
 		return
 	}
 
@@ -156,7 +156,7 @@ func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	//get the existing api key to update
 	settings, err := Get(r)
 	if err != nil {
-		output.Error(err, "", w, r)
+		output.Error(err, "", w)
 		return
 	}
 

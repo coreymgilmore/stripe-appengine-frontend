@@ -18,11 +18,11 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//make sure inputs were given
 	if len(chargeID) == 0 {
-		output.Error(errMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w, r)
+		output.Error(errMissingInput, "A charge ID was not provided. This is a serious error. Please contact an administrator.", w)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(errMissingInput, "No amount was given to refund.", w, r)
+		output.Error(errMissingInput, "No amount was given to refund.", w)
 		return
 	}
 
@@ -30,7 +30,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	//stripe requires amount in a whole number
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
-		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
 		return
 	}
 
@@ -68,7 +68,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		stripeErr := err.(*stripe.Error)
 		stripeErrMsg := stripeErr.Msg
-		output.Error(errStripe, stripeErrMsg, w, r)
+		output.Error(errStripe, stripeErrMsg, w)
 		return
 	}
 

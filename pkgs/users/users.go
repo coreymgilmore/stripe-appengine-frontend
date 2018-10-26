@@ -69,7 +69,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		output.Error(err, "Could not connect to datastore", w, r)
+		output.Error(err, "Could not connect to datastore", w)
 		return
 	}
 
@@ -79,7 +79,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	keys, err := client.GetAll(c, q, &users)
 	if err != nil {
-		output.Error(err, "Error retrieving list of users from datastore.", w, r)
+		output.Error(err, "Error retrieving list of users from datastore.", w)
 		return
 	}
 
@@ -112,7 +112,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	data, err := Find(c, userIDInt)
 	if err != nil {
-		output.Error(err, "Cannot look up user data.", w, r)
+		output.Error(err, "Cannot look up user data.", w)
 		return
 	}
 

@@ -18,14 +18,14 @@ func RemoveAPI(w http.ResponseWriter, r *http.Request) {
 
 	//make sure an id was given
 	if len(datastoreID) == 0 {
-		output.Error(errMissingInput, "A customer's datastore ID must be given but was missing. This value is different from your \"Customer ID\" and should have been submitted automatically.", w, r)
+		output.Error(errMissingInput, "A customer's datastore ID must be given but was missing. This value is different from your \"Customer ID\" and should have been submitted automatically.", w)
 		return
 	}
 
 	//remove the card
 	err := Remove(datastoreID, r)
 	if err != nil {
-		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w, r)
+		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w)
 		return
 	}
 

@@ -19,13 +19,13 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//make sure passwords match
 	if doStringsMatch(password1, password2) == false {
-		output.Error(errPasswordsDoNotMatch, "The passwords you provided to not match.", w, r)
+		output.Error(errPasswordsDoNotMatch, "The passwords you provided to not match.", w)
 		return
 	}
 
 	//make sure password is long enough
 	if len(password1) < minPwdLength {
-		output.Error(errPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w, r)
+		output.Error(errPasswordTooShort, "The password you provided is too short. It must be at least "+strconv.FormatInt(minPwdLength, 10)+" characters.", w)
 		return
 	}
 
@@ -36,7 +36,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	userData, err := Find(c, userIDInt)
 	if err != nil {
-		output.Error(err, "Error while retreiving user data to update user's password.", w, r)
+		output.Error(err, "Error while retreiving user data to update user's password.", w)
 		return
 	}
 
@@ -49,7 +49,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	//save user
 	_, err = saveUser(c, fullKey, userData)
 	if err != nil {
-		output.Error(err, "Error saving user to database after password change.", w, r)
+		output.Error(err, "Error saving user to database after password change.", w)
 		return
 	}
 
@@ -78,7 +78,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//failsafe/second check since non-admins would not see the settings panel anyway
 	session := sessionutils.Get(r)
 	if session.IsNew {
-		output.Error(errSessionMismatch, "An error occured. Please log out and log back in.", w, r)
+		output.Error(errSessionMismatch, "An error occured. Please log out and log back in.", w)
 		return
 	}
 
@@ -86,20 +86,20 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	userData, err := Find(c, userIDInt)
 	if err != nil {
-		output.Error(err, "We could not retrieve this user's information. This user could not be updated.", w, r)
+		output.Error(err, "We could not retrieve this user's information. This user could not be updated.", w)
 		return
 	}
 
 	//check if the logged in user is trying to update their own permissions
 	//you cannot edit your own permissions no matter what
 	if session.Values["username"].(string) == userData.Username {
-		output.Error(errCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w, r)
+		output.Error(errCannotUpdateSelf, "You cannot edit your own permissions. Please contact another administrator.", w)
 		return
 	}
 
 	//check if user is editing the super admin user
 	if userData.Username == adminUsername {
-		output.Error(errCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w, r)
+		output.Error(errCannotUpdateSuperAdmin, "You cannot update the 'administrator' user. The account is locked.", w)
 		return
 	}
 
@@ -117,7 +117,7 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	//save user
 	_, err = saveUser(c, completeKey, userData)
 	if err != nil {
-		output.Error(err, "Error saving user to database after updating permission.", w, r)
+		output.Error(err, "Error saving user to database after updating permission.", w)
 		return
 	}
 

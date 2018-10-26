@@ -118,7 +118,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		output.Error(err, "Could not connect to datastore", w, r)
+		output.Error(err, "Could not connect to datastore", w)
 		return
 	}
 
@@ -128,7 +128,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	var cards []CustomerDatastore
 	keys, err := client.GetAll(c, q, &cards)
 	if err != nil {
-		output.Error(err, "Error retrieving list of cards from datastore.", w, r)
+		output.Error(err, "Error retrieving list of cards from datastore.", w)
 		return
 	}
 
@@ -158,7 +158,7 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	c := r.Context()
 	data, err := findByDatastoreID(c, datstoreID)
 	if err != nil {
-		output.Error(err, "Could not find this customer's data.", w, r)
+		output.Error(err, "Could not find this customer's data.", w)
 		return
 	}
 

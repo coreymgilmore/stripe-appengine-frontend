@@ -30,15 +30,15 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get report data form stripe
 	//make sure inputs are given
 	if len(startString) == 0 {
-		output.Error(errMissingInput, "You must supply a 'start-date'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'start-date'.", w)
 		return
 	}
 	if len(endString) == 0 {
-		output.Error(errMissingInput, "You must supply a 'end-date'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'end-date'.", w)
 		return
 	}
 	if len(hoursToUTC) == 0 {
-		output.Error(errMissingInput, "You must supply a 'timezone'.", w, r)
+		output.Error(errMissingInput, "You must supply a 'timezone'.", w)
 		return
 	}
 
@@ -50,12 +50,12 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get datetimes from provided start and end date strings
 	startDt, err := time.Parse("2006-01-02 -0700", startString+" "+tzOffset)
 	if err != nil {
-		output.Error(err, "Could not convert start date to a time.Time datetime.", w, r)
+		output.Error(err, "Could not convert start date to a time.Time datetime.", w)
 		return
 	}
 	endDt, err := time.Parse("2006-01-02 -0700", endString+" "+tzOffset)
 	if err != nil {
-		output.Error(err, "Could not convert end date to a time.Time datetime.", w, r)
+		output.Error(err, "Could not convert end date to a time.Time datetime.", w)
 		return
 	}
 

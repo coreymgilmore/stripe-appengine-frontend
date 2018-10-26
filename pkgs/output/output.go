@@ -67,7 +67,7 @@ func returnData(ok bool, msgType string, msgData interface{}, resCode int, w htt
 //This logs to appengine logs (viewable in google cloud platform) so admins can also see
 //the error and more details (hence why http.Request is sent into the func).
 //Responds 400 status code since this clearly was not an "ok" event.
-func Error(title error, msg string, w http.ResponseWriter, r *http.Request) {
+func Error(title error, msg string, w http.ResponseWriter) {
 	//get error as a string
 	titleStr := title.Error()
 

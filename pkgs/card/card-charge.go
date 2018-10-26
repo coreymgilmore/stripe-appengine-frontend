@@ -30,11 +30,11 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 
 	//validation
 	if datastoreID == 0 {
-		output.Error(errMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w, r)
+		output.Error(errMissingInput, "A customer ID should have been submitted automatically but was not. Please contact an administrator.", w)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(errMissingInput, "No amount was provided. You cannot charge a card nothing!", w, r)
+		output.Error(errMissingInput, "No amount was provided. You cannot charge a card nothing!", w)
 		return
 	}
 
@@ -46,7 +46,7 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//stripe requires the amount as a whole number
 	amountCents, err := getAmountAsIntCents(amount)
 	if err != nil {
-		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w, r)
+		output.Error(err, "An error occured while converting the amount to charge into cents. Please try again or contact an administrator.", w)
 		return
 	}
 
@@ -59,23 +59,23 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//look up stripe customer id from datastore
 	custData, err := findByDatastoreID(c, datastoreID)
 	if err != nil {
-		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
+		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
 		return
 	}
 
 	//get statement descriptor from company info
 	companyInfo, err := company.Get(r)
 	if err != nil {
-		output.Error(err, "Could not get statement descriptor from company info.", w, r)
+		output.Error(err, "Could not get statement descriptor from company info.", w)
 		return
 	} else if len(companyInfo.StatementDescriptor) == 0 {
-		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w, r)
+		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
 		return
 	}
 
 	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, username, "", "")
 	if err != nil {
-		output.Error(err, errMsg, w, r)
+		output.Error(err, errMsg, w)
 		return
 	}
 
@@ -201,41 +201,41 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 
 	//validation
 	if customerID == "" {
-		output.Error(errMissingInput, "A customer ID should have been submitted.", w, r)
+		output.Error(errMissingInput, "A customer ID should have been submitted.", w)
 		return
 	}
 	if len(amount) == 0 {
-		output.Error(errMissingInput, "No amount was provided.", w, r)
+		output.Error(errMissingInput, "No amount was provided.", w)
 		return
 	}
 	if autoCharge == false {
-		output.Error(errMissingInput, "The 'auto_charge' value was not provided. This is required when trying to automatically process a charge.", w, r)
+		output.Error(errMissingInput, "The 'auto_charge' value was not provided. This is required when trying to automatically process a charge.", w)
 		return
 	}
 	if len(referrer) == 0 {
-		output.Error(errMissingInput, "There was no 'referrer' given.  This should be the app that made this auto-charge request.  This is used for logging.", w, r)
+		output.Error(errMissingInput, "There was no 'referrer' given.  This should be the app that made this auto-charge request.  This is used for logging.", w)
 		return
 	}
 	if len(apiKey) == 0 {
-		output.Error(errMissingInput, "There was no api given. This must be given in the 'api_key' field to authenticate this request.", w, r)
+		output.Error(errMissingInput, "There was no api given. This must be given in the 'api_key' field to authenticate this request.", w)
 		return
 	}
 
 	//verify api key
 	settings, err := appsettings.Get(r)
 	if err != nil {
-		output.Error(err, "Could not get app settings to verify api key.", w, r)
+		output.Error(err, "Could not get app settings to verify api key.", w)
 		return
 	}
 	if settings.APIKey != apiKey {
-		output.Error(errMissingInput, "The api key provided in the request is not correct.", w, r)
+		output.Error(errMissingInput, "The api key provided in the request is not correct.", w)
 		return
 	}
 
 	//convert amount to uint
 	amountCents, err := strconv.ParseUint(amount, 10, 64)
 	if err != nil {
-		output.Error(err, "Could not convert amount to integer.", w, r)
+		output.Error(err, "Could not convert amount to integer.", w)
 		return
 	}
 
@@ -248,23 +248,23 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//look up stripe customer id from datastore
 	custData, err := FindByCustomerID(c, customerID)
 	if err != nil {
-		output.Error(err, "An error occured while looking up the customer's Stripe information.", w, r)
+		output.Error(err, "An error occured while looking up the customer's Stripe information.", w)
 		return
 	}
 
 	//get statement descriptor from company info
 	companyInfo, err := company.Get(r)
 	if err != nil {
-		output.Error(err, "Could not get statement descriptor from company info.", w, r)
+		output.Error(err, "Could not get statement descriptor from company info.", w)
 		return
 	} else if len(companyInfo.StatementDescriptor) == 0 {
-		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w, r)
+		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
 		return
 	}
 
 	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, "api", referrer, reason)
 	if err != nil {
-		output.Error(err, errMsg, w, r)
+		output.Error(err, errMsg, w)
 		return
 	}
 
