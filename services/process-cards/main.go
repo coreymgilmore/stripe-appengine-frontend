@@ -193,7 +193,7 @@ func main() {
 	r.StrictSlash(true)
 
 	//basic pages
-	r.HandleFunc("/", pages.Root)
+	r.HandleFunc("/", pages.Login)
 	r.HandleFunc("/setup/", pages.CreateAdminShow)
 	r.HandleFunc("/create-admin/", users.CreateAdmin).Methods("POST")
 	r.HandleFunc("/login/", users.Login)

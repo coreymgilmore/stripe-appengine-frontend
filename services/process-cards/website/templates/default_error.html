@@ -9,17 +9,19 @@
 		<link rel="stylesheet" href="/css/styles.min.css">
 	</head>
 	<body>
-
-		<div class="container">
-			<div class="row">
-				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
-					<center>
-						<h2 class="app-title">Charge Credit Cards</h2>
-						<hr>
-					</center>
+		<header>
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-10 col-sm-offset-1">
+						<div class="pull-left">
+							<h4 id="header-title">Charge Credit Cards</h4>
+						</div>
+					</div>
 				</div>
 			</div>
+		</header>
 
+		<div class="container">
 			<div class="row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
 					<div class="panel panel-danger">
@@ -30,7 +32,7 @@
 							<div class="info info-no-border">
 								<p>App Engine encountered an unknown error.  Please contact an administrator.</p>
 
-								<p>Administrators: please log in to the Google Developer's Console with the user account that controls this app. Investigate the Logs for errors that are causing this app to fail.</p>
+								<p>Administrators: please log in to the Google Cloud Developer's Console with the user account that controls this app. Investigate the Logs for errors that are causing this app to fail.</p>
 							</div>
 						</div>
 					</div>
@@ -41,10 +43,8 @@
 		<footer class="sticky">
 			<div class="container">
 				<div class="row">
-					<div class="col-xs-12">
-						<center>
-							<p><a href="https://github.com/coreymgilmore/stripe-appengine-frontend" target="_blank">&copy; Charge Credit Cards - 2015</a></p>
-						</center>
+					<div class="col-xs-12 text-center">
+						<p><a href="https://github.com/coreymgilmore/stripe-appengine-frontend" target="_blank">&copy; Charge Credit Cards <span id="copyright-year"></span></a></p>
 					</div>
 				</div>
 			</div>

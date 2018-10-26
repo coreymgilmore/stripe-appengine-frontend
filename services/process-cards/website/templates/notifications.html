@@ -4,20 +4,13 @@
 		{{template "html_head"}}
 	</head>
 	<body>
+		<!-- HEADER -->
+		{{template "header-without-btns"}}
 
+
+		<!-- NOTIFICATION PANEL -->
 		<div class="container">
-			<!-- APP TITLE -->
-			<div class="row">
-				<div class="col-xs-12 col-sm-10 col-sm-offset-1">
-					<center>
-						<h2 class="app-title">Charge Credit Cards</h2>
-						<hr>
-					</center>
-				</div>
-			</div>
-
-			<!-- LOGIN FORM -->
-			<div class="row">
+			<div class="row" id="panels-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-md-4 col-md-offset-4">
 					<div class="panel {{.PanelColor}} login">
 						<div class="panel-heading">
@@ -27,7 +20,8 @@
 							<div class="info info-no-border">
 								<p>{{.Message}}</p>
 							</div>
-
+						</div>
+						<div class="panel-footer">
 							<div class="form-group">
 								<a class="btn {{.BtnColor}}" href="{{.LinkHref}}">{{.BtnText}}</a>
 							</div>

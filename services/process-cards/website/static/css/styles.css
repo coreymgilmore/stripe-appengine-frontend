@@ -99,7 +99,8 @@ footer {
 }
 
 header {
-	border-bottom-width: 1px;
+	border-bottom-width: 	1px;
+	height: 				53px;			
 }
 
 /*SET LOGOUT BUTTON AND USERNAME MARGINS*/
