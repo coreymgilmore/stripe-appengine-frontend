@@ -37,6 +37,9 @@
 										{{/*hide buttons if user does not have permission to charge cards */}}
 										{{ $canCharge := .UserData.ChargeCards }}
 
+										{{/*SAVE TIMEZONE OFFSET FOR USE INSIDE RANGE*/}}
+										{{$timezoneOffset := .TimezoneOffset}}
+
 										{{if .Charges}}
 											{{range .Charges}}
 												{{/*ONLY SHOW ROWS WHERE CHARGES WERE CAPTURED*/}}
@@ -48,7 +51,7 @@
 														<td>{{.Invoice}}</td>
 														<td>{{if .AutoCharge}}{{.AutoChargeReferrer}}{{else}}{{.User}}{{end}}
 														<td>{{.Timestamp}}</td>
-														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}&timezone={{$timezoneOffset}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														
 														{{ if $canCharge }}
 														<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
