@@ -132,7 +132,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	username := sessionutils.GetUsername(r)
 
 	//save customer & card data to datastore
-	newCustKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityCards)
 	newCustomer := CustomerDatastore{
 		CustomerID:          customerID,
 		CustomerName:        customerName,
@@ -143,7 +142,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		DatetimeCreated:     timestamps.ISO8601(),
 		AddedByUser:         username,
 	}
-	_, err = datastoreutils.Save(c, newCustKey, newCustomer)
+	newCustKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityCards)
+	_, err = save(c, newCustKey, newCustomer)
 	if err != nil {
 		output.Error(err, "There was an error while saving this customer. Please try again.", w)
 		return
@@ -165,10 +165,10 @@ func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*d
 		return key, err
 	}
 
-	//save customer
+	//save to datastore
 	completeKey, err := client.Put(c, key, &customer)
 	if err != nil {
-		return key, err
+		return completeKey, err
 	}
 
 	//done
