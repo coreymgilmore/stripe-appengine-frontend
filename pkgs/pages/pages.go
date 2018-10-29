@@ -25,6 +25,7 @@ type templateData struct {
 	HasCompanyInfoError  bool                 //true if company info or statement descriptor are missing/blank
 	StripePublishableKey string               //the stripe key used by stripe.js
 	AutofillCard         autofillCardData     //used for autofilling the charge card form
+	HasAutofillData      bool                 //true if AutofillCard is filled out with data to build the gui
 	Error                interface{}          //any error messages
 }
 
@@ -193,6 +194,9 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 		//save the autofill data to the template data
 		templateData.AutofillCard = autofillData
+
+		//note that we have autofill data for the template
+		templateData.HasAutofillData = true
 	}
 
 	//load the page

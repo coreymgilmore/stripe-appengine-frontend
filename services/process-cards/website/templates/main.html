@@ -209,7 +209,7 @@
 								<div class="form-group">
 									<label class="control-label">Customer Name: </label>
 									<div class="input-group">
-										<input class="form-control customer-name" type="list" list="customer-list" required value="{{$autofillChargeForm.CustomerName}}">
+										<input class="form-control customer-name" type="list" list="customer-list" required value="{{$autofillChargeForm.CardData.CustomerName}}">
 										<span class="input-group-btn">
 											<button class="btn btn-primary" type="button">Go</button>
 										</span>
@@ -217,15 +217,15 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Cardholder: </label>
-									<input class="form-control customer-cardholder" readonly tabindex="-1" value="{{$autofillChargeForm.Cardholder}}">
+									<input class="form-control customer-cardholder" readonly tabindex="-1" value="{{$autofillChargeForm.CardData.Cardholder}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Last Four: </label>
-									<input class="form-control card-last-four" readonly tabindex="-1" value="{{$autofillChargeForm.CardLast4}}">
+									<input class="form-control card-last-four" readonly tabindex="-1" value="{{$autofillChargeForm.CardData.CardLast4}}">
 								</div>
 								<div class="form-group">
 									<label class="control-label">Expiration: </label>
-									<input class="form-control card-expiration" readonly tabindex="-1" value="{{$autofillChargeForm.CardExpiration}}">
+									<input class="form-control card-expiration" readonly tabindex="-1" value="{{$autofillChargeForm.CardData.CardExpiration}}">
 								</div>
 								<hr class="hr-panel">
 								
@@ -235,11 +235,11 @@
 									{{/*defaults to 0 (zero) but do not want to show this since there is a placeholder*/}}
 									{{/*only show amount, invoice, and po inputs as "disabled=false" customer data is send back to template....this means the customer was found in the datastore*/}}
 									{{/*disable the inputs if the customer was not found*/}}
-									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if $autofillChargeForm.CustomerName}}{{if .Amount}}value="{{.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .HasAutofillData}}{{if .Amount}}value="{{.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
 									
 									{{/*FORMAT AMOUNT WITH TWO DECIMAL PLACES*/}}
 									{{/*input type=number removes trailing zeros*/}}
-									{{if $autofillChargeForm.CustomerName}}{{if .Amount}}
+									{{if .HasAutofillData}}{{if .Amount}}
 										<script>
 											//get autofilled value
 											//set value formatted to two decimal places
@@ -252,11 +252,11 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control charge-invoice" type="text" {{if $autofillChargeForm.CustomerName}}value="{{.Invoice}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-invoice" type="text" {{if .HasAutofillData}}value="{{.Invoice}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control charge-po" type="text" {{if $autofillChargeForm.CustomerName}}value="{{.Po}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-po" type="text" {{if .HasAutofillData}}value="{{.Po}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="msg">
 									{{if .Error}}
