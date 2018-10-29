@@ -56,7 +56,8 @@ func Remove(datastoreID string, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	completeKey := getCustomerKeyFromID(datastoreIDInt)
+
+	completeKey := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, datastoreIDInt)
 	err = client.Delete(c, completeKey)
 	if err != nil {
 		return err

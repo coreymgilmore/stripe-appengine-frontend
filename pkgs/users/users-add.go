@@ -63,7 +63,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//save to datastore
 	c := r.Context()
-	incompleteKey := createNewUserKey()
+	incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
 	completeKey, err := saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
@@ -153,7 +153,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//save to datastore
-	incompleteKey := createNewUserKey()
+	incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
 	_, err = saveUser(c, incompleteKey, u)
 	if err != nil {
 		fmt.Fprint(w, err)
@@ -163,12 +163,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
 	return
-}
-
-//createNewCustomerKey generates a new datastore key for saving a new user
-//Appengine's datastore does not generate this key automatically when an entity is saved.
-func createNewUserKey() *datastore.Key {
-	return datastore.IncompleteKey(datastoreKind, nil)
 }
 
 //saveUser does the actual saving of a user to the datastore

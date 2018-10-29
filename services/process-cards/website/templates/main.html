@@ -235,11 +235,11 @@
 									{{/*defaults to 0 (zero) but do not want to show this since there is a placeholder*/}}
 									{{/*only show amount, invoice, and po inputs as "disabled=false" customer data is send back to template....this means the customer was found in the datastore*/}}
 									{{/*disable the inputs if the customer was not found*/}}
-									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .HasAutofillData}}{{if .Amount}}value="{{.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .HasAutofillData}}{{if $autofillChargeForm.Amount}}value="{{$autofillChargeForm.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
 									
 									{{/*FORMAT AMOUNT WITH TWO DECIMAL PLACES*/}}
 									{{/*input type=number removes trailing zeros*/}}
-									{{if .HasAutofillData}}{{if .Amount}}
+									{{if .HasAutofillData}}{{if $autofillChargeForm.Amount}}
 										<script>
 											//get autofilled value
 											//set value formatted to two decimal places
@@ -252,11 +252,11 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control charge-invoice" type="text" {{if .HasAutofillData}}value="{{.Invoice}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-invoice" type="text" {{if .HasAutofillData}}value="{{$autofillChargeForm.Invoice}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control charge-po" type="text" {{if .HasAutofillData}}value="{{.Po}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-po" type="text" {{if .HasAutofillData}}value="{{$autofillChargeForm.Po}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="msg">
 									{{if .Error}}

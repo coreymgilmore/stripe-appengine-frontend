@@ -121,13 +121,6 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//getUserKeyFromID gets the full datastore key from the id
-//ID is just numeric, key is a big string with the appengine name, kind name, etc.
-//Key is what is actually used to find entities in the datastore.
-func getUserKeyFromID(id int64) *datastore.Key {
-	return datastore.IDKey(datastoreKind, id, nil)
-}
-
 //DoesAdminExist checks if the super-admin has already been created
 //The super-admin should be created upon initially using and setting up the app.
 //This user must exist for the app to function.
@@ -165,7 +158,7 @@ func Find(c context.Context, userID int64) (u User, err error) {
 	}
 
 	var uu []User
-	key := getUserKeyFromID(userID)
+	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
 	q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
 	_, err = client.GetAll(c, q, &uu)
 

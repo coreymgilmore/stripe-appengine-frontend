@@ -132,7 +132,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	username := sessionutils.GetUsername(r)
 
 	//save customer & card data to datastore
-	newCustKey := createNewCustomerKey()
+	newCustKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityCards)
 	newCustomer := CustomerDatastore{
 		CustomerID:          customerID,
 		CustomerName:        customerName,
@@ -154,12 +154,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	output.Success("createCustomer", nil, w)
 
 	return
-}
-
-//createNewCustomerKey generates a new datastore key for saving a new customer/card
-//Appengine's datastore does not generate this key automatically when an entity is saved.
-func createNewCustomerKey() *datastore.Key {
-	return datastore.IncompleteKey(datastoreKind, nil)
 }
 
 //save does the actual saving of a card to the datastore

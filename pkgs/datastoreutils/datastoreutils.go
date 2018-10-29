@@ -23,6 +23,16 @@ var (
 	errInvalidProjectID = errors.New("datastoreutils: A project ID wasn't given or is invalid")
 )
 
+//these are the names of the entity types in the Google Cloud Datastore
+//entity types are like tables
+const (
+	EntityUsers         = "users"
+	EntityCards         = "card"
+	EntityCompanyInfo   = "companyInfo"
+	EntityChargeDetails = "chargeDetails"
+	EntityAppSettings   = "appSettings"
+)
+
 //SetConfig saves the configuration for the datastore
 func SetConfig(c config) error {
 	//validate config options
@@ -40,4 +50,16 @@ func SetConfig(c config) error {
 func Connect(c context.Context) (client *datastore.Client, err error) {
 	client, err = datastore.NewClient(c, Config.ProjectID)
 	return
+}
+
+//GetKeyFromID gets the full datastore key from the datastore id for a given entity type
+func GetKeyFromID(entityType string, id int64) *datastore.Key {
+	key := datastore.IDKey(entityType, id, nil)
+	return key
+}
+
+//GetNewIncompleteKey generates a new incomplete key for an entity being saved to the datastore
+//for a given entity type
+func GetNewIncompleteKey(entityType string) *datastore.Key {
+	return datastore.IncompleteKey(entityType, nil)
 }

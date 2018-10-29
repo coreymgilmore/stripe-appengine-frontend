@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
+
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
@@ -44,7 +46,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	userData.Password = hashedPwd
 
 	//generate full datastore key for user
-	fullKey := getUserKeyFromID(userIDInt)
+	fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userIDInt)
 
 	//save user
 	_, err = saveUser(c, fullKey, userData)
@@ -112,10 +114,10 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	userData.Active = isActive
 
 	//generate complete key for user
-	completeKey := getUserKeyFromID(userIDInt)
+	fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userIDInt)
 
 	//save user
-	_, err = saveUser(c, completeKey, userData)
+	_, err = saveUser(c, fullKey, userData)
 	if err != nil {
 		output.Error(err, "Error saving user to database after updating permission.", w)
 		return

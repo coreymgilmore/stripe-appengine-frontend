@@ -27,6 +27,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -147,7 +148,6 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 	//return data to client
 	output.Success("cardList-datastore", idAndNames, w)
 	return
-
 }
 
 //GetOne retrieves the full data for one card from the datastore
@@ -155,11 +155,11 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 //the card so the user can verify they are charging the correct card.
 func GetOne(w http.ResponseWriter, r *http.Request) {
 	//get input
-	datstoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)
+	datastoreID, _ := strconv.ParseInt(r.FormValue("customerId"), 10, 64)
 
 	//get customer card data
 	c := r.Context()
-	data, err := findByDatastoreID(c, datstoreID)
+	data, err := findByDatastoreID(c, datastoreID)
 	if err != nil {
 		output.Error(err, "Could not find this customer's data.", w)
 		return
@@ -170,19 +170,20 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//getCustomerKeyFromID gets the full datastore key from the datastore id
-//ID is just numeric while key is as an alphanumeric string
-//Key is what is actually used to find entities in the datastore.
-func getCustomerKeyFromID(id int64) *datastore.Key {
-	return datastore.IDKey(datastoreKind, id, nil)
-}
-
 //findByDatastoreID retrieves a card's information by its datastore id
 //This returns all the info on a card that is needed to build the ui.
 func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatastore, err error) {
-	key := getCustomerKeyFromID(datastoreID)
-	fields := []string{"CustomerId", "CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-	data, err = datastoreFindEntity(c, "__key__ =", key, fields)
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
+	if err != nil {
+		return
+	}
+
+	//get complete key
+	key := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, datastoreID)
+
+	//query
+	err = client.Get(c, key, &data)
 	if err != nil {
 		return
 	}
@@ -195,19 +196,6 @@ func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatas
 //This func is used when making api style request to semi-automate the charging of a card.
 //only getting the fields we need to show data in the charge card panel
 func FindByCustomerID(c context.Context, customerID string) (data CustomerDatastore, err error) {
-	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-	data, err = datastoreFindEntity(c, "CustomerId =", customerID, fields)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-//datastoreFindEntity finds one entity in the datastore
-//This function wraps around the datastore package to clean up the code.
-//The project input is a string slice listing the column names we would like returned.
-func datastoreFindEntity(c context.Context, filterField string, filterValue interface{}, project []string) (data CustomerDatastore, err error) {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
@@ -215,22 +203,15 @@ func datastoreFindEntity(c context.Context, filterField string, filterValue inte
 	}
 
 	//query
-	//using GetAll b/c this lets us filter.  Get can only look up by key
-	result := []CustomerDatastore{}
-	q := datastore.NewQuery(datastoreKind).Filter(filterField, filterValue).Limit(1).Project(project...)
-	_, err = client.GetAll(c, q, &data)
+	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
+	q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
+	i := client.Run(c, q)
+	_, err = i.Next(&data)
 	if err != nil {
+		log.Println("card.FindByCustomerID-1", err)
 		return
 	}
 
-	//check if we found any results
-	//pretty simple, check if data is set in variable
-	if len(result) == 0 {
-		return CustomerDatastore{}, errCustomerNotFound
-	}
-
-	//return the result
-	data = result[0]
 	return
 }
 
