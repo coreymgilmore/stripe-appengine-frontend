@@ -24,8 +24,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//is user allowed access
-	if AllowedAccess(data) == false {
-		notificationPage(w, "panel-danger", "Cannot Log In", "You are not allowed access. Please contact an administrator.", "btn-default", "/", "Go Back")
+	if data.Active == false {
+		notificationPage(w, "panel-danger", "Cannot Log In", "Your user account is inactive. Please contact an administrator.", "btn-default", "/", "Go Back")
 		return
 	}
 

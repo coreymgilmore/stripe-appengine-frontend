@@ -76,7 +76,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		//check if user is allowed access
 		if u.Active == false {
 			sessionutils.Destroy(w, r)
-			notificationPage(w, "panel-danger", "Login Error", "You are not allowed access. Please contact an administrator.", "btn-default", "/", "Go Back")
+			notificationPage(w, "panel-danger", "Login Error", "You are not allowed access.  Your user account is inactive. Please contact an administrator.", "btn-default", "/", "Go Back")
 		}
 
 		//user account is found an allowed access

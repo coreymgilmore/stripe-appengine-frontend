@@ -18,7 +18,7 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	password2 := r.FormValue("pass2")
 
 	//make sure passwords match
-	if doStringsMatch(password1, password2) == false {
+	if password1 != password2 {
 		output.Error(errPasswordsDoNotMatch, "The passwords you provided to not match.", w)
 		return
 	}

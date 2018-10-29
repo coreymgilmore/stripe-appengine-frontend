@@ -155,23 +155,6 @@ func DoesAdminExist(r *http.Request) error {
 	return nil
 }
 
-//AllowedAccess checks if a given user is allowed access to the app
-//this checks the user's permissions
-func AllowedAccess(data User) bool {
-	return data.Active
-}
-
-//doStringsMatch checks if two given input strings are the same
-//This is used when checking the two given passwords for a new user.
-//Just cleans up code elsewhere.
-func doStringsMatch(string1, string2 string) bool {
-	if string1 == string2 {
-		return true
-	}
-
-	return false
-}
-
 //Find gets the data for a given user id
 //This returns all the info on a user.
 func Find(c context.Context, userID int64) (u User, err error) {

@@ -61,7 +61,7 @@ func Auth(next http.Handler) http.Handler {
 
 		//check if user is allowed access to the app
 		//this is a setting the app's administrators can toggle for each user
-		if users.AllowedAccess(data) == false {
+		if data.Active == false {
 			sessionutils.Destroy(w, r)
 			log.Println("middleware.Auth", "User not allowed access.")
 			http.Redirect(w, r, "/", http.StatusFound)
