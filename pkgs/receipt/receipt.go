@@ -11,7 +11,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	stripe "github.com/stripe/stripe-go"
@@ -67,7 +67,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//extract charge data
-	d := chargeutils.ExtractDataFromCharge(chg)
+	d := card.ExtractDataFromCharge(chg)
 
 	//get company info
 	companyInfo, _ := company.Get(r)
@@ -139,5 +139,5 @@ func Preview(w http.ResponseWriter, r *http.Request) {
 		Po:                  "3345",
 	}
 	templates.Load(w, "receipt", output)
-
+	return
 }

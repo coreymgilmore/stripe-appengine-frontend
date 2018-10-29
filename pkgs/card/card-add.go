@@ -87,7 +87,9 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//create the customer on stripe
 	//assigns the card via the cardToken to this customer
 	//this card is used when making charges to this customer
-	custParams := &stripe.CustomerParams{Desc: customerName}
+	custParams := &stripe.CustomerParams{
+		Description: stripe.String(customerName),
+	}
 	custParams.SetSource(cardToken)
 	cust, err := sc.Customers.New(custParams)
 	if err != nil {

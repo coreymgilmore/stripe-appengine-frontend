@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/chargeutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
@@ -26,6 +25,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	startString := r.FormValue("start-date")
 	endString := r.FormValue("end-date")
 	hoursToUTC := r.FormValue("timezone")
+	hoursToUTCInt, _ := strconv.Atoi(hoursToUTC)
 
 	//get report data form stripe
 	//make sure inputs are given
@@ -78,6 +78,11 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get data on refunds
 	refunds, numRefunds, totalRefunded := getListOfRefunds(sc, startUnix, endUnix)
 
+	//format dates to timezone the user is in
+	// for _, chg := range charges {
+	// 	chg.Da
+	// }
+
 	//get logged in user's data
 	//for determining if receipt/refund buttons need to be hidden or shown based on user's access rights
 	userID := sessionutils.GetUserID(r)
@@ -96,6 +101,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		TotalRefundsLessFees: "",
 		NumCharges:           numCharges,
 		NumRefunds:           numRefunds,
+		TimezoneOffset:       hoursToUTCInt,
 	}
 
 	//build template to display report
@@ -108,7 +114,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 //This filters the list of charges by date range and customer.
 //The returned data includes the total amount of the charges with and without fees
 //and the number of charges.
-func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datastoreID string, start, end int64) (data []chargeutils.Charge, numCharges uint16, total, totalLessFees string) {
+func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datastoreID string, start, end int64) (data []ChargeData, numCharges uint16, total, totalLessFees string) {
 	//retrieve data from stripe
 	//date is a range inclusive of the days the user chose
 	//limit of 100 is the max per stripe
@@ -133,11 +139,11 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 	//loop through each charge and extract charge data
 	//add up total amount of all charges
 	charges := sc.Charges.List(params)
-	var amountTotal uint64
+	var amountTotal int64
 	for charges.Next() {
 		//get each charges data
 		chg := charges.Charge()
-		d := chargeutils.ExtractDataFromCharge(chg)
+		d := ExtractDataFromCharge(chg)
 
 		//make sure this charge was captured
 		//do not count charges that failed
@@ -174,7 +180,7 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 //We cannot filter by company when looking up refunds, unfortunately (Stripe issue).
 //This looks up refunds by iterating through the list of events that
 //happened on our Stripe account.
-func getListOfRefunds(sc *client.API, start, end int64) (refunds []chargeutils.Refund, numRefunds uint16, total string) {
+func getListOfRefunds(sc *client.API, start, end int64) (refunds []RefundData, numRefunds uint16, total string) {
 	//retrieve refunds
 	eventParams := &stripe.EventListParams{}
 	eventParams.Filters.AddFilter("created", "gte", strconv.FormatInt(start, 10))
@@ -183,9 +189,9 @@ func getListOfRefunds(sc *client.API, start, end int64) (refunds []chargeutils.R
 	eventParams.Filters.AddFilter("type", "", "charge.refunded")
 
 	events := sc.Events.List(eventParams)
-	refunds = chargeutils.ExtractRefundsFromEvents(events)
+	refunds = ExtractRefundsFromEvents(events)
 
-	var amountTotal uint64
+	var amountTotal int64
 	for _, v := range refunds {
 		numRefunds++
 		amountTotal += v.AmountCents

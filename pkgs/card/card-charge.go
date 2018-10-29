@@ -307,23 +307,23 @@ func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum stri
 
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
-		Customer:  custData.StripeCustomerToken,
-		Amount:    amountCents,
-		Currency:  currency,
-		Desc:      "Charge for invoice: " + invoiceNum + ", purchase order: " + poNum + ".",
-		Statement: companyInfo.StatementDescriptor,
+		Customer:            stripe.String(custData.StripeCustomerToken),
+		Amount:              stripe.Int64(int64(amountCents)),
+		Currency:            stripe.String(currency),
+		Description:         stripe.String("Charge for invoice: " + invoiceNum + ", purchase order: " + poNum + "."),
+		StatementDescriptor: stripe.String(companyInfo.StatementDescriptor),
 	}
 
 	//add metadata
-	chargeParams.AddMeta("customer_name", custData.CustomerName)
-	chargeParams.AddMeta("customer_id", custData.CustomerID)
-	chargeParams.AddMeta("invoice_num", invoiceNum)
-	chargeParams.AddMeta("po_num", poNum)
-	chargeParams.AddMeta("processed_by", user)
+	chargeParams.AddMetadata("customer_name", custData.CustomerName)
+	chargeParams.AddMetadata("customer_id", custData.CustomerID)
+	chargeParams.AddMetadata("invoice_num", invoiceNum)
+	chargeParams.AddMetadata("po_num", poNum)
+	chargeParams.AddMetadata("processed_by", user)
 
 	if user == "api" {
-		chargeParams.AddMeta("auto_charge_referrer", referrer)
-		chargeParams.AddMeta("auto_charge_reason", reason)
+		chargeParams.AddMetadata("auto_charge_referrer", referrer)
+		chargeParams.AddMetadata("auto_charge_reason", reason)
 	}
 
 	//process the charge

@@ -6,7 +6,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/refund"
 )
 
 //Refund handles refunding a charge on a card
@@ -40,23 +39,23 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//build refund
 	params := &stripe.RefundParams{
-		Charge: chargeID,
-		Amount: amountCents,
+		Charge: stripe.String(chargeID),
+		Amount: stripe.Int64(int64(amountCents)),
 	}
 
 	//add metadata to refund
 	//same field name as when creating a charge
-	params.AddMeta("processed_by", username)
+	params.AddMetadata("processed_by", username)
 
 	//get reason code for refund
 	//these are defined by stripe
 	switch reason {
 	case "duplicate":
-		params.Reason = refund.RefundDuplicate
+		params.Reason = stripe.String(string(stripe.RefundReasonDuplicate))
 	case "requested_by_customer":
-		params.Reason = refund.RefundDuplicate
+		params.Reason = stripe.String(string(stripe.RefundReasonRequestedByCustomer))
 	case "fraudulent":
-		params.Reason = refund.RefundFraudulent
+		params.Reason = stripe.String(string(stripe.RefundReasonFraudulent))
 	}
 
 	//init stripe
