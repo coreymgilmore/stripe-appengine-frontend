@@ -8,10 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
@@ -90,99 +88,6 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("cardCharged", out, w)
-	return
-}
-
-//saveChargeDetails increments the number of times each type of card is charged and saves this data to the datastore
-//use this info to negotiate better rates with Stripe (not saying Stripe isn't honest, but this gives you accurate data)
-func saveChargeDetails(c context.Context, chg *stripe.Charge) {
-	//format of data in datastore
-	//total is the total number for charges performed
-	//each card type is the total number of charges for that per card type
-	//list of card types from https://github.com/stripe/stripe-go/blob/6e49b4ff8c8b6fd2b32499ccad12f3e2fc302a87/card.go
-	type cardCounts struct {
-		Total           int
-		Unknown         int
-		Visa            int
-		AmericanExpress int
-		MasterCard      int
-		Discover        int
-		JCB             int
-		DinersClub      int
-	}
-
-	//datastore kind to save details under
-	//separate kind that holds just this data
-	const kind = "chargeDetails"
-
-	//key name
-	//so we don't have to keep track of a random integer
-	//this replaces the IntID
-	const keyName = "card-count"
-
-	//get card brand from charge
-	brand := string(chg.Source.Card.Brand)
-
-	//connect to datastore
-	dsClient, err := datastoreutils.Connect(c)
-	if err != nil {
-		return
-	}
-
-	//get the key we are saving to
-	key := datastore.NameKey(kind, keyName, nil)
-
-	//transaction
-	_, err = dsClient.RunInTransaction(c, func(tx *datastore.Transaction) error {
-		//look up data from datastore
-		var r cardCounts
-		err := tx.Get(key, &r)
-		if err != nil && err != datastore.ErrNoSuchEntity {
-			log.Println("card.saveChargeDetails", "Error looking up card brand count.", err)
-			return err
-		}
-
-		//increment counter for total
-		r.Total++
-
-		//increment counter for card brand
-		switch brand {
-		case "Visa":
-			r.Visa++
-		case "American Express":
-			r.AmericanExpress++
-		case "MasterCard":
-			r.MasterCard++
-		case "Discover":
-			r.Discover++
-		case "JCB":
-			r.JCB++
-		case "Diners Club":
-			r.DinersClub++
-		default:
-			r.Unknown++
-			log.Println("card.saveChargeDetails", "Unknown card type:", brand)
-			return err
-		}
-
-		//save data back to db
-		//perform "update"
-		_, err = tx.Put(key, r)
-		if err != nil {
-			log.Println("card.saveChargeDetails", "Error saving card brand count.", err)
-			return err
-		}
-
-		//done
-		//returns nill if everything is ok and update was performed
-		return err
-	})
-	if err != nil {
-		log.Println("card.saveChargeDetails", "Error during card brand count transaction.", err)
-		return
-	}
-
-	//done
 	return
 }
 
@@ -346,9 +251,6 @@ func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum stri
 			return
 		}
 	}
-
-	//save count of card types
-	saveChargeDetails(c, chg)
 
 	//build struct to output a success message to the client
 	out = chargeSuccessful{

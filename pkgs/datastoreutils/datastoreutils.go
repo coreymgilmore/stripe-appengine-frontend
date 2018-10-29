@@ -29,11 +29,10 @@ var (
 //entity types are like tables
 //variables, not constants, because we can edit them in SetConfig
 var (
-	EntityUsers         = "users"
-	EntityCards         = "card"
-	EntityCompanyInfo   = "companyInfo"
-	EntityChargeDetails = "chargeDetails"
-	EntityAppSettings   = "appSettings"
+	EntityUsers       = "users"
+	EntityCards       = "card"
+	EntityCompanyInfo = "companyInfo"
+	EntityAppSettings = "appSettings"
 )
 
 //SetConfig saves the configuration for the datastore
@@ -48,7 +47,6 @@ func SetConfig(c config) error {
 		EntityUsers = "dev-" + EntityUsers
 		EntityCards = "dev-" + EntityCards
 		EntityCompanyInfo = "dev-" + EntityCompanyInfo
-		EntityChargeDetails = "dev-" + EntityChargeDetails
 		EntityAppSettings = "dev-" + EntityAppSettings
 	}
 
@@ -80,23 +78,4 @@ func GetKeyFromName(entityType, keyName string) *datastore.Key {
 //for a given entity type
 func GetNewIncompleteKey(entityType string) *datastore.Key {
 	return datastore.IncompleteKey(entityType, nil)
-}
-
-//Save saves a new entity to the datastore
-//key could be complete or incomplete
-func Save(c context.Context, key *datastore.Key, data interface{}) (*datastore.Key, error) {
-	//connect to datastore
-	client, err := Connect(c)
-	if err != nil {
-		return key, err
-	}
-
-	//save
-	completeKey, err := client.Put(c, key, &data)
-	if err != nil {
-		return key, err
-	}
-
-	//done
-	return completeKey, nil
 }
