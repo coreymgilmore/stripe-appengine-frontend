@@ -24,8 +24,7 @@ import (
 //for referencing when looking up or setting data in datastore
 //so we don't need to type in key names anywhere
 const (
-	datastoreKind = "appSettings"
-	datastoreKey  = "appSettingsKey"
+	datastoreKeyName = "appSettingsKey"
 )
 
 //Settings is used for setting or getting the app settings from the datastore
@@ -70,7 +69,7 @@ func Get(r *http.Request) (result Settings, err error) {
 	}
 
 	//get the key we are looking up
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
 	//get data
 	err = client.Get(c, key, &result)
@@ -91,7 +90,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	custIDFormat := strings.TrimSpace(r.FormValue("custIDFormat"))
 
 	//get the key we are saving to
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
 	//build entity to save
 	//or update existing entity
@@ -134,7 +133,7 @@ func save(c context.Context, key *datastore.Key, d Settings) error {
 func SaveDefaultInfo(c context.Context) error {
 	//generate entity key
 	//keyname is hard coded so only one entity exists
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
 	//save
 	err := save(c, key, defaultAppSettings)
@@ -161,7 +160,7 @@ func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//get the key we are saving to
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
 	//set the new api key
 	settings.APIKey = apiKey

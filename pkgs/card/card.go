@@ -59,10 +59,6 @@ var Config = config{
 const stripeKeyLength = 32
 
 const (
-	//datastoreKind is the name of the "table" or "collection" where card data is stored
-	//we store the name to the "kind" in a const for easy reference in other code
-	datastoreKind = "card"
-
 	//currency for transactions
 	//this should be a simple change for other currencies, but you will need to change the "$" symbol elsewhere in this code base
 	currency = "usd"
@@ -128,7 +124,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//get list from datastore
 	//only need to get entity keys and customer names which cuts down on datastore usage
-	q := datastore.NewQuery(datastoreKind).Order("CustomerName").Project("CustomerName")
+	q := datastore.NewQuery(datastoreutils.EntityCards).Order("CustomerName").Project("CustomerName")
 	var cards []CustomerDatastore
 	keys, err := client.GetAll(c, q, &cards)
 	if err != nil {

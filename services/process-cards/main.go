@@ -171,8 +171,10 @@ func init() {
 
 		//by default, this will connect to the Cloud datastore.
 		//if you want to use a local development datastore, see https://cloud.google.com/datastore/docs/tools/datastore-emulator
+		//during development, we use dev entities or kinds.  The entity types are prepended "dev-" to keep dev data separate.
 		ccc := datastoreutils.Config
 		ccc.ProjectID = yamlData.EnvVars.ProjectID
+		ccc.Development = true
 		err = datastoreutils.SetConfig(ccc)
 		if err != nil {
 			log.Fatalln("Could not set configuration for datastore.", err)

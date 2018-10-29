@@ -24,8 +24,7 @@ import (
 //for referencing when looking up or setting data in datastore
 //so we don't need to type in key names anywhere
 const (
-	datastoreKind = "companyInfo"
-	datastoreKey  = "companyInfoKey"
+	datastoreKeyName = "companyInfoKey"
 )
 
 //maxStatementDescriptorLength is the maximum length of the statement description
@@ -93,7 +92,7 @@ func Get(r *http.Request) (result Info, err error) {
 	}
 
 	//get from datastore
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
 
 	//get data
 	err = client.Get(c, key, &result)
@@ -150,7 +149,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.StatementDescriptor = statementDesc
 
 	//save company info
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
 	c := r.Context()
 	err := save(c, key, data)
 	if err != nil {
@@ -185,7 +184,7 @@ func save(c context.Context, key *datastore.Key, d Info) error {
 func SaveDefaultInfo(c context.Context) error {
 	//generate entity key
 	//keyname is hard coded so only one entity exists
-	key := datastore.NameKey(datastoreKind, datastoreKey, nil)
+	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
 
 	//save
 	err := save(c, key, defaultCompanyInfo)

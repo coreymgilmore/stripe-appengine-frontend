@@ -143,7 +143,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		DatetimeCreated:     timestamps.ISO8601(),
 		AddedByUser:         username,
 	}
-	_, err = save(c, newCustKey, newCustomer)
+	_, err = datastoreutils.Save(c, newCustKey, newCustomer)
 	if err != nil {
 		output.Error(err, "There was an error while saving this customer. Please try again.", w)
 		return

@@ -16,9 +16,6 @@ import (
 )
 
 const (
-	//datastoreKind is the appengine datastore "kind" is similar to a "collection" or "table" in other dbs.
-	datastoreKind = "users"
-
 	//adminUsername is the default "super admin" username
 	//this is created the first time the app is run and no datastore data exists yet
 	adminUsername = "administrator"
@@ -75,7 +72,7 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//get list from datastore
 	//only need to get username and entity key to cut down on datastore usage
-	q := datastore.NewQuery(datastoreKind).Order("Username").Project("Username")
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Order("Username").Project("Username")
 	var users []User
 	keys, err := client.GetAll(c, q, &users)
 	if err != nil {
@@ -133,7 +130,7 @@ func DoesAdminExist(r *http.Request) error {
 	}
 
 	var user []User
-	q := datastore.NewQuery(datastoreKind).Filter("Username = ", adminUsername).KeysOnly()
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername).KeysOnly()
 	keys, err := client.GetAll(c, q, &user)
 	if err != nil {
 		return err
@@ -159,7 +156,7 @@ func Find(c context.Context, userID int64) (u User, err error) {
 
 	var uu []User
 	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
-	q := datastore.NewQuery(datastoreKind).Filter("__key__ =", key).Limit(1)
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("__key__ =", key).Limit(1)
 	_, err = client.GetAll(c, q, &uu)
 
 	//get one and only result
@@ -180,7 +177,7 @@ func exists(c context.Context, username string) (int64, User, error) {
 		return 0, User{}, ErrUserDoesNotExist
 	}
 
-	q := datastore.NewQuery(datastoreKind).Filter("Username = ", username).Limit(1)
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username).Limit(1)
 	var result []User
 	keys, _ := client.GetAll(c, q, &result)
 
