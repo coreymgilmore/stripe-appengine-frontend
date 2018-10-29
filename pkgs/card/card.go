@@ -34,6 +34,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/api/iterator"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -203,7 +205,9 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 	q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
 	i := client.Run(c, q)
 	_, err = i.Next(&data)
-	if err != nil {
+	if err == iterator.Done {
+		return CustomerDatastore{}, errCustomerNotFound
+	} else if err != nil {
 		log.Println("card.FindByCustomerID-1", err)
 		return
 	}
