@@ -1,9 +1,15 @@
+{{$showDevHeader := .Configuration.Development}}
+
 <!DOCTYPE html>
 <html>
 	<head>
-		{{template "html_head"}}
+		{{template "html_head" .}}
 	</head>
 	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
 		<!-- HEADER -->
 		{{template "header-without-btns"}}	
 
@@ -38,6 +44,6 @@
 		</div>
 
 		{{template "footer"}}
-		{{template "html_scripts"}}
+		{{template "html_scripts" .}}
 	<body>
 </body>

@@ -1,3 +1,6 @@
+{{$showDevHeader := .Configuration.Development}}
+{{$receiptData := .Data}}
+
 <!DOCTYPE html>
 <!-- ZERO STYLING ON THIS PAGE -->
 <!-- to make this as print-safe as possible -->
@@ -8,10 +11,17 @@
 		<title>Charge Credit Cards - Receipt</title>
 	</head>
 	<body>
+		{{if $showDevHeader}}
+			<p>!! DEV MODE !!</p>
+			<hr>
+			<br>
+		{{end}}
+
 
 {{/*MUST NOT HAVE ANY TABS OR SPACING IN FRONT OF TEXT TO ALIGN ALL TEXT TO LEFT SIDE OF BROWSER WINDOW*/}}
 {{/*since <pre> uses any formatting you give it since it assumes you want the text styles as such*/}}
 {{/*NOTICE: the "if .Suite" block is on the same line as ".Street".  This is done to make sure an empty line isn't displayed when no suite is provided*/}}
+{{with $receiptData}}
 <pre>
 {{.CompanyName}}
 {{.Street}}
@@ -41,6 +51,7 @@ Invoice:             {{.Invoice}}
 Purchase Order:      {{.Po}}
 *************************************************
 </pre>
+{{end}}
 
 	</body>
 </html>

@@ -1,9 +1,24 @@
+{{$showDevHeader := .Configuration.Development}}
+{{$canCharge := .Data.UserData.ChargeCards}}
+{{$timezoneOffset := .Data.TimezoneOffset}}
+{{$charges := .Data.Charges}}
+{{$numCharges := .Data.NumCharges}}
+{{$totalCharged := .Data.TotalCharges}}
+{{$totalChargesLessFees := .Data.TotalChargesLessFees}}
+{{$refunds := .Data.Refunds}}
+{{$numRefunds := .Data.NumRefunds}}
+{{$totalRefunded := .Data.TotalRefunds}}
+
 <!DOCTYPE html>
 <html>
 	<head>
-		{{template "html_head"}}
+		{{template "html_head" .}}
 	</head>
 	<body>
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
 		<!-- NO HEADER OR FOOTER TO MAKE PRINTING EASIER -->
 
 		<div class="container">
@@ -33,15 +48,8 @@
 										</tr>
 									</thead>
 									<tbody id="report-rows">
-										{{/*SAVE USERDATA CHARGECARD ACCESS RIGHTS TO VARIABLE TO HIDE OR DISPLAY REFUND BUTTON*/}}
-										{{/*hide buttons if user does not have permission to charge cards */}}
-										{{ $canCharge := .UserData.ChargeCards }}
-
-										{{/*SAVE TIMEZONE OFFSET FOR USE INSIDE RANGE*/}}
-										{{$timezoneOffset := .TimezoneOffset}}
-
-										{{if .Charges}}
-											{{range .Charges}}
+										{{if $charges}}
+											{{range $charges}}
 												{{/*ONLY SHOW ROWS WHERE CHARGES WERE CAPTURED*/}}
 												{{if eq .Captured true}}
 													<tr>
@@ -68,7 +76,7 @@
 										{{end}}
 									</tbody>
 
-									{{if gt .NumCharges 0}}
+									{{if gt $numCharges 0}}
 									<tfoot>
 										<tr>
 											<td>
@@ -76,12 +84,12 @@
 												<br>
 												Total Less Fees:
 												<br>
-												({{.NumCharges}} Charges)
+												({{$numCharges}} Charges)
 											</td>
 											<td></td>
 											<td class="charge-amount-column">
-												<b>$<span class="amount format-number-commas">{{.TotalCharges}}</span></b><br>
-												$<span class="amount format-number-commas">{{.TotalChargesLessFees}}</span>
+												<b>$<span class="amount format-number-commas">{{$totalCharged}}</span></b><br>
+												$<span class="amount format-number-commas">{{$.totalChargedLessFees}}</span>
 											</td>
 											<td></td>
 											<td></td>
@@ -120,8 +128,8 @@
 										</tr>
 									</thead>
 									<tbody id="report-rows">
-										{{if .Refunds}}
-											{{range .Refunds}}
+										{{if $refunds}}
+											{{range $refunds}}
 												<tr>
 													<td>{{.Customer}}</td>
 													<td>{{.LastFour}}</td>
@@ -141,17 +149,17 @@
 										{{end}}
 									</tbody>
 
-									{{if gt .NumRefunds 0}}
+									{{if gt $numRefunds 0}}
 									<tfoot>
 										<tr>
 											<td>
 												<b>Total Amount Refunded:</b>
 												<br>
-												({{.NumRefunds}} Refunds)
+												({{$numRefunds}} Refunds)
 											</td>
 											<td></td>
 											<td class="charge-amount-column">
-												<b>$<span class="amount format-number-commas">{{.TotalRefunds}}</span></b><br>
+												<b>$<span class="amount format-number-commas">{{$totalRefunded}}</span></b><br>
 											</td>
 											<td></td>
 											<td></td>
@@ -214,7 +222,7 @@
 		</div>
 		{{end}}
 
-		{{template "html_scripts"}}
+		{{template "html_scripts" .}}
 
 		<!-- FORMAT ALL NUMBERS WITH COMMAS -->
 		<!-- aka thousands separators -->

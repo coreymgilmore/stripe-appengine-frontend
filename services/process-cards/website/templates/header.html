@@ -11,7 +11,7 @@
 						<!-- SHOW LOGGED IN USER -->
 						<!-- hovering over icon shows the logged in user's username in a tooltip -->
 						<!-- clicking on the icon makes the tooltip stay visible -->
-						<button class="btn btn-default" id="username" data-toggle="tooltip" data-placement="bottom" data-trigger="hover click" title="{{.UserData.Username}}"><span class="glyphicon glyphicon-user"></span></button>
+						<button class="btn btn-default" id="username" data-toggle="tooltip" data-placement="bottom" data-trigger="hover click" title="{{.Data.UserData.Username}}"><span class="glyphicon glyphicon-user"></span></button>
 						<a class="btn btn-default" id="btn-logout" href="/logout/">Logout</a>
 					</button>
 				</div>
@@ -21,6 +21,7 @@
 </header>
 {{end}}
 
+{{/*USED ON NON-LOGGED IN PAGES*/}}
 {{define "header-without-btns"}}
 <header>
 	<div class="container">

@@ -1,5 +1,4 @@
 {{define "html_head"}}
-
 <title>Charge Credit Cards</title>
 
 <meta charset="UTF-8">
@@ -7,7 +6,12 @@
 <meta name="author" content="Corey Gilmore <github.com/coreymgilmore>">
 <meta name="description" content="A virtual terminal for charging credit cards. This app is hosted on App Engine and payments are processed with Stripe.">
 
+{{/*Serve css from local files or cdn.*/}}
+{{if .Configuration.UseLocalFiles}}
+<link rel="stylesheet" href="/static/css/bootswatch-paper-3.3.7.min.css">
+{{else}}
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/paper/bootstrap.min.css">
-<link rel="stylesheet" href="/static/css/styles.css">
+{{end}}
 
+<link rel="stylesheet" href="/static/css/styles.css">
 {{end}}

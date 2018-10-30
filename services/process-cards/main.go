@@ -42,6 +42,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pages"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/receipt"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
@@ -51,15 +52,13 @@ import (
 //defaultPort is the port used when serving in the dev environment
 const defaultPort = "8005"
 
-const (
-	//staticWebDir is the directory off of the root domain from which static files are served
-	//www.example.com/static/ -? /static
-	//leave off trailing slash
-	staticWebDir = "/static"
+//staticWebDir is the directory off of the root domain from which static files are served
+//www.example.com/static/ -? /static
+//leave off trailing slash
+const staticWebDir = "/static"
 
-	//staticLocalDir is the location on the server's filesystem where we store static files
-	staticLocalDir = "./website/static/"
-)
+//staticLocalDir is the location on the server's filesystem where we store static files
+var staticLocalDir = ""
 
 //cacheDays is the number of days to cache static files
 //this is set in init() and used when serving static files
@@ -75,6 +74,9 @@ type appYaml struct {
 		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`      //used for charging cards
 		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"` //used for creating customers and saving cards
 		CacheDays            int    `yaml:"CACHE_DAYS"`             //number of days to cache static files
+		StaticFilePath       string `yaml:"PATH_TO_STATIC_FILES"`   //the full path to the ./website/static/ directory
+		TemplatesPath        string `yaml:"PATH_TO_TEMPLATES"`      //the full path to the templates directory
+		UseLocalFiles        string `yaml:"USE_LOCAL_FILES"`        //true serves css/js/fonts from local domain versus cdn
 	} `yaml:"env_variables"`
 	Handlers []struct {
 		URL       string `yaml:"url"`
@@ -130,6 +132,15 @@ func init() {
 			return
 		}
 
+		cccc := templates.Config
+		cccc.PathToTemplates = "./website/templates/"
+		cccc.Development = false
+		cccc.UseLocalFiles, _ = strconv.ParseBool(os.Getenv("USE_LOCAL_FILES"))
+
+		//set path to static files
+		//default for appengine deployments
+		staticLocalDir = "./website/static/"
+
 		//set cache max age
 		cacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))
 
@@ -180,6 +191,19 @@ func init() {
 			log.Fatalln("Could not set configuration for datastore.", err)
 			return
 		}
+
+		cccc := templates.Config
+		cccc.PathToTemplates = yamlData.EnvVars.TemplatesPath
+		cccc.Development = true
+		cccc.UseLocalFiles, _ = strconv.ParseBool(yamlData.EnvVars.UseLocalFiles)
+
+		log.Println("use local", yamlData.EnvVars.UseLocalFiles)
+
+		templates.SetConfig(cccc)
+
+		//set path to static files
+		//default for appengine deployments
+		staticLocalDir = yamlData.EnvVars.StaticFilePath
 
 		//set cache max age
 		cacheDays = yamlData.EnvVars.CacheDays
@@ -262,7 +286,7 @@ func main() {
 
 	//serve anything off of the root directory
 	//manifest.json, robots.txt, etc.
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticLocalDir + "root_files/")))
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticLocalDir + "root-files/")))
 
 	//Have the server listen
 	log.Println("Starting stripe-appengine-frontend...")

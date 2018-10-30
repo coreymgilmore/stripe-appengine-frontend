@@ -1,17 +1,25 @@
 {{/* save template variables for use later */}}
-{{$userData := .UserData}}
-{{$appSettings := .AppSettings}}
-{{$companyInfo := .CompanyInfo}}
-{{$stripeKey := .StripePublishableKey}}
-{{$autofillChargeForm := .AutofillCard}}
+{{$userData := .Data.UserData}}
+{{$appSettings := .Data.AppSettings}}
+{{$companyInfo := .Data.CompanyInfo}}
+{{$hasCompanyInfoError := .Data.HasCompanyInfoError}}
+{{$stripeKey := .Data.StripePublishableKey}}
+{{$autofillChargeForm := .Data.AutofillCard}}
+{{$hasAutofillData := .Data.HasAutofillData}}
+{{$showDevHeader := .Configuration.Development}}
+{{$error := .Data.Error}}
 
 <!DOCTYPE html>
 <html>
 	<head>
-		{{template "html_head"}}
+		{{template "html_head" .}}
 	</head>
 	<body>
-		{{template "header" . }}
+		{{if $showDevHeader}}
+			<p class="text-center text-danger">!! DEV MODE !!</p>
+		{{end}}
+
+		{{template "header" .}}
 
 		<!-- ELEMENT FOR HOLDING LIST OF CUSTOMER NAMES -->
 		<!-- placed here since it is used in a few places for a few inputs and some inputs are removed based on user permissions -->
@@ -37,11 +45,11 @@
 						</label>
 						{{end}}
 						{{if $userData.ChargeCards}}
-						<label class="btn btn-default action-btn {{if eq .HasCompanyInfoError false}}active{{end}}" data-action="panel-charge-card">
+						<label class="btn btn-default action-btn {{if eq $hasCompanyInfoError false}}active{{end}}" data-action="panel-charge-card">
 							<input type="radio" checked>Charge
 						</label>
 						{{else}}
-						<label class="btn btn-default action-btn {{if eq .HasCompanyInfoError false}}active{{end}}" data-action="panel-charge-card">
+						<label class="btn btn-default action-btn {{if eq $hasCompanyInfoError false}}active{{end}}" data-action="panel-charge-card">
 							<input type="radio" checked>View
 						</label>
 						{{end}}
@@ -51,7 +59,7 @@
 						</label>
 						{{end}}
 						{{if $userData.Administrator}}
-						<label class="btn btn-default action-btn {{if .HasCompanyInfoError}}active{{end}}" data-action="panel-settings">
+						<label class="btn btn-default action-btn {{if $hasCompanyInfoError}}active{{end}}" data-action="panel-settings">
 							<input type="radio">Settings
 						</label>
 						{{end}}
@@ -66,7 +74,7 @@
 				
 				DON'T NEED AN ALERT FOR APP SETTINGS SINCE WE WILL JUST USE THE DEFAULT VALUES.
 			-->
-			{{if .HasCompanyInfoError}}
+			{{if $hasCompanyInfoError}}
 			<div class="row" id="alerts-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4">
 					{{if eq $companyInfo.CompanyName ""}}
@@ -88,7 +96,7 @@
 			<div class="row" id="panels-row">
 				<div class="col-xs-12 col-sm-6 col-sm-offset-3 col-lg-4 col-lg-offset-4" id="action-panels-container">
 					{{/*HIDE EVERYTHING BUT SETTINGS IF THERE IS A COMPANY INFO OR STATEMENT DESCRIPTOR ERROR*/}}
-					{{if eq .HasCompanyInfoError false}}
+					{{if eq $hasCompanyInfoError false}}
 					
 					{{/*HIDE ACTION PANELS FOR USERS THAT DO NOT HAVE ACCESS RIGHTS*/}}
 					{{/*same as hiding buttons in nav, but hide the panels so the user cannot see the panels in the code*/}}
@@ -235,11 +243,11 @@
 									{{/*defaults to 0 (zero) but do not want to show this since there is a placeholder*/}}
 									{{/*only show amount, invoice, and po inputs as "disabled=false" customer data is send back to template....this means the customer was found in the datastore*/}}
 									{{/*disable the inputs if the customer was not found*/}}
-									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if .HasAutofillData}}{{if $autofillChargeForm.Amount}}value="{{$autofillChargeForm.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
+									<input class="form-control charge-amount" type="number" min="0.50" max="100000" step="0.01" placeholder="$1.00" required {{if $hasAutofillData}}{{if $autofillChargeForm.Amount}}value="{{$autofillChargeForm.Amount}}" id="autofilled-charge-amount"{{end}}{{else}}disabled{{end}}>
 									
 									{{/*FORMAT AMOUNT WITH TWO DECIMAL PLACES*/}}
 									{{/*input type=number removes trailing zeros*/}}
-									{{if .HasAutofillData}}{{if $autofillChargeForm.Amount}}
+									{{if $hasAutofillData}}{{if $autofillChargeForm.Amount}}
 										<script>
 											//get autofilled value
 											//set value formatted to two decimal places
@@ -252,15 +260,15 @@
 								</div>
 								<div class="form-group">
 									<label class="control-label">Invoice Number <small>(optional)</small>: </label>
-									<input class="form-control charge-invoice" type="text" {{if .HasAutofillData}}value="{{$autofillChargeForm.Invoice}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-invoice" type="text" {{if $hasAutofillData}}value="{{$autofillChargeForm.Invoice}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="form-group">
 									<label class="control-label">PO Number <small>(optional)</small>: </label>
-									<input class="form-control charge-po" type="text" {{if .HasAutofillData}}value="{{$autofillChargeForm.Po}}"{{else}}disabled{{end}}>
+									<input class="form-control charge-po" type="text" {{if $hasAutofillData}}value="{{$autofillChargeForm.Po}}"{{else}}disabled{{end}}>
 								</div>
 								<div class="msg">
-									{{if .Error}}
-										<div class="alert alert-info">{{.Error}}</div>
+									{{if $error}}
+										<div class="alert alert-info">{{$error}}</div>
 									{{end}}
 								</div>
 								
@@ -391,7 +399,7 @@
 
 					{{if $userData.Administrator}}
 					<!-- SETTINGS -->
-					<div class="panel panel-default action-panels {{if .HasCompanyInfoError}}show{{end}}" id="panel-settings" >
+					<div class="panel panel-default action-panels {{if $hasCompanyInfoError}}show{{end}}" id="panel-settings" >
 						<div class="panel-heading">
 							<h3 class="panel-title">Settings</h3>
 						</div>
@@ -880,7 +888,7 @@
 				Stripe.setPublishableKey({{$stripeKey}});
 			</script>
 		{{end}}
-		{{template "html_scripts"}}
+		{{template "html_scripts" .}}
 
 		<!-- SCRIPTS TO RUN ON PAGE LOAD -->
 		<script>
