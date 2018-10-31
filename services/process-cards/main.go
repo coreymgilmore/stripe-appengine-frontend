@@ -62,6 +62,7 @@ var staticLocalDir = ""
 
 //cacheDays is the number of days to cache static files
 //this is set in init() and used when serving static files
+//0 (zero) means don't cache files at all
 var cacheDays = 0
 
 //appYaml is the format of the app.yaml file
@@ -71,6 +72,7 @@ type appYaml struct {
 		ProjectID            string `yaml:"PROJECT_ID"`             //the project id on google cloud
 		SessionAuthKey       string `yaml:"SESSION_AUTH_KEY"`       //session cookie
 		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`    //session cookie
+		SessionLifetime      int    `yaml:"SESSION_LIFETIME"`       //how many days a user will remain logged in for
 		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`      //used for charging cards
 		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"` //used for creating customers and saving cards
 		CacheDays            int    `yaml:"CACHE_DAYS"`             //number of days to cache static files
@@ -132,6 +134,7 @@ func init() {
 		c := sessionutils.Config
 		c.SessionAuthKey = os.Getenv("SESSION_AUTH_KEY")
 		c.SessionEncryptKey = os.Getenv("SESSION_ENCRYPT_KEY")
+		c.SessionLifetime, _ = strconv.Atoi(os.Getenv("SESSION_LIFETIME"))
 		err := sessionutils.SetConfig(c)
 		if err != nil {
 			log.Fatalln("Could not set configuration for sessionutils.", err)
@@ -180,6 +183,7 @@ func init() {
 		c := sessionutils.Config
 		c.SessionAuthKey = yamlData.EnvVars.SessionAuthKey
 		c.SessionEncryptKey = yamlData.EnvVars.SessionEncryptKey
+		c.SessionLifetime = yamlData.EnvVars.SessionLifetime
 		err = sessionutils.SetConfig(c)
 		if err != nil {
 			log.Fatalln("Could not set configuration for sessionutils.", err)
@@ -235,6 +239,12 @@ func init() {
 	default:
 		//when an invalid deployment type is given
 		log.Fatalln("An invalid deployment type was given as a flag.")
+		return
+	}
+
+	//make sure cache days is a valid value
+	if cacheDays < 0 {
+		log.Fatalln("Cache days value should be a value greater than or equal to zero.")
 		return
 	}
 

@@ -1,5 +1,5 @@
 /*
-Package company implements tools for handling your company's information.  This is
+Package company implements functions for handling your company's information.  This is
 for the company name and address, the amount of fees you pay per transaction to
 Stripe, and the text that is displayed on the credit card statement.
 
@@ -21,21 +21,25 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 )
 
-//for referencing when looking up or setting data in datastore
-//so we don't need to type in key names anywhere
-const (
-	datastoreKeyName = "companyInfoKey"
-)
+//datastoreKeyName is the name of the entity we save company settings under
+//we only store one entity for the company settings so we use this key to always refer to it
+const datastoreKeyName = "companyInfoKey"
 
 //maxStatementDescriptorLength is the maximum length of the statement description
 //this is dictated by Stripe
 const maxStatementDescriptorLength = 22
 
+//default stripe fees
+const (
+	defaultPercentFee = 0.0290 //percentage
+	defaultFixedFee   = 0.30   //cents
+)
+
 //ErrCompanyDataDoesNotExist is thrown when no company data has been set yet
 //this occurs when an admin did not go into the settings and provide the company info
 var ErrCompanyDataDoesNotExist = errors.New("company: info does not exist")
 
-//Info is used for setting or getting the company data from the datastore
+//Info is the used for setting or getting the company data from the datastore
 type Info struct {
 	CompanyName         string  `json:"company_name"`         //for receipts
 	Street              string  `json:"street"`               // " "
@@ -62,8 +66,8 @@ var defaultCompanyInfo = Info{
 	Country:             "",
 	PhoneNum:            "",
 	Email:               "",
-	PercentFee:          .0290,
-	FixedFee:            0.30,
+	PercentFee:          defaultPercentFee,
+	FixedFee:            defaultFixedFee,
 	StatementDescriptor: "",
 }
 
@@ -149,9 +153,8 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.StatementDescriptor = statementDesc
 
 	//save company info
-	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
 	c := r.Context()
-	err := save(c, key, data)
+	err := save(c, data)
 	if err != nil {
 		output.Error(err, "", w)
 		return
@@ -163,15 +166,18 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 //save does the actual saving to the datastore
-func save(c context.Context, key *datastore.Key, d Info) error {
+func save(c context.Context, i Info) error {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
 		return err
 	}
 
+	//get full key
+	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
+
 	//save company info
-	_, err = client.Put(c, key, &d)
+	_, err = client.Put(c, key, &i)
 	if err != nil {
 		return err
 	}
@@ -182,11 +188,6 @@ func save(c context.Context, key *datastore.Key, d Info) error {
 //SaveDefaultInfo sets some default data when a company first starts using this app
 //This func is called when the initial super admin is created.
 func SaveDefaultInfo(c context.Context) error {
-	//generate entity key
-	//keyname is hard coded so only one entity exists
-	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
-
-	//save
-	err := save(c, key, defaultCompanyInfo)
+	err := save(c, defaultCompanyInfo)
 	return err
 }

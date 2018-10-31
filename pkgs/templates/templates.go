@@ -18,7 +18,7 @@ var htmlTemplates *template.Template
 type NotificationPage struct {
 	PanelColor string
 	Title      string
-	Message    interface{}
+	Message    interface{} //interface{} because this could be a string or an error
 	BtnColor   string
 	LinkHref   string
 	BtnText    string

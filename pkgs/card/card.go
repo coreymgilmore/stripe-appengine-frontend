@@ -184,10 +184,6 @@ func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatas
 
 	//query
 	err = client.Get(c, key, &data)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -217,6 +213,12 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 		}
 	}
 
+	//check if no results were found
+	if data == (CustomerDatastore{}) {
+		return data, errCustomerNotFound
+	}
+
+	//one result was found
 	return
 }
 

@@ -9,6 +9,7 @@ package sessionutils
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -20,14 +21,14 @@ import (
 type config struct {
 	SessionAuthKey    string //a 64 character long string
 	SessionEncryptKey string //a 32 character long string
-	SessionLifetime   uint8  //number of days a user will remain logged in for
+	SessionLifetime   int    //number of days a user will remain logged in for
 }
 
 //Config is a copy of the config struct with some defaults set
 var Config = config{
 	SessionAuthKey:    "",
 	SessionEncryptKey: "",
-	SessionLifetime:   7,
+	SessionLifetime:   7, //default value in case this doesn't get set before calling SetConfig()
 }
 
 //this is the required sizes of the SessionAuthKey and SessionEncryptKey
@@ -39,8 +40,9 @@ const (
 
 //configuration errors
 var (
-	errAuthKeyWrongSize   = errors.New("session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long")
-	errEncyptKeyWrongSize = errors.New("session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long")
+	errAuthKeyWrongSize       = errors.New("session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long")
+	errEncyptKeyWrongSize     = errors.New("session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long")
+	errInvalidSessionLifetime = errors.New("session: Lifetime must be an integer greater than 0")
 )
 
 //sessionCookieName is the name of the cookie saved to clients that stores our session information
@@ -85,6 +87,12 @@ func SetConfig(c config) error {
 		[]byte(authKey),
 		[]byte(encryptKey),
 	)
+
+	//make sure session lifetime is a valid value
+	if c.SessionLifetime < 1 {
+		log.Fatalln("Session lifetime is invalid.  It must be an integer greater than 0.")
+		return errInvalidSessionLifetime
+	}
 
 	//set session options
 	options.MaxAge = 60 * 60 * 24 * int(c.SessionLifetime)

@@ -78,11 +78,6 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//get data on refunds
 	refunds, numRefunds, totalRefunded := getListOfRefunds(sc, startUnix, endUnix)
 
-	//format dates to timezone the user is in
-	// for _, chg := range charges {
-	// 	chg.Da
-	// }
-
 	//get logged in user's data
 	//for determining if receipt/refund buttons need to be hidden or shown based on user's access rights
 	userID := sessionutils.GetUserID(r)

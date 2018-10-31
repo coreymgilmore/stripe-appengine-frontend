@@ -44,8 +44,8 @@ func Auth(next http.Handler) http.Handler {
 
 		//check if user id is in session
 		//otherwise show user a notice and force user to log in again
-		userID, ok := session.Values["user_id"].(int64)
-		if ok == false {
+		userID := sessionutils.GetUserID(r)
+		if userID < 1 {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Session Expired", "Your session has expired. Please log back in or contact an administrator if this problem persists.", "btn-default", "/", "Log In")
 			return
@@ -81,12 +81,9 @@ func Auth(next http.Handler) http.Handler {
 //AddCards checks if the user is allowed to add credit cards to the app
 func AddCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get session data
-		session := sessionutils.Get(r)
-
 		//look up user data
 		c := r.Context()
-		userID := session.Values["user_id"].(int64)
+		userID := sessionutils.GetUserID(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			log.Println("middleware.AddCards: ", err)
@@ -109,12 +106,9 @@ func AddCards(next http.Handler) http.Handler {
 //RemoveCards checks if the user is allowed to remove credit cards from the app
 func RemoveCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get session data
-		session := sessionutils.Get(r)
-
 		//look up user data
 		c := r.Context()
-		userID := session.Values["user_id"].(int64)
+		userID := sessionutils.GetUserID(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			log.Println("middleware.RemoveCards: ", err)
@@ -137,12 +131,9 @@ func RemoveCards(next http.Handler) http.Handler {
 //ChargeCards checks if the user is allowed to charge credit cards
 func ChargeCards(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get session data
-		session := sessionutils.Get(r)
-
 		//look up user data
 		c := r.Context()
-		userID := session.Values["user_id"].(int64)
+		userID := sessionutils.GetUserID(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			log.Println("middleware.ChargeCards: ", err)
@@ -165,12 +156,9 @@ func ChargeCards(next http.Handler) http.Handler {
 //ViewReports checks if the user is allowed to view the charge & refunds reports
 func ViewReports(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get session data
-		session := sessionutils.Get(r)
-
 		//look up user data
 		c := r.Context()
-		userID := session.Values["user_id"].(int64)
+		userID := sessionutils.GetUserID(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			log.Println("middleware.ViewReports: ", err)
@@ -195,12 +183,9 @@ func ViewReports(next http.Handler) http.Handler {
 //also allows for changing the data that shows up on the receipt
 func Administrator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//get session data
-		session := sessionutils.Get(r)
-
 		//look up user data
 		c := r.Context()
-		userID := session.Values["user_id"].(int64)
+		userID := sessionutils.GetUserID(r)
 		data, err := users.Find(c, userID)
 		if err != nil {
 			log.Println("middleware.Administrator: ", err)

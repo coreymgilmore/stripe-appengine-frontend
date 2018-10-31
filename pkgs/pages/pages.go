@@ -52,6 +52,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//check if the initial user/admin user exists
 	//redirect user to create admin if it does not exist
 	err := users.DoesAdminExist(r)
+
 	if err == users.ErrAdminDoesNotExist {
 		http.Redirect(w, r, "/setup/", http.StatusFound)
 		return

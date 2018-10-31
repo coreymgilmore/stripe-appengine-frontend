@@ -24,6 +24,9 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	amount := r.FormValue("amount")                                        //in dollars
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
+
+	//above inputs are the same for manual or auto charges
+	//below are for manual charges only
 	chargeAndRemove, _ := strconv.ParseBool(r.FormValue("chargeAndRemove")) //true if card should be removed after charging
 
 	//validation
@@ -81,7 +84,7 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := Remove(strconv.FormatInt(datastoreID, 10), r)
+		err := Remove(c, strconv.FormatInt(datastoreID, 10))
 		if err != nil {
 			log.Println("Error removing card after charge.", err)
 		}
@@ -99,6 +102,9 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	amount := r.FormValue("amount")          //in cents
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
+
+	//above inputs are the same for manual or auto charges
+	//below are for auto charges only
 	apiKey := r.FormValue("api_key")
 	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge")) //true if we should actually charge the card, false for testing
 	referrer := r.FormValue("auto_charge_referrer")                //the name or other identifier for the app making this request to charge the card

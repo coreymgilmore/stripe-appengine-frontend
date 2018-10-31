@@ -56,7 +56,7 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 		//remove the card from the datastore and from stripe
 		datastoreID := strconv.FormatInt(datastoreKey.IntID(), 10)
 		_ = datastoreID
-		err = card.Remove(datastoreID, r)
+		err = card.Remove(c, datastoreID)
 		if err != nil {
 			log.Println("cron.RemoveExpiredCards: Could not remove card.", customer.CustomerName, err)
 			return

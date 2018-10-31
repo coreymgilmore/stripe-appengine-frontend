@@ -53,7 +53,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	chargeID := r.FormValue("chg_id")
 
 	//init stripe
-	c := r.Context
+	c := r.Context()
 	sc := card.CreateStripeClient(c)
 
 	//get charge data

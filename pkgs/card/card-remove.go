@@ -1,6 +1,7 @@
 package card
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -23,7 +24,8 @@ func RemoveAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//remove the card
-	err := Remove(datastoreID, r)
+	c := r.Context()
+	err := Remove(c, datastoreID)
 	if err != nil {
 		output.Error(err, "There was an error while trying to delete this customer. Please try again.", w)
 		return
@@ -35,12 +37,11 @@ func RemoveAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 //Remove does the actual removal of the card
-func Remove(datastoreID string, r *http.Request) error {
+func Remove(c context.Context, datastoreID string) error {
 	//convert to int
 	datastoreIDInt, _ := strconv.ParseInt(datastoreID, 10, 64)
 
 	//init stripe
-	c := r.Context()
 	sc := CreateStripeClient(c)
 
 	//delete customer on stripe

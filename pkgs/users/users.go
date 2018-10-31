@@ -13,6 +13,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
+	"google.golang.org/api/iterator"
 )
 
 const (
@@ -51,16 +52,14 @@ type User struct {
 	Created       string `json:"datetime_created"` //datetime of when the user was created
 }
 
-//userList is used to return the list of users able to be edited to build the gui
-//This list is used to build select menus in the gui.
+//userList is used to return the list of users when building select elements in the gui
 type userList struct {
 	ID       int64  `json:"id"`       //the app engine datastore id of the user
 	Username string `json:"username"` //email address
 }
 
 //GetAll retrieves the list of all users in the datastore
-//The data is pulled from the datastore.
-//The data is returned as a json to populate select menus in the gui.
+//This is used to populate the select elements in the gui when changing a user's password or access rights.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	//connect to datastore
 	c := r.Context()
@@ -72,44 +71,44 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//get list from datastore
 	//only need to get username and entity key to cut down on datastore usage
+	list := []userList{}
 	q := datastore.NewQuery(datastoreutils.EntityUsers).Order("Username").Project("Username")
-	var users []User
-	keys, err := client.GetAll(c, q, &users)
-	if err != nil {
-		output.Error(err, "Error retrieving list of users from datastore.", w)
-		return
-	}
+	i := client.Run(c, q)
+	for {
+		one := User{}
+		key, err := i.Next(&one)
 
-	//build result
-	//format data to show just datastore id and username
-	//creates a map of structs
-	var idsAndNames []userList
-	for i, r := range users {
-		x := userList{
-			Username: r.Username,
-			ID:       keys[i].ID,
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			output.Error(err, "Error retrieving list of users from datastore.", w)
+			return
 		}
 
-		idsAndNames = append(idsAndNames, x)
+		l := userList{
+			Username: one.Username,
+			ID:       key.ID,
+		}
+		list = append(list, l)
 	}
 
 	//return data to clinet
-	output.Success("userList", idsAndNames, w)
-
+	output.Success("userList", list, w)
 	return
 }
 
 //GetOne retrieves the full data for one user
 //This is used to fill in the edit user modal in the gui.
 func GetOne(w http.ResponseWriter, r *http.Request) {
-	//get user id from form value
+	//get input
 	userIDInt, _ := strconv.ParseInt(r.FormValue("userId"), 10, 64)
 
 	//get user data
 	c := r.Context()
 	data, err := Find(c, userIDInt)
 	if err != nil {
-		output.Error(err, "Cannot look up user data.", w)
+		output.Error(err, "Could not look up user's data.", w)
 		return
 	}
 
@@ -129,20 +128,64 @@ func DoesAdminExist(r *http.Request) error {
 		return err
 	}
 
-	var user []User
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername).KeysOnly()
-	keys, err := client.GetAll(c, q, &user)
+	//query
+	//using GetAll instead of Get because you cannot filter using Get
+	var user User
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername)
+	i := client.Run(c, q)
+	for {
+		_, err = i.Next(&user)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	//check if data was found
+	//if it was, user will not equal an empty struct
+	if user != (User{}) {
+		return nil
+	}
+
+	//admin user does not exist
+	return ErrAdminDoesNotExist
+}
+
+//getDataByUsername looks up data about a user by the user's username
+func getDataByUsername(c context.Context, username string) (keyID int64, u User, err error) {
+	//connect to datastore
+	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return err
+		return
 	}
 
-	//check if a result was found
-	if len(keys) == 0 {
-		return ErrAdminDoesNotExist
+	//query
+	//using GetAll instead of Get because you cannot filter using Get
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername).Limit(1)
+	i := client.Run(c, q)
+	var numResults int
+	var fullKey *datastore.Key
+	for {
+		fullKey, err = i.Next(&u)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return 0, u, err
+		}
+
+		numResults++
 	}
 
-	//admin user exists
-	return nil
+	//check if no user was found matching this username
+	if numResults == 0 {
+		return 0, u, ErrUserDoesNotExist
+	}
+
+	//user found
+	return fullKey.ID, u, nil
 }
 
 //Find gets the data for a given user id
@@ -154,40 +197,47 @@ func Find(c context.Context, userID int64) (u User, err error) {
 		return
 	}
 
-	var uu []User
 	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("__key__ =", key).Limit(1)
-	_, err = client.GetAll(c, q, &uu)
 
-	//get one and only result
-	if len(uu) > 0 {
-		u = uu[0]
-	}
-
+	//query
+	err = client.Get(c, key, &u)
 	return
 }
 
 //exists checks if a given username is already being used
 //This can also be used to get user data by username.
 //Returns error if a user by the username 'username' does not exist.
-func exists(c context.Context, username string) (int64, User, error) {
+func exists(c context.Context, username string) (keyID int64, u User, err error) {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return 0, User{}, ErrUserDoesNotExist
+		return
 	}
 
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username).Limit(1)
-	var result []User
-	keys, _ := client.GetAll(c, q, &result)
+	//query
+	//using GetAll instead of Get because you cannot filter using Get
+	var user User
+	var fullKey *datastore.Key
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username)
+	i := client.Run(c, q)
+	for {
+		fullKey, err = i.Next(&user)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return
+		}
+	}
 
-	//user was not found
-	if len(keys) == 0 {
-		return 0, User{}, ErrUserDoesNotExist
+	//check if data was found
+	//if it wasn't, user will equal a blank struct
+	if user == (User{}) {
+		return 0, u, ErrUserDoesNotExist
 	}
 
 	//return user found data
-	return keys[0].ID, result[0], nil
+	return fullKey.ID, user, nil
 }
 
 //notificationPage is used to show html page for errors
