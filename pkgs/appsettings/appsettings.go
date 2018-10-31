@@ -21,11 +21,9 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 )
 
-//for referencing when looking up or setting data in datastore
-//so we don't need to type in key names anywhere
-const (
-	datastoreKeyName = "appSettingsKey"
-)
+//datastoreKeyName is the name of the the entity we save the app settings under
+//we only store one entity for the app settings so we use this key to always reference it
+const datastoreKeyName = "appSettingsKey"
 
 //Settings is used for setting or getting the app settings from the datastore
 type Settings struct {
@@ -35,7 +33,6 @@ type Settings struct {
 }
 
 //defaultAppSettings is the base configuration for the app
-//default info
 var defaultAppSettings = Settings{
 	RequireCustomerID: false,
 	CustomerIDFormat:  "",
@@ -89,9 +86,6 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	reqCustID, _ := strconv.ParseBool(r.FormValue("requireCustID"))
 	custIDFormat := strings.TrimSpace(r.FormValue("custIDFormat"))
 
-	//get the key we are saving to
-	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
-
 	//build entity to save
 	//or update existing entity
 	data := Settings{}
@@ -100,7 +94,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 	//save company info
 	c := r.Context()
-	err := save(c, key, data)
+	err := save(c, data)
 	if err != nil {
 		output.Error(err, "", w)
 		return
@@ -112,12 +106,15 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 }
 
 //save does the actual saving to the datastore
-func save(c context.Context, key *datastore.Key, d Settings) error {
+func save(c context.Context, d Settings) error {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
 		return err
 	}
+
+	//get the key we are saving to
+	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
 	//save company info
 	_, err = client.Put(c, key, &d)
@@ -131,12 +128,7 @@ func save(c context.Context, key *datastore.Key, d Settings) error {
 //SaveDefaultInfo sets some default data when a company first starts using this app
 //This func is called when the initial super admin is created.
 func SaveDefaultInfo(c context.Context) error {
-	//generate entity key
-	//keyname is hard coded so only one entity exists
-	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
-
-	//save
-	err := save(c, key, defaultAppSettings)
+	err := save(c, defaultAppSettings)
 	return err
 }
 
@@ -159,13 +151,10 @@ func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get the key we are saving to
-	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
-
 	//set the new api key
 	settings.APIKey = apiKey
 	c := r.Context()
-	err = save(c, key, settings)
+	err = save(c, settings)
 	if err != nil {
 		log.Println("Could not save new api key", err)
 		return

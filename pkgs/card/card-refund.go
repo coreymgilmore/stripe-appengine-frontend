@@ -60,7 +60,7 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//init stripe
 	c := r.Context()
-	sc := createAppengineStripeClient(c)
+	sc := CreateStripeClient(c)
 
 	//create refund with stripe
 	_, err = sc.Refunds.New(params)

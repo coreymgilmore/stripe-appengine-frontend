@@ -70,7 +70,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 
 	//init stripe
 	c := r.Context()
-	sc := createAppengineStripeClient(c)
+	sc := CreateStripeClient(c)
 
 	//get data on charges
 	charges, numCharges, totalCharged, totalChargedLessFees := getListOfCharges(c, sc, r, datastoreID, startUnix, endUnix)

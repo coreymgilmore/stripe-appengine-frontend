@@ -11,12 +11,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/stripe/stripe-go/client"
-
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
-	stripe "github.com/stripe/stripe-go"
 )
 
 //receiptData is used for showing the receipt in html
@@ -56,8 +53,8 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	chargeID := r.FormValue("chg_id")
 
 	//init stripe
-	httpClient := &http.Client{}
-	sc := client.New(card.Config.StripeSecretKey, stripe.NewBackends(httpClient))
+	c := r.Context
+	sc := card.CreateStripeClient(c)
 
 	//get charge data
 	chg, err := sc.Charges.Get(chargeID, nil)

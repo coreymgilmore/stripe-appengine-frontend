@@ -54,21 +54,19 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get context
-	c := r.Context()
-
-	//need to adjust deadline in case stripe takes longer than 5 seconds
-	//default timeout for a urlfetch is 5 seconds
+	//need to adjust context deadline in case stripe takes longer than 5 seconds
+	//default timeout is 5 seconds
 	//sometimes adding a card through stripe api takes longer
-	//calls seems to take roughly 2 seconds normally with a few near 5 seconds (normal urlfetch deadline)
+	//calls seems to take roughly 2 seconds normally with a few near 5 seconds
 	//the call might still complete via stripe but appengine will return to the gui that it failed
 	//10 seconds is a bit over generous but covers even really strange senarios
+	c := r.Context()
 	c, cancelFunc := context.WithTimeout(c, 10*time.Second)
 	defer cancelFunc()
 
 	//if customerID was given, make sure it is unique
-	//this id should be unique in the user's company's crm
-	//the customerID is used to autofill the charge card panel when performing the api-like semi-automated charges
+	//this id should be unique in the company's crm
+	//the customerID is used to autofill the charge card panel when performing the api-like semi-automated charges or fully automatic charges
 	if len(customerID) != 0 {
 		_, err := FindByCustomerID(c, customerID)
 		if err == nil {
@@ -82,7 +80,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//init stripe
-	sc := createAppengineStripeClient(c)
+	sc := CreateStripeClient(c)
 
 	//create the customer on stripe
 	//assigns the card via the cardToken to this customer
@@ -110,7 +108,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 			errorErr = stripeErrorErr
 			errorMsg = stripeErrorMsg
-
 			break
 
 		case *url.Error:
@@ -152,7 +149,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//customer saved
 	//return to client
 	output.Success("createCustomer", nil, w)
-
 	return
 }
 

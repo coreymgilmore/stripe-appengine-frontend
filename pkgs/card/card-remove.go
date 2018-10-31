@@ -41,7 +41,7 @@ func Remove(datastoreID string, r *http.Request) error {
 
 	//init stripe
 	c := r.Context()
-	sc := createAppengineStripeClient(c)
+	sc := CreateStripeClient(c)
 
 	//delete customer on stripe
 	custData, err := findByDatastoreID(c, datastoreIDInt)

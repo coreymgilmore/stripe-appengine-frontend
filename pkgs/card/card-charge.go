@@ -199,7 +199,7 @@ func isBelowMinCharge(amount uint64) (string, error) {
 //referrer & reason: only given when charge is automatically processed
 func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum string, companyInfo company.Info, custData CustomerDatastore, user, referrer, reason string) (out chargeSuccessful, errMsg string, err error) {
 	//get stripe client
-	sc := createAppengineStripeClient(c)
+	sc := CreateStripeClient(c)
 
 	//check if invoice or po number are blank
 	//so that the description on stripe's dashboard makes sense if values are missing

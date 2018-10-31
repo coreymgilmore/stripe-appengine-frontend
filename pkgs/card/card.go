@@ -34,14 +34,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/api/iterator"
-
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
 	"github.com/stripe/stripe-go/event"
+	"google.golang.org/api/iterator"
 )
 
 //config is the set of configuraton option for processing charges on cards
@@ -57,10 +56,10 @@ var Config = config{
 	StripePublishableKey: "",
 }
 
-//stripeKeyLength is the required size of the stripe keys
-const stripeKeyLength = 32
-
 const (
+	//stripeKeyLength is the required size of the stripe keys
+	stripeKeyLength = 32
+
 	//currency for transactions
 	//this should be a simple change for other currencies, but you will need to change the "$" symbol elsewhere in this code base
 	currency = "usd"
@@ -113,8 +112,7 @@ func SetConfig(c config) error {
 
 //GetAll retrieves the list of all cards in the datastore
 //This only gets the datastore id and customer name.
-//The data is pulled from the datastore and is returned as json to build
-//the datalist drop down where the user can choose what customer to charge.
+//This is used to build the datalist in the gui of customers who we can process a charge for.
 func GetAll(w http.ResponseWriter, r *http.Request) {
 	//connect to datastore
 	c := r.Context()
@@ -126,25 +124,29 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//get list from datastore
 	//only need to get entity keys and customer names which cuts down on datastore usage
+	list := []List{}
 	q := datastore.NewQuery(datastoreutils.EntityCards).Order("CustomerName").Project("CustomerName")
-	var cards []CustomerDatastore
-	keys, err := client.GetAll(c, q, &cards)
-	if err != nil {
-		output.Error(err, "Error retrieving list of cards from datastore.", w)
-		return
-	}
+	i := client.Run(c, q)
+	for {
+		one := CustomerDatastore{}
+		key, err := i.Next(&one)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			output.Error(err, "Error retrieving list of cards from datastore.", w)
+			return
+		}
 
-	//build result
-	//format data to show just datastore id and customer name
-	//creates a map of structs
-	var idAndNames []List
-	for i, r := range cards {
-		x := List{r.CustomerName, keys[i].ID}
-		idAndNames = append(idAndNames, x)
+		l := List{
+			CustomerName: one.CustomerName,
+			ID:           key.ID,
+		}
+		list = append(list, l)
 	}
 
 	//return data to client
-	output.Success("cardList-datastore", idAndNames, w)
+	output.Success("cardList-datastore", list, w)
 	return
 }
 
@@ -204,12 +206,15 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
 	q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
 	i := client.Run(c, q)
-	_, err = i.Next(&data)
-	if err == iterator.Done {
-		return CustomerDatastore{}, errCustomerNotFound
-	} else if err != nil {
-		log.Println("card.FindByCustomerID-1", err)
-		return
+	for {
+		_, err = i.Next(&data)
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Println("card.FindByCustomerID-1", err)
+			return
+		}
 	}
 
 	return
@@ -255,16 +260,13 @@ func calcTzOffset(hoursToUTC string) string {
 	return tzOffset
 }
 
-//createAppendingeStripeClient creates an httpclient on a per-request basis for use in making api calls to Stripe
+//CreateStripeClient creates an httpclient on a per-request basis for use in making api calls to Stripe
 //Stripe's API is accessed via http requests, need a way to make these requests.
-//Urlfetch is the appengine way of making http requests.
-//This func returns an httpclient on a per request basis.  Per http request made to this app.
-//Otherwise one request could use another requests httpclient which would not be good!
-//This is for app engine only since the golang http.DefaultClient is unavailable.
-func createAppengineStripeClient(c context.Context) *client.API {
+//This func returns an httpclient on a per request basis (per http request made to this app).
+func CreateStripeClient(c context.Context) *client.API {
 	//create http client
 	//returns stripe client to use to process charges
-	httpClient := &http.Client{}
+	httpClient := http.DefaultClient
 	return client.New(Config.StripeSecretKey, stripe.NewBackends(httpClient))
 }
 
@@ -275,7 +277,6 @@ func createAppengineStripeClient(c context.Context) *client.API {
 //conversions from floats to int and different precisions.
 func getAmountAsIntCents(amount string) (uint64, error) {
 	//convert string to float
-	//catch errors if number can not be converted
 	amountFloat, err := strconv.ParseFloat(amount, 64)
 	if err != nil {
 		return 0, err
