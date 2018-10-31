@@ -92,14 +92,37 @@ type appYaml struct {
 
 func init() {
 	//use flags to allow for different deployment types
-	//for example, developing locally or deployed on appengine
-	//appengine is the default deployment
-	//need to do this so we can parse app.yaml in a development environment so we don't need to specify each env_var manually on PATH
-	//this also allows us in the future to create other deployment types such as a sqlite backed version instead of using cloud datastore
+	//deploymentType: used for changing how this app is deployed:
+	//  - appengine,
+	//  - appengine-dev (locally running but using Cloud datastore),
+	//  - sqlite (future)
+	//pathToAppYaml: the full path to the app.yaml file.  This file is
+	//  used for deployment types other than appengine-dev to get
+	//  environmental variables.  This eliminates the need to set
+	//  these variables when deploying or testing locally.
+	//pathToDatastoreCredentials: the full path to the credentials file used
+	//  to connect to the Cloud Datastore when deployed locally or testing.
+	//  This file is downloaded from the GCP Console when creating a service
+	//  account.
+	//  This is *not* set in an environmental variable since when deployed to
+	//  appengine it isn't needed, when testing locally it is in the same directry
+	//  as main.go which when run as "go run main.go" makes the credentials file easy
+	//  to find, and when deployed via sqlite the datastore credentials aren't needed.
+	//useDevDatastore: this overrides the default "true" value of using the dev datastore
+	//  when in dev mode.  Sometimes you may want to use live/production data even
+	//  though you are developing (for example, dev environment doesn't have any data).
 	deploymentType := flag.String("type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
 	pathToAppYaml := flag.String("pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
-	pathToDatastoreCredentials := flag.String("datastore-credentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
+	pathToDatastoreCredentials := flag.String("pathToDatastoreCredentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
+	useDevDatastore := flag.Bool("useDevDatastore", true, "Set to false to use live datastore data in development deployment types.")
 	flag.Parse()
+
+	log.Println("***FLAGS***")
+	log.Println("Deployment Type:", *deploymentType)
+	log.Println("Path to app.yaml:", *pathToAppYaml)
+	log.Println("Path to Datastore Cred:", *pathToDatastoreCredentials)
+	log.Println("Use Dev Datastore:", *useDevDatastore)
+	log.Println("***********")
 
 	//set configuration options based on deployment type
 	switch *deploymentType {
@@ -186,7 +209,7 @@ func init() {
 		//during development, we use dev entities or kinds.  The entity types are prepended "dev-" to keep dev data separate.
 		ccc := datastoreutils.Config
 		ccc.ProjectID = yamlData.EnvVars.ProjectID
-		ccc.Development = true
+		ccc.Development = *useDevDatastore
 		err = datastoreutils.SetConfig(ccc)
 		if err != nil {
 			log.Fatalln("Could not set configuration for datastore.", err)
