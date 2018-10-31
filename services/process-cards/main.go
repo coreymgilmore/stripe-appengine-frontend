@@ -173,7 +173,8 @@ func init() {
 		}
 
 		//connect to the google cloud datastore
-		//need to set an environmental variable here since it provide credentials to the datastore, see https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go
+		//need to set an environmental variable here since it provide credentials to the datastore
+		//see https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go
 		err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", *pathToDatastoreCredentials)
 		if err != nil {
 			log.Fatalln("Could not set Google Datastore credentials environmental variable.", err)
@@ -196,9 +197,6 @@ func init() {
 		cccc.PathToTemplates = yamlData.EnvVars.TemplatesPath
 		cccc.Development = true
 		cccc.UseLocalFiles, _ = strconv.ParseBool(yamlData.EnvVars.UseLocalFiles)
-
-		log.Println("use local", yamlData.EnvVars.UseLocalFiles)
-
 		templates.SetConfig(cccc)
 
 		//set path to static files
@@ -296,7 +294,7 @@ func main() {
 		port = defaultPort
 	}
 
-	log.Printf("Listening on port %s", port)
+	log.Println("Listening on port:", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
 }
 

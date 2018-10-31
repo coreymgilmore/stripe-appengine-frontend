@@ -28,3 +28,6 @@ sqlite/local install instead of appengine
     - have to create a golang-sqlite-datastore abstraction layer
         - try to keep most of the code the same as datastore package funcs just with a connection to sqlite
     - instead of having to maintain two versions of this app: google appengine based and local server based
+
+
+rewrite using typescript and vue?
