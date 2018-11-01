@@ -121,36 +121,16 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 //The super-admin should be created upon initially using and setting up the app.
 //This user must exist for the app to function.
 func DoesAdminExist(r *http.Request) error {
-	//connect to datastore
+	//query
 	c := r.Context()
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
+	_, _, err := getDataByUsername(c, adminUsername)
+	if err == nil {
+		return nil
+	} else if err == ErrUserDoesNotExist {
+		return ErrAdminDoesNotExist
+	} else {
 		return err
 	}
-
-	//query
-	//using GetAll instead of Get because you cannot filter using Get
-	var user User
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername)
-	i := client.Run(c, q)
-	for {
-		_, err = i.Next(&user)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	//check if data was found
-	//if it was, user will not equal an empty struct
-	if user != (User{}) {
-		return nil
-	}
-
-	//admin user does not exist
-	return ErrAdminDoesNotExist
 }
 
 //getDataByUsername looks up data about a user by the user's username
@@ -163,12 +143,13 @@ func getDataByUsername(c context.Context, username string) (keyID int64, u User,
 
 	//query
 	//using GetAll instead of Get because you cannot filter using Get
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", adminUsername).Limit(1)
+	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username).Limit(1)
 	i := client.Run(c, q)
 	var numResults int
 	var fullKey *datastore.Key
 	for {
-		fullKey, err = i.Next(&u)
+		var tempUserData User
+		tempKey, err := i.Next(&tempUserData)
 		if err == iterator.Done {
 			break
 		}
@@ -176,6 +157,9 @@ func getDataByUsername(c context.Context, username string) (keyID int64, u User,
 			return 0, u, err
 		}
 
+		//save key and data to variables outside iterator
+		fullKey = tempKey
+		u = tempUserData
 		numResults++
 	}
 
@@ -202,42 +186,6 @@ func Find(c context.Context, userID int64) (u User, err error) {
 	//query
 	err = client.Get(c, key, &u)
 	return
-}
-
-//exists checks if a given username is already being used
-//This can also be used to get user data by username.
-//Returns error if a user by the username 'username' does not exist.
-func exists(c context.Context, username string) (keyID int64, u User, err error) {
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return
-	}
-
-	//query
-	//using GetAll instead of Get because you cannot filter using Get
-	var user User
-	var fullKey *datastore.Key
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username)
-	i := client.Run(c, q)
-	for {
-		fullKey, err = i.Next(&user)
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return
-		}
-	}
-
-	//check if data was found
-	//if it wasn't, user will equal a blank struct
-	if user == (User{}) {
-		return 0, u, ErrUserDoesNotExist
-	}
-
-	//return user found data
-	return fullKey.ID, user, nil
 }
 
 //notificationPage is used to show html page for errors

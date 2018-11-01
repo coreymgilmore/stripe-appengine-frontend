@@ -202,8 +202,10 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
 	q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
 	i := client.Run(c, q)
+	var numResults int
 	for {
-		_, err = i.Next(&data)
+		var tempCardData CustomerDatastore
+		_, err = i.Next(&tempCardData)
 		if err == iterator.Done {
 			break
 		}
@@ -211,10 +213,14 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 			log.Println("card.FindByCustomerID-1", err)
 			return
 		}
+
+		//save data to variables outside iterator
+		data = tempCardData
+		numResults++
 	}
 
 	//check if no results were found
-	if data == (CustomerDatastore{}) {
+	if numResults == 0 {
 		return data, errCustomerNotFound
 	}
 

@@ -122,8 +122,8 @@ func init() {
 	log.Println("***FLAGS***")
 	log.Println("Deployment Type:", *deploymentType)
 	log.Println("Path to app.yaml:", *pathToAppYaml)
-	log.Println("Path to Datastore Cred:", *pathToDatastoreCredentials)
-	log.Println("Use Dev Datastore:", *useDevDatastore)
+	log.Println("Path to datastore cred file:", *pathToDatastoreCredentials)
+	log.Println("Use dev datastore:", *useDevDatastore)
 	log.Println("***********")
 
 	//set configuration options based on deployment type

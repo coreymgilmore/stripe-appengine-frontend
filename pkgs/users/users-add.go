@@ -116,7 +116,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//check if this user already exists
 	c := r.Context()
-	_, _, err := exists(c, username)
+	_, _, err := getDataByUsername(c, username)
 	if err == nil {
 		//user already exists
 		//notify client
