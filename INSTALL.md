@@ -1,4 +1,4 @@
-# How to install and configure this app
+# How to install and get this app running
 
 ### Golang
 1. Install go (golang).

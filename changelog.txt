@@ -1,3 +1,32 @@
+v4.0.0
+----------
+- complete redo of codebase to support appengine generation 2 (standard environment) runtime.
+    - new import paths to Google APIs.
+    - Google APIs changed a bit so codebase was changed to work correctly.
+    - removed need for specific appengine code in main.go.
+    - no more memcache (not available as of Nov. 2018 in gen 2 runtime).
+    - no more urlfetch, use normal golang http library.
+    - app.yaml configuration changed a bit.  less appengine specific stuff (static files).
+- allow using Cloud Datastore for development as well as production
+    - there isn't really a "dev server" anymore for development and you can't interact with the Datastore Emulator.
+    - this keeps the UI for inspecting the datastore the same between dev and prod settings.
+- support for newest Stripe library (52.1.0)
+    - changes required some rewriting of codebase to work correctly.
+- allow setting of more configuration options in app.yaml.
+    - so user's don't have to edit code.
+    - ex: stripe public key, used have to set this in .js file.
+    - allow using non-cdn static vendor files (bootstrap, jquery, etc.).  useful if serving from a non-appengine environment (see below) or you want to simply serve files from less domains.
+    - a lot more configuration options and easier to set than editing code.
+- support for non-appengine installs.
+    - uses SQLite as the database instead of Google Cloud Datastore.
+    - since appengine gen. 2 uses no appengine-specific code, this became a viable option.
+    - allows for migrating off of appengine (minus data migration) in case appengine becomes too expensive or changes the api heavily (again).
+    - uses app.yaml for configuration so users don't have to set environmental variables.
+        - same config as when deploying on appengine for ease-of-migration.
+    - this required a lot of work with "if appengine else sqlite" for db queries.
+- redo of some of gui to be more consistent and nicer.
+- lots of other code redo, clean up, etc.
+
 V3.1.2
 ------------
 - fix bug with timeout when adding card
