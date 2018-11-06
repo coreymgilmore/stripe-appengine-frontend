@@ -7,18 +7,19 @@
 		.value {
 			padding-left: 10px;
 		}
-
 	</style>
 
 	<body>
 		
 		<table>
-			{{ range $key, $value := . }}
-				<tr>
-					<td class="key">{{ $key }}</td>
-					<td class="value">{{ $value }}</td>
-				</tr>
-			{{ end }}
+			{{with .Data}}
+				{{ range $key, $value := . }}
+					<tr>
+						<td class="key">{{ $key }}</td>
+						<td class="value">{{ $value }}</td>
+					</tr>
+				{{ end }}
+			{{end}}
 		</table>
 			
 	</body>

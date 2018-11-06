@@ -92,6 +92,18 @@ type appYaml struct {
 	} `yaml:"error_handlers"`
 }
 
+//parsedYamlData is the data parsed from the app.yaml file
+//we parse the data in app.yaml and store it here so we can use it in diag()
+var parsedAppYaml appYaml
+
+//flags
+var (
+	deploymentType             string
+	pathToAppYaml              string
+	pathToDatastoreCredentials string
+	useDevDatastore            bool
+)
+
 func init() {
 	//use flags to allow for different deployment types
 	//deploymentType: used for changing how this app is deployed:
@@ -113,21 +125,21 @@ func init() {
 	//useDevDatastore: this overrides the default "true" value of using the dev datastore
 	//  when in dev mode.  Sometimes you may want to use live/production data even
 	//  though you are developing (for example, dev environment doesn't have any data).
-	deploymentType := flag.String("type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
-	pathToAppYaml := flag.String("pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
-	pathToDatastoreCredentials := flag.String("pathToDatastoreCredentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
-	useDevDatastore := flag.Bool("useDevDatastore", true, "Set to false to use live datastore data in development deployment types.")
+	flag.StringVar(&deploymentType, "type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
+	flag.StringVar(&pathToAppYaml, "pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
+	flag.StringVar(&pathToDatastoreCredentials, "pathToDatastoreCredentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
+	flag.BoolVar(&useDevDatastore, "useDevDatastore", true, "Set to false to use live datastore data in development deployment types.")
 	flag.Parse()
 
 	log.Println("***FLAGS***")
-	log.Println("Deployment Type:", *deploymentType)
-	log.Println("Path to app.yaml:", *pathToAppYaml)
-	log.Println("Path to datastore cred file:", *pathToDatastoreCredentials)
-	log.Println("Use dev datastore:", *useDevDatastore)
+	log.Println("Deployment Type:", deploymentType)
+	log.Println("Path to app.yaml:", pathToAppYaml)
+	log.Println("Path to datastore cred file:", pathToDatastoreCredentials)
+	log.Println("Use dev datastore:", useDevDatastore)
 	log.Println("***********")
 
 	//set configuration options based on deployment type
-	switch *deploymentType {
+	switch deploymentType {
 	case "appengine":
 		//the default deployment type
 		//when this app is run on appengine, the environmental variables in app.yaml file will automatically be provided to the app
@@ -170,13 +182,22 @@ func init() {
 		//set cache max age
 		cacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))
 
+		//save data for diagnostics
+		parsedAppYaml.EnvVars.ProjectID = os.Getenv("PROJECT_ID")
+		parsedAppYaml.EnvVars.SessionLifetime, _ = strconv.Atoi(os.Getenv("SESSION_LIFETIME"))
+		parsedAppYaml.EnvVars.CacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))
+		parsedAppYaml.EnvVars.UseLocalFiles = os.Getenv("USE_LOCAL_FILES")
+
 	case "appengine-dev":
 		//check for and parse the app.yaml file
-		yamlData, err := parseAppYaml(*pathToAppYaml)
+		yamlData, err := parseAppYaml(pathToAppYaml)
 		if err != nil {
 			log.Fatalln("Error while parsing app.yaml.", err)
 			return
 		}
+
+		//saved parsed data for use elsewhere
+		parsedAppYaml = yamlData
 
 		//set configuration options using app.yaml
 		//this is how we set the configuration in development
@@ -202,7 +223,7 @@ func init() {
 		//connect to the google cloud datastore
 		//need to set an environmental variable here since it provide credentials to the datastore
 		//see https://cloud.google.com/datastore/docs/reference/libraries#client-libraries-install-go
-		err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", *pathToDatastoreCredentials)
+		err = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", pathToDatastoreCredentials)
 		if err != nil {
 			log.Fatalln("Could not set Google Datastore credentials environmental variable.", err)
 			return
@@ -213,7 +234,7 @@ func init() {
 		//during development, we use dev entities or kinds.  The entity types are prepended "dev-" to keep dev data separate.
 		ccc := datastoreutils.Config
 		ccc.ProjectID = yamlData.EnvVars.ProjectID
-		ccc.Development = *useDevDatastore
+		ccc.Development = useDevDatastore
 		err = datastoreutils.SetConfig(ccc)
 		if err != nil {
 			log.Fatalln("Could not set configuration for datastore.", err)
@@ -277,6 +298,7 @@ func main() {
 	//main app page once user is logged in
 	main := http.HandlerFunc(pages.Main)
 	r.Handle("/main/", a.Then(main))
+	r.Handle("/diag/", http.HandlerFunc(diag))
 
 	//API endpoints
 	//users
@@ -362,4 +384,22 @@ func setStaticFileHeaders(h http.Handler) http.Handler {
 		//SERVE CONTENT
 		h.ServeHTTP(w, r)
 	})
+}
+
+//diag shows a diagnostic page with info on this app
+func diag(w http.ResponseWriter, r *http.Request) {
+	d := map[string]string{
+		"Deployment Type":                   deploymentType,
+		"Path to Datastore Credentials":     pathToDatastoreCredentials,
+		"Path to Static Files":              parsedAppYaml.EnvVars.StaticFilePath,
+		"Path to Templates":                 parsedAppYaml.EnvVars.TemplatesPath,
+		"Project ID":                        parsedAppYaml.EnvVars.ProjectID,
+		"Session Lifetime (days)":           strconv.Itoa(parsedAppYaml.EnvVars.SessionLifetime),
+		"Static File Cache Lifetime (days)": strconv.Itoa(parsedAppYaml.EnvVars.CacheDays),
+		"Use Development Datastore":         strconv.FormatBool(useDevDatastore),
+		"Use Local Files":                   parsedAppYaml.EnvVars.UseLocalFiles,
+	}
+
+	templates.Load(w, "diagnostics", d)
+	return
 }
