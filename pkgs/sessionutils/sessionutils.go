@@ -22,13 +22,15 @@ type config struct {
 	SessionAuthKey    string //a 64 character long string
 	SessionEncryptKey string //a 32 character long string
 	SessionLifetime   int    //number of days a user will remain logged in for
+	CookieDomain      string //domain to serve cookies on
 }
 
 //Config is a copy of the config struct with some defaults set
 var Config = config{
 	SessionAuthKey:    "",
 	SessionEncryptKey: "",
-	SessionLifetime:   7, //default value in case this doesn't get set before calling SetConfig()
+	SessionLifetime:   7,   //default value in case this doesn't get set before calling SetConfig()
+	CookieDomain:      "/", //"." is any domain
 }
 
 //this is the required sizes of the SessionAuthKey and SessionEncryptKey
@@ -46,7 +48,7 @@ var (
 )
 
 //sessionCookieName is the name of the cookie saved to clients that stores our session information
-var sessionCookieName = "session_id"
+var sessionCookieName = "cc_app_session_id"
 
 //store is a variable for dealing with session data
 var store *sessions.CookieStore
@@ -96,6 +98,7 @@ func SetConfig(c config) error {
 
 	//set session options
 	options.MaxAge = 60 * 60 * 24 * int(c.SessionLifetime)
+	options.Domain = c.CookieDomain
 	s.Options = options
 
 	//save session store for use later

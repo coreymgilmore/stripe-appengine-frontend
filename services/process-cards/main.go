@@ -69,16 +69,17 @@ var cacheDays = 0
 type appYaml struct {
 	Runtime string `yaml:"runtime"` //should be go111 for deployments to appengine
 	EnvVars struct {
-		ProjectID            string `yaml:"PROJECT_ID"`             //the project id on google cloud
-		SessionAuthKey       string `yaml:"SESSION_AUTH_KEY"`       //session cookie
-		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`    //session cookie
-		SessionLifetime      int    `yaml:"SESSION_LIFETIME"`       //how many days a user will remain logged in for
-		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`      //used for charging cards
-		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"` //used for creating customers and saving cards
-		CacheDays            int    `yaml:"CACHE_DAYS"`             //number of days to cache static files
-		StaticFilePath       string `yaml:"PATH_TO_STATIC_FILES"`   //the full path to the ./website/static/ directory
-		TemplatesPath        string `yaml:"PATH_TO_TEMPLATES"`      //the full path to the templates directory
-		UseLocalFiles        string `yaml:"USE_LOCAL_FILES"`        //true serves css/js/fonts from local domain versus cdn
+		ProjectID            string `yaml:"PROJECT_ID"`                 //the project id on google cloud
+		SessionAuthKey       string `yaml:"SESSION_AUTH_KEY"`           //session cookie
+		SessionEncryptKey    string `yaml:"SESSION_ENCRYPT_KEY"`        //session cookie
+		SessionLifetime      int    `yaml:"SESSION_LIFETIME"`           //how many days a user will remain logged in for
+		CookieDomain         string `yaml:"COOKIE_DOMAINCOOKIE_DOMAIN"` //the domain the session cookie is used for
+		StripeSecretKey      string `yaml:"STRIPE_SECRET_KEY"`          //used for charging cards
+		StripePublishableKey string `yaml:"STRIPE_PUBLISHABLE_KEY"`     //used for creating customers and saving cards
+		CacheDays            int    `yaml:"CACHE_DAYS"`                 //number of days to cache static files
+		StaticFilePath       string `yaml:"PATH_TO_STATIC_FILES"`       //the full path to the ./website/static/ directory
+		TemplatesPath        string `yaml:"PATH_TO_TEMPLATES"`          //the full path to the templates directory
+		UseLocalFiles        string `yaml:"USE_LOCAL_FILES"`            //true serves css/js/fonts from local domain versus cdn
 	} `yaml:"env_variables"`
 	Handlers []struct {
 		URL       string `yaml:"url"`
@@ -128,7 +129,7 @@ func init() {
 	flag.StringVar(&deploymentType, "type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
 	flag.StringVar(&pathToAppYaml, "pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
 	flag.StringVar(&pathToDatastoreCredentials, "pathToDatastoreCredentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
-	flag.BoolVar(&useDevDatastore, "useDevDatastore", true, "Set to false to use live datastore data in development deployment types.")
+	flag.BoolVar(&useDevDatastore, "useDevDatastore", true, "Not used for non -dev deployment types. Set to false to use live datastore data in development deployment types.")
 	flag.Parse()
 
 	log.Println("***FLAGS***")
@@ -147,6 +148,7 @@ func init() {
 		c.SessionAuthKey = os.Getenv("SESSION_AUTH_KEY")
 		c.SessionEncryptKey = os.Getenv("SESSION_ENCRYPT_KEY")
 		c.SessionLifetime, _ = strconv.Atoi(os.Getenv("SESSION_LIFETIME"))
+		c.CookieDomain = os.Getenv("COOKIE_DOMAIN")
 		err := sessionutils.SetConfig(c)
 		if err != nil {
 			log.Fatalln("Could not set configuration for sessionutils.", err)
@@ -174,6 +176,7 @@ func init() {
 		cccc.PathToTemplates = "./website/templates/"
 		cccc.Development = false
 		cccc.UseLocalFiles, _ = strconv.ParseBool(os.Getenv("USE_LOCAL_FILES"))
+		templates.SetConfig(cccc)
 
 		//set path to static files
 		//default for appengine deployments
@@ -187,6 +190,8 @@ func init() {
 		parsedAppYaml.EnvVars.SessionLifetime, _ = strconv.Atoi(os.Getenv("SESSION_LIFETIME"))
 		parsedAppYaml.EnvVars.CacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))
 		parsedAppYaml.EnvVars.UseLocalFiles = os.Getenv("USE_LOCAL_FILES")
+		parsedAppYaml.EnvVars.CookieDomain = os.Getenv("COOKIE_DOMAIN")
+		useDevDatastore = false
 
 	case "appengine-dev":
 		//check for and parse the app.yaml file
@@ -205,6 +210,7 @@ func init() {
 		c.SessionAuthKey = yamlData.EnvVars.SessionAuthKey
 		c.SessionEncryptKey = yamlData.EnvVars.SessionEncryptKey
 		c.SessionLifetime = yamlData.EnvVars.SessionLifetime
+		c.CookieDomain = yamlData.EnvVars.CookieDomain
 		err = sessionutils.SetConfig(c)
 		if err != nil {
 			log.Fatalln("Could not set configuration for sessionutils.", err)
@@ -389,6 +395,7 @@ func setStaticFileHeaders(h http.Handler) http.Handler {
 //diag shows a diagnostic page with info on this app
 func diag(w http.ResponseWriter, r *http.Request) {
 	d := map[string]string{
+		"Cookie Domain":                     parsedAppYaml.EnvVars.CookieDomain,
 		"Deployment Type":                   deploymentType,
 		"Path to Datastore Credentials":     pathToDatastoreCredentials,
 		"Path to Static Files":              parsedAppYaml.EnvVars.StaticFilePath,
