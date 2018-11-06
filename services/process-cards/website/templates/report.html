@@ -4,7 +4,7 @@
 {{$charges := .Data.Charges}}
 {{$numCharges := .Data.NumCharges}}
 {{$totalCharged := .Data.TotalCharges}}
-{{$totalChargesLessFees := .Data.TotalChargesLessFees}}
+{{$totalChargedLessFees := .Data.TotalChargesLessFees}}
 {{$refunds := .Data.Refunds}}
 {{$numRefunds := .Data.NumRefunds}}
 {{$totalRefunded := .Data.TotalRefunds}}
@@ -57,7 +57,15 @@
 														<td>{{.LastFour}}</td>
 														<td class="amount-dollars charge-amount-column"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
 														<td>{{.Invoice}}</td>
-														<td>{{if .AutoCharge}}{{.AutoChargeReferrer}}{{else}}{{.User}}{{end}}
+														<td>
+															{{if .AutoCharge}}
+																{{.User}} - {{.AutoChargeReason}}
+															{{else if eq .User "api"}}
+																{{.User}} - {{.AutoChargeReason}}
+															{{else}}
+																{{.User}}
+															{{end}}
+														</td>
 														<td>{{.Timestamp}}</td>
 														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}&timezone={{$timezoneOffset}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														
@@ -89,7 +97,7 @@
 											<td></td>
 											<td class="charge-amount-column">
 												<b>$<span class="amount format-number-commas">{{$totalCharged}}</span></b><br>
-												$<span class="amount format-number-commas">{{$.totalChargedLessFees}}</span>
+												$<span class="amount format-number-commas">{{$totalChargedLessFees}}</span>
 											</td>
 											<td></td>
 											<td></td>
