@@ -74,7 +74,7 @@ func Get(r *http.Request) (result Settings, err error) {
 		//no app settings exist yet
 		//return default values
 		log.Println("appsettings.Get", "App settings don't exist yet.  Returning default values.")
-		result = defaultAppSettings
+		return defaultAppSettings, nil
 	}
 
 	return

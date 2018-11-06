@@ -104,7 +104,7 @@ func Get(r *http.Request) (result Info, err error) {
 		//no company info exists yet
 		//return default values
 		log.Println("company.Get", "Company info doesn't exist yet.  Returning default values.")
-		result = defaultCompanyInfo
+		return defaultCompanyInfo, nil
 	}
 
 	return
