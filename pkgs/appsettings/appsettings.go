@@ -28,7 +28,8 @@ const datastoreKeyName = "appSettingsKey"
 //Settings is used for setting or getting the app settings from the datastore
 type Settings struct {
 	RequireCustomerID bool   `json:"require_cust_id"` //is the customer id field required when adding a new card
-	CustomerIDFormat  string `json:"cust_id_format"`  //the format of the customer id from a CRM system.  maybe it  start swith CUST, or ACCT, etc.
+	CustomerIDFormat  string `json:"cust_id_format"`  //the format of the customer id from a CRM system.  This shows up in the gui.
+	CustomerIDRegex   string `json:"cust_id_regex"`   //the regex to check the customer id against.
 	APIKey            string `json:"api_key"`         //the api key to access this app to automatically charge cards
 }
 
@@ -36,6 +37,7 @@ type Settings struct {
 var defaultAppSettings = Settings{
 	RequireCustomerID: false,
 	CustomerIDFormat:  "",
+	CustomerIDRegex:   "",
 	APIKey:            "",
 }
 
@@ -85,12 +87,14 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	//get form values
 	reqCustID, _ := strconv.ParseBool(r.FormValue("requireCustID"))
 	custIDFormat := strings.TrimSpace(r.FormValue("custIDFormat"))
+	custIDRegex := strings.TrimSpace(r.FormValue("custIDRegex"))
 
 	//build entity to save
 	//or update existing entity
 	data := Settings{}
 	data.RequireCustomerID = reqCustID
 	data.CustomerIDFormat = custIDFormat
+	data.CustomerIDRegex = custIDRegex
 
 	//save company info
 	c := r.Context()

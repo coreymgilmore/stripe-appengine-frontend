@@ -27,6 +27,10 @@
 			<option value="None">None</option>
 		</datalist>
 
+		<!-- ELEMENT FOR HOLDING STRIPE PUBLISHABLE KEY -->
+		<!-- key is in a hidden input instead of directly injected into js since direct injection of template variable generates an error in vscode and therefore a problem is noted even though it isn't an issue -->
+		<input id="stripePublishableKey" type="hidden" value="{{$stripeKey}}">
+
 		<div class="container">
 			<!-- NAV BAR -->
 			<div class="row">
@@ -113,7 +117,7 @@
 									<label class="control-label">Customer ID: {{if eq $appSettings.RequireCustomerID false}}<small>(optional)</small>{{end}}</label>
 									<input class="form-control" id="customer-id" type="text" 
 										{{if $appSettings.RequireCustomerID}}
-											placeholder="{{$appSettings.CustomerIDFormat}}" required
+											placeholder="{{$appSettings.CustomerIDFormat}}" required pattern="{{$appSettings.CustomerIDRegex}}"
 										{{else}}
 											placeholder="A unique identifier."
 										{{end}} 
@@ -850,6 +854,12 @@
 									<input class="form-control cust-id-format" type="text" required autocomplete="off">
 								</div>
 							</div>
+							<div class="form-group">
+								<label class="control-label col-sm-4">Customer ID Regex:</label>
+								<div class="col-sm-7">
+									<input class="form-control cust-id-regex" type="text" autocomplete="off" placeholder="Leave blank if you don't understand regex." spellcheck="false">
+								</div>
+							</div>
 							
 							<hr class="hr-modal">
 							<div class="form-group">
@@ -885,7 +895,7 @@
 		{{template "stripe-js"}}
 		{{if $stripeKey}}
 			<script>
-				Stripe.setPublishableKey({{$stripeKey}});
+				Stripe.setPublishableKey(document.getElementById('stripePublishableKey').value);
 			</script>
 		{{end}}
 		{{template "html_scripts" .}}

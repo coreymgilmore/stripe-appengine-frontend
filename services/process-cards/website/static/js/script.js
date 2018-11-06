@@ -1533,6 +1533,7 @@ $('#modal-app-settings').on('show.bs.modal', function() {
 			}
 
 			$('#modal-app-settings .cust-id-format').val(data['cust_id_format']);
+			$('#modal-app-settings .cust-id-regex').val(data['cust_id_regex']);
 
 			if (data['api_key'] === '') {
 				$('#api-key-displayed').val("Not created yet.");
@@ -1570,6 +1571,7 @@ $('#form-change-app-settings').submit( function (e) {
 	//gather input values
 	var requireCustID = $('#modal-app-settings .require-cust-id label.active input').val();
 	var custIDFormat =  $('#modal-app-settings .cust-id-format').val();
+	var custIDRegex = 	$('#modal-app-settings .cust-id-regex').val();
 	var msg = 		 	$('#modal-app-settings .msg');
 	var btn = 		 	$('#app-settings-submit');
 
@@ -1580,6 +1582,7 @@ $('#form-change-app-settings').submit( function (e) {
 		data: {
 			requireCustID: requireCustID,
 			custIDFormat: custIDFormat,
+			custIDRegex: custIDRegex,
 		},
 		beforeSend: function() {
 			showModalMessage("Saving app settings...", "info", msg);
