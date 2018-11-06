@@ -3,8 +3,6 @@ set use of redis as memcache in environmental variable
     - would require a lot of if/else for checking cache and setting stuff
     - would this add latency since we would be making HTTP requests to look up stuff in cache?  probably.
 
-regex for customer id?
-
 better step-by-step document of how to install/set up
 
 show time in reports according to local time, not UTC

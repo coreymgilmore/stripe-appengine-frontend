@@ -17,6 +17,8 @@ v4.0.0
     - ex: stripe public key, used have to set this in .js file.
     - allow using non-cdn static vendor files (bootstrap, jquery, etc.).  useful if serving from a non-appengine environment (see below) or you want to simply serve files from less domains.
     - a lot more configuration options and easier to set than editing code.
+- use regex to validate customer id when adding a new card
+    - makes sure users are typing in correctly formatted id from a crm.
 - support for non-appengine installs.
     - uses SQLite as the database instead of Google Cloud Datastore.
     - since appengine gen. 2 uses no appengine-specific code, this became a viable option.
