@@ -233,6 +233,7 @@ func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum stri
 	chargeParams.AddMetadata("processed_by", user)
 
 	if user == "api" {
+		chargeParams.AddMetadata("auto_charge", "true")
 		chargeParams.AddMetadata("auto_charge_referrer", referrer)
 		chargeParams.AddMetadata("auto_charge_reason", reason)
 	}
