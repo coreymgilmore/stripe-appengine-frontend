@@ -117,7 +117,10 @@
 									<label class="control-label">Customer ID: {{if eq $appSettings.RequireCustomerID false}}<small>(optional)</small>{{end}}</label>
 									<input class="form-control" id="customer-id" type="text" 
 										{{if $appSettings.RequireCustomerID}}
-											placeholder="{{$appSettings.CustomerIDFormat}}" required pattern="{{$appSettings.CustomerIDRegex}}"
+											placeholder="{{$appSettings.CustomerIDFormat}}" required 
+											{{if ne $appSettings.CustomerIDRegex ""}}
+												pattern="{{$appSettings.CustomerIDRegex}}"
+											{{end}}
 										{{else}}
 											placeholder="A unique identifier."
 										{{end}} 
@@ -834,7 +837,11 @@
 					</div>
 					<div class="modal-body">
 						<form class="form-horizontal" id="form-change-app-settings" method="POST" action="">
-				
+							<blockquote>
+								Customer ID is the first input when adding a new card.  This ID is used for autofilling the Charge form or performing automated charges.  The format tells a user what they need to type in and the regex is used to validate the user's input.  Leave regex blank if you don't understand it.
+							</blockquote>
+							<hr class="hr-modal">
+
 							<div class="form-group">
 								<label class="control-label col-sm-4">Require Customer ID:</label>
 								<div class="col-sm-7">
