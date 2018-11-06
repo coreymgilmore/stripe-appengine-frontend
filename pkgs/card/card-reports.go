@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -82,6 +83,33 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//for determining if receipt/refund buttons need to be hidden or shown based on user's access rights
 	userID := sessionutils.GetUserID(r)
 	userdata, _ := users.Find(c, userID)
+
+	//format dates
+	for index, c := range charges {
+		originalTime := c.Timestamp
+
+		originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", originalTime)
+		if err != nil {
+			log.Println("time reformat error", err)
+			continue
+		}
+
+		newTime := originalTimeTime.Format("2006-01-02 15:04:05")
+		charges[index].Timestamp = newTime
+	}
+
+	for index, c := range refunds {
+		originalTime := c.Timestamp
+
+		originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", originalTime)
+		if err != nil {
+			log.Println("time reformat error", err)
+			continue
+		}
+
+		newTime := originalTimeTime.Format("2006-01-02 15:04:05")
+		refunds[index].Timestamp = newTime
+	}
 
 	//store data for building template
 	result := reportData{

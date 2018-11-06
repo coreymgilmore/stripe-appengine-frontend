@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
@@ -73,6 +74,14 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		companyInfo.CompanyName = "**Company info has not been set yet.**"
 		companyInfo.Street = "**Please contact an administrator to fix this.**"
 		log.Println("receipt.Show", "Cannot view receipt because company info hasn't been set yet.")
+	}
+
+	//reformat datetime
+	originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", d.Timestamp)
+	if err != nil {
+		log.Println("time reformat error", err)
+	} else {
+		d.Timestamp = originalTimeTime.Format("2006-01-02 15:04:05")
 	}
 
 	//display receipt
