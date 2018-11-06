@@ -1,37 +1,60 @@
-runtime: go
-api_version: go1
-
-#default cache period for static files
-default_expiration: "5d"
+runtime: go111
 
 #these items need to be edited prior to deployment
-#SESSION_AUTH_KEY & SESSION_ENCRYPT_KEY are used for the session cookie.  The length of each MUST be EXACTLY 64 & 32 characters, respectively.
-#STRIPE_SECRET_KEY is provided on the Stripe Dashboard.  This allows for processing charges.  You can use the test or live key.  The key starts with "sk_".
 env_variables:
-  SESSION_AUTH_KEY: "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"
-  SESSION_ENCRYPT_KEY: "asdfasdfasdfasdfasdfasdfasdfasdf"
-  STRIPE_SECRET_KEY: "sk_test_asdfasdfasdfasdfasdfasdf"
+  #PROJECT_ID is used to connect to the Google Cloud Datastore.
+  #This must match your project ID for Google Cloud Appengine.
+  PROJECT_ID: "my-appengine-product-id"
+  
+  #SESSION_AUTH_KEY & SESSION_ENCRYPT_KEY are used for the session cookie.  
+  #Auth key must be 64 characters.
+  #Encrypt key must be 32 characters.
+  SESSION_AUTH_KEY: "1111111111111111111111111111111111111111111111111111111111111111"
+  SESSION_ENCRYPT_KEY: "22222222222222222222222222222222"
+
+  #SESSION_LIFETIME is the number of days a user will remain logged in for so he/she
+  #doesn't have to type in username/password everytime.  The days count from the last 
+  #time the user used the app.  This should be greater than 0.
+  SESSION_LIFETIME: 7
+
+  #COOKIE_DOMAIN is the domain that the session cookie is served on
+  #you should set this to the domain you will access your app on, ex: my-creditcard-app.appspot.com
+  #this is a security setting.  default value is "." which is any domain.
+  COOKIE_DOMAIN: "simalfa-creditcard.appspot.com"
+  
+  #STRIPE_SECRET_KEY & STRIPE_PUBLISHABLE_KEY are used for interacting with Stripe 
+  #Ex: adding customers and charging cards.
+  #Test or live keys are both valid.  
+  #These keys can be found on your Stripe dashboard.
+  STRIPE_SECRET_KEY: "sk_live_111111111111111111111111"
+  STRIPE_PUBLISHABLE_KEY: "pk_live_222222222222222222222222"
+  #STRIPE_SECRET_KEY: "sk_test_111111111111111111111111"
+  #STRIPE_PUBLISHABLE_KEY: "pk_test_222222222222222222222222"
+
+  #CACHE_DAYS is the number of days to cache static (js/css) files on the client side.
+  #this should be a value greater than 0.  0 means don't cache files at all.
+  CACHE_DAYS: 7
+
+  #PATH_TO_STATIC_FILES is the full path to the directory (./webstite/static/) that stores the static files (js, css, etc.)
+  PATH_TO_STATIC_FILES: "./website/static/"
+
+  #PATH_TO_TEMPLATES is the full path to the directory (./website/templates) that html templates are stored in
+  PATH_TO_TEMPLATES: "./website/templates/"
+
+  #USE_LOCAL_FILES serves the vendor css/js/font files from local storage versus cdn
+  #almost everything but stripe is served from local storage versus cdn
+  USE_LOCAL_FILES: "true"
 
 #static file handlers.
 handlers:
-- url: /css
-  static_dir: website/css
-- url: /js
-  static_dir: website/js
-- url: /img
-  static_dir: website/img
-- url: /robots.txt
-  static_files: website/robots/robots.txt
-  upload: website/robots/robots.txt
+  #run the app
+  - url: /.*
+    script: auto
 
-#run the app
-- url: /.*
-  script: _go_app
-
-#cron tasks
-- url: /cron/remove-expired-cards/
-  script: _go_app
-  #login: admin #commented out so that users can browse to this endpoint and provide url form value to remove cards with a different expiration
+  #cron tasks
+  - url: /cron/remove-expired-cards/
+    script: auto
+    #login: admin
 
 #handle errors
 error_handlers:
