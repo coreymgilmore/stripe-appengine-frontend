@@ -31,6 +31,9 @@
 		<!-- key is in a hidden input instead of directly injected into js since direct injection of template variable generates an error in vscode and therefore a problem is noted even though it isn't an issue -->
 		<input id="stripePublishableKey" type="hidden" value="{{$stripeKey}}">
 
+		<!-- OTHER CONFIG STUFF FOR DIAGNOSTICS -->
+		<input id="useLocalFiles" type="hidden" value="{{.Configuration.UseLocalFiles}}">
+
 		<div class="container">
 			<!-- NAV BAR -->
 			<div class="row">
