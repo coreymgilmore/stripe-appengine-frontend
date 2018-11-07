@@ -96,9 +96,18 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.CustomerIDFormat = custIDFormat
 	data.CustomerIDRegex = custIDRegex
 
+	//get current api key
+	//otherwise nothing will be set since data about has a blank api key
+	result, err := Get(r)
+	if err != nil {
+		output.Error(err, "Could not update app settings due to an error.", w)
+		return
+	}
+	data.APIKey = result.APIKey
+
 	//save company info
 	c := r.Context()
-	err := save(c, data)
+	err = save(c, data)
 	if err != nil {
 		output.Error(err, "", w)
 		return
