@@ -85,6 +85,8 @@ var (
 	errMissingLast4         = errors.New("card: missing last4 card digits")
 	errStripe               = errors.New("card: stripe error")
 	errMissingInput         = errors.New("card: missing input")
+	errMissingAPIKey        = errors.New("card: missing api key")
+	errInvalidAPIKey        = errors.New("card: invalid api key")
 	errChargeAmountTooLow   = errors.New("card: amount less than min charge")
 	errCustomerNotFound     = errors.New("card: customer not found")
 	errCustIDAlreadyExists  = errors.New("card: customer id already exists")

@@ -128,7 +128,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(apiKey) == 0 {
-		output.Error(errMissingInput, "There was no api given. This must be given in the 'api_key' field to authenticate this request.", w)
+		output.Error(errMissingAPIKey, "There was no api given. This must be given in the 'api_key' field to authenticate this request.", w)
 		return
 	}
 
@@ -139,7 +139,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if settings.APIKey != apiKey {
-		output.Error(errMissingInput, "The api key provided in the request is not correct.", w)
+		output.Error(errInvalidAPIKey, "The api key provided in the request is not correct.", w)
 		return
 	}
 
