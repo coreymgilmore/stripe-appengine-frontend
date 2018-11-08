@@ -127,6 +127,10 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		output.Error(errMissingInput, "There was no 'referrer' given.  This should be the app that made this auto-charge request.  This is used for logging.", w)
 		return
 	}
+	if len(reason) == 0 {
+		output.Error(errMissingInput, "There was no 'reason' given.  This should be the function of the app that made this auto-charge request.  This is used for logging.", w)
+		return
+	}
 	if len(apiKey) == 0 {
 		output.Error(errMissingAPIKey, "There was no api given. This must be given in the 'api_key' field to authenticate this request.", w)
 		return
