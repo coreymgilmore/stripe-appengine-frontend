@@ -7,6 +7,11 @@ better step-by-step document of how to install/set up
 
 show time in reports according to local time, not UTC
 
+rename project to "stripe-frontend"
+    - since we offer a non-appengine install
+    - more descriptive by not including appengine
+    - need to fix import paths for golang
+
 sqlite/local install instead of appengine
     - allow using sqlite instead of appengine datastore
     - use flag to set this (--deploymentType=sqlite) which then looks up path to sqlite.db from app.yaml
