@@ -134,11 +134,14 @@ func DoesAdminExist(r *http.Request) error {
 }
 
 //getDataByUsername looks up data about a user by the user's username
-func getDataByUsername(c context.Context, username string) (keyID int64, u User, err error) {
+func getDataByUsername(c context.Context, username string) (int64, User, error) {
+	//placeholder
+	u := User{}
+
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return 0, u, err
 	}
 
 	//query
@@ -174,18 +177,20 @@ func getDataByUsername(c context.Context, username string) (keyID int64, u User,
 
 //Find gets the data for a given user id
 //This returns all the info on a user.
-func Find(c context.Context, userID int64) (u User, err error) {
+func Find(c context.Context, userID int64) (User, error) {
+	//placeholder
+	u := User{}
+
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return u, err
 	}
 
-	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
-
 	//query
+	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
 	err = client.Get(c, key, &u)
-	return
+	return u, err
 }
 
 //notificationPage is used to show html page for errors

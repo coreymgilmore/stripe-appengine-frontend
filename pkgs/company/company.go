@@ -86,20 +86,22 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 
 //Get actually retrienves the information from the datastore
 //putting this into a separate func cleans up code elsewhere
-func Get(r *http.Request) (result Info, err error) {
+func Get(r *http.Request) (Info, error) {
+	//placeholder
+	data := Info{}
 
 	//connect to datastore
 	c := r.Context()
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return data, err
 	}
 
 	//get from datastore
 	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
 
 	//get data
-	err = client.Get(c, key, &result)
+	err = client.Get(c, key, &data)
 	if err == datastore.ErrNoSuchEntity {
 		//no company info exists yet
 		//return default values
@@ -107,7 +109,8 @@ func Get(r *http.Request) (result Info, err error) {
 		return defaultCompanyInfo, nil
 	}
 
-	return
+	//return data found
+	return data, nil
 }
 
 //SaveAPI saves new or updates existing company info in the datastore

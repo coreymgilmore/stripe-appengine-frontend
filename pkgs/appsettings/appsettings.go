@@ -59,12 +59,15 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 
 //Get actually retrienves the information from the datastore
 //putting this into a separate func cleans up code elsewhere
-func Get(r *http.Request) (result Settings, err error) {
+func Get(r *http.Request) (Settings, error) {
+	//placeholder
+	result := Settings{}
+
 	//connect to datastore
 	c := r.Context()
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return result, err
 	}
 
 	//get the key we are looking up
@@ -79,7 +82,8 @@ func Get(r *http.Request) (result Settings, err error) {
 		return defaultAppSettings, nil
 	}
 
-	return
+	//returl data found
+	return result, nil
 }
 
 //SaveAPI saves new or updates existing company info in the datastore

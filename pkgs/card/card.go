@@ -174,11 +174,14 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 
 //findByDatastoreID retrieves a card's information by its datastore id
 //This returns all the info on a card that is needed to build the ui.
-func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatastore, err error) {
+func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
+	//placeholder
+	data := CustomerDatastore{}
+
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return data, err
 	}
 
 	//get complete key
@@ -186,18 +189,21 @@ func findByDatastoreID(c context.Context, datastoreID int64) (data CustomerDatas
 
 	//query
 	err = client.Get(c, key, &data)
-	return
+	return data, err
 }
 
 //FindByCustomerID retrieves a card's information by the unique id from a CRM system
 //This id was provided when a card was added to this app.
 //This func is used when making api style request to semi-automate the charging of a card.
 //only getting the fields we need to show data in the charge card panel
-func FindByCustomerID(c context.Context, customerID string) (data CustomerDatastore, err error) {
+func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, error) {
+	//placeholder
+	data := CustomerDatastore{}
+
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
-		return
+		return data, err
 	}
 
 	//query
@@ -213,7 +219,7 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 		}
 		if err != nil {
 			log.Println("card.FindByCustomerID-1", err)
-			return
+			return data, err
 		}
 
 		//save data to variables outside iterator
@@ -227,7 +233,7 @@ func FindByCustomerID(c context.Context, customerID string) (data CustomerDatast
 	}
 
 	//one result was found
-	return
+	return data, nil
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang
