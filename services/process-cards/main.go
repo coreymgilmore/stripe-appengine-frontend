@@ -395,16 +395,25 @@ func setStaticFileHeaders(h http.Handler) http.Handler {
 //diag shows a diagnostic page with info on this app
 func diag(w http.ResponseWriter, r *http.Request) {
 	d := map[string]string{
-		"Cookie Domain":                     parsedAppYaml.EnvVars.CookieDomain,
-		"Deployment Type":                   deploymentType,
-		"Path to Datastore Credentials":     pathToDatastoreCredentials,
-		"Path to Static Files":              parsedAppYaml.EnvVars.StaticFilePath,
-		"Path to Templates":                 parsedAppYaml.EnvVars.TemplatesPath,
-		"Project ID":                        parsedAppYaml.EnvVars.ProjectID,
-		"Session Lifetime (days)":           strconv.Itoa(parsedAppYaml.EnvVars.SessionLifetime),
-		"Static File Cache Lifetime (days)": strconv.Itoa(parsedAppYaml.EnvVars.CacheDays),
-		"Use Development Datastore":         strconv.FormatBool(useDevDatastore),
-		"Use Local Files":                   parsedAppYaml.EnvVars.UseLocalFiles,
+		"Cookie Domain":                      parsedAppYaml.EnvVars.CookieDomain,
+		"Deployment Type":                    deploymentType,
+		"Session Lifetime (days)":            strconv.Itoa(parsedAppYaml.EnvVars.SessionLifetime),
+		"Static File Cache Lifetime (days)":  strconv.Itoa(parsedAppYaml.EnvVars.CacheDays),
+		"Use Development Database/Datastore": strconv.FormatBool(useDevDatastore),
+		"Use Local Files":                    parsedAppYaml.EnvVars.UseLocalFiles,
+
+		//appengine specific stuff
+		//when deployement type = appengine, these fields will have values.  otherwise they are blank
+		"Project ID":                 parsedAppYaml.EnvVars.ProjectID,
+		"App Engine Service Name:":   os.Getenv("GAE_SERVICE"),
+		"App Engine Service Version": os.Getenv("GAE_VERSION"),
+		"App Engine Instance ID":     os.Getenv("GAE_INSTANCE"),
+
+		//appengine-dev or sqlite stuff
+		//when app is installed in a non-appengine environment
+		"Path to Datastore Credentials": pathToDatastoreCredentials,
+		"Path to Static Files":          parsedAppYaml.EnvVars.StaticFilePath,
+		"Path to Templates":             parsedAppYaml.EnvVars.TemplatesPath,
 	}
 
 	templates.Load(w, "diagnostics", d)
