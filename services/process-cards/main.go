@@ -127,17 +127,10 @@ func init() {
 	//  when in dev mode.  Sometimes you may want to use live/production data even
 	//  though you are developing (for example, dev environment doesn't have any data).
 	flag.StringVar(&deploymentType, "type", "appengine", "Set to appengine or appengine-dev.  In development mode the app.yaml file will be parsed to read the set environmental variables.")
-	flag.StringVar(&pathToAppYaml, "pathToAppYaml", "./app.yaml", "The path to the app.yaml file.")
-	flag.StringVar(&pathToDatastoreCredentials, "pathToDatastoreCredentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
-	flag.BoolVar(&useDevDatastore, "useDevDatastore", true, "Not used for non -dev deployment types. Set to false to use live datastore data in development deployment types.")
+	flag.StringVar(&pathToAppYaml, "path-to-app-yaml", "./app.yaml", "The path to the app.yaml file.")
+	flag.StringVar(&pathToDatastoreCredentials, "path-to-datastore-credentials", "./datastore-service-account.json", "The path to your datastore service account file.  A JSON file.")
+	flag.BoolVar(&useDevDatastore, "use-dev-datastore", true, "Not used for non -dev deployment types. Set to false to use live datastore data in development deployment types.")
 	flag.Parse()
-
-	log.Println("***FLAGS***")
-	log.Println("Deployment Type:", deploymentType)
-	log.Println("Path to app.yaml:", pathToAppYaml)
-	log.Println("Path to datastore cred file:", pathToDatastoreCredentials)
-	log.Println("Use dev datastore:", useDevDatastore)
-	log.Println("***********")
 
 	//set configuration options based on deployment type
 	switch deploymentType {
