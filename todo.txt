@@ -5,8 +5,6 @@ set use of redis as memcache in environmental variable
 
 better step-by-step document of how to install/set up
 
-show time in reports according to local time, not UTC
-
 rename project to "stripe-frontend"
     - since we offer a non-appengine install
     - more descriptive by not including appengine
