@@ -46,7 +46,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"google.golang.org/appengine"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -410,23 +409,12 @@ func diag(w http.ResponseWriter, r *http.Request) {
 		"App Engine Service Name":    os.Getenv("GAE_SERVICE"),
 		"App Engine Service Version": os.Getenv("GAE_VERSION"),
 		"App Engine Instance ID":     os.Getenv("GAE_INSTANCE"),
-		"App Engine Datacener":       "",
-		"App Engine Go Version":      "",
 
 		//appengine-dev or sqlite stuff
 		//when app is installed in a non-appengine environment
 		"Path to Datastore Credentials": pathToDatastoreCredentials,
 		"Path to Static Files":          parsedAppYaml.EnvVars.StaticFilePath,
 		"Path to Templates":             parsedAppYaml.EnvVars.TemplatesPath,
-	}
-
-	//when deployed on app engine
-	//these values are only available when deployed on appengine
-	if deploymentType == deploymentTypeAppengine {
-		c := r.Context()
-
-		d["App Engine Datacener"] = appengine.Datacenter(c)
-		d["App Engine Go Version"] = appengine.ServerSoftware()
 	}
 
 	templates.Load(w, "diagnostics", d)
