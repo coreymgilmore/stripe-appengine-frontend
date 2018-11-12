@@ -325,7 +325,6 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 	amountInt := chg.Amount
 	captured := chg.Captured
 	capturedStr := strconv.FormatBool(captured)
-	timestamp := chg.Created
 
 	//skip the rest of this if captured is false
 	//this means the charge was not processed
@@ -367,8 +366,12 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 	//convert amount to dollars
 	amountDollars := strconv.FormatFloat((float64(amountInt) / 100), 'f', 2, 64)
 
+	//get timestamp charge was completed
 	//convert timetamp to datetime
-	datetime := time.Unix(timestamp, 0).Format("2006-01-02T15:04:05.000Z")
+	//use utc time so we can convert this elsewhere based on app settings
+	//stripe returns seconds since unix epoch in chg.Created
+	timestamp := chg.Created
+	datetime := time.Unix(timestamp, 0).UTC().Format("2006-01-02T15:04:05.000Z")
 
 	//build data struct to return
 	data = ChargeData{

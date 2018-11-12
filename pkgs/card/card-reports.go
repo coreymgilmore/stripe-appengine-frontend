@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
@@ -26,7 +27,6 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	startString := r.FormValue("start-date")
 	endString := r.FormValue("end-date")
 	hoursToUTC := r.FormValue("timezone")
-	hoursToUTCInt, _ := strconv.Atoi(hoursToUTC)
 
 	//get report data form stripe
 	//make sure inputs are given
@@ -84,30 +84,49 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	userID := sessionutils.GetUserID(r)
 	userdata, _ := users.Find(c, userID)
 
-	//format dates
+	//format timestamps
+	//show timestamps in timezone set in app settings and change the format to be a bit nicer to look at
+	//utcLoc is the timezone Stripe records charges in.  Stripe always uses UTC
+	//guiLoc is the timezone we want to show charges in to make sense to users. this is set in app settings.
+	utcLoc, err := time.LoadLocation("UTC")
+	if err != nil {
+		log.Println("card.Report: could not get UTC timezone location", err)
+	}
+
+	appData, err := appsettings.Get(r)
+	timezone := "UTC" //default value
+	if err != nil {
+		log.Println("card.Report: could not get appsettings timezone", err)
+	} else {
+		timezone = appData.ReportTimezone
+	}
+
+	guiLoc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Println("card.Report: could not get gui timezone location", err)
+	}
+
 	for index, c := range charges {
 		originalTime := c.Timestamp
-
-		originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", originalTime)
+		originalTimeTime, err := time.ParseInLocation("2006-01-02T15:04:05.000Z", originalTime, utcLoc)
 		if err != nil {
-			log.Println("time reformat error", err)
+			log.Println("card.Report, charges: time reformat error", err)
 			continue
 		}
 
-		newTime := originalTimeTime.Format("2006-01-02 15:04:05")
+		newTime := originalTimeTime.In(guiLoc).Format("2006-01-02 @ 3:04:05PM")
 		charges[index].Timestamp = newTime
 	}
 
 	for index, c := range refunds {
 		originalTime := c.Timestamp
-
-		originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", originalTime)
+		originalTimeTime, err := time.ParseInLocation("2006-01-02T15:04:05.000Z", originalTime, utcLoc)
 		if err != nil {
-			log.Println("time reformat error", err)
+			log.Println("card.Report, refunds: time reformat error", err)
 			continue
 		}
 
-		newTime := originalTimeTime.Format("2006-01-02 15:04:05")
+		newTime := originalTimeTime.In(guiLoc).Format("2006-01-02 @ 3:04:05PM")
 		refunds[index].Timestamp = newTime
 	}
 
@@ -124,7 +143,7 @@ func Report(w http.ResponseWriter, r *http.Request) {
 		TotalRefundsLessFees: "",
 		NumCharges:           numCharges,
 		NumRefunds:           numRefunds,
-		TimezoneOffset:       hoursToUTCInt,
+		ReportGUITimezone:    timezone,
 	}
 
 	//build template to display report
@@ -198,7 +217,7 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 	return
 }
 
-//getListOfRefunds  gets the list of refunds and returns data about them
+//getListOfRefunds gets the list of refunds and returns data about them
 //This filters the list of refunds by date range.
 //We cannot filter by company when looking up refunds, unfortunately (Stripe issue).
 //This looks up refunds by iterating through the list of events that

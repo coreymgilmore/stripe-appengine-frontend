@@ -872,6 +872,26 @@
 							</div>
 							
 							<hr class="hr-modal">
+							<blockquote>
+								Timezone is used to show times in reports & receipts in a timezone most easily understood by users.  Default is UTC.  Please go <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones" target="_blank">here</a> to see valid options.
+							</blockquote>
+							<div class="form-group">
+								<label class="control-label col-sm-4">GUI Timezone:</label>
+								<div class="col-sm-7">
+									<input class="form-control report-timezone" type="text" list="timezone-list" autocomplete="off" placeholder="America/New_York">
+									
+									<datalist id="timezone-list">
+										<option value="UTC">UTC</option>
+										<option value="America/New_York">EST (New York)</option>
+										<option value="America/Chicago">CST (Chicago)</option>
+										<option value="America/Denver">MST (Denver)</option>
+										<option value="America/Los_Angeles">PST (Los Angeles)</option>
+									</datalist>
+								</div>
+							</div>
+
+
+							<hr class="hr-modal">
 							<div class="form-group">
 								<label class="control-label col-sm-4">API Key:</label>
 								<div class="col-sm-7">

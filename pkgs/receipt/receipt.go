@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
@@ -43,6 +44,9 @@ type receiptData struct {
 	Amount,
 	Invoice,
 	Po string
+
+	//app settings
+	Timezone string
 }
 
 //Show builds an html page that display a receipt
@@ -77,11 +81,29 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//reformat datetime
-	originalTimeTime, err := time.Parse("2006-01-02T15:04:05.000Z", d.Timestamp)
+	utcLoc, err := time.LoadLocation("UTC")
 	if err != nil {
-		log.Println("time reformat error", err)
+		log.Println("receipt.Show: could not get UTC timezone location", err)
+	}
+
+	appData, err := appsettings.Get(r)
+	timezone := "UTC" //default value
+	if err != nil {
+		log.Println("receipt.Show: could not get appsettings timezone", err)
 	} else {
-		d.Timestamp = originalTimeTime.Format("2006-01-02 15:04:05")
+		timezone = appData.ReportTimezone
+	}
+
+	guiLoc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Println("receipt.Show: could not get gui timezone location", err)
+	}
+
+	originalTimeTime, err := time.ParseInLocation("2006-01-02T15:04:05.000Z", d.Timestamp, utcLoc)
+	if err != nil {
+		log.Println("receipt.Show: time reformat error", err)
+	} else {
+		d.Timestamp = originalTimeTime.In(guiLoc).Format("2006-01-02 @ 3:04:05PM")
 	}
 
 	//display receipt
@@ -106,6 +128,7 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		Amount:              d.AmountDollars,
 		Invoice:             d.Invoice,
 		Po:                  d.Po,
+		Timezone:            appData.ReportTimezone,
 	}
 	templates.Load(w, "receipt", output)
 	return

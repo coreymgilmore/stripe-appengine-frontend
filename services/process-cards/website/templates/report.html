@@ -1,6 +1,6 @@
 {{$showDevHeader := .Configuration.Development}}
 {{$canCharge := .Data.UserData.ChargeCards}}
-{{$timezoneOffset := .Data.TimezoneOffset}}
+{{$timezoneGUI := .Data.ReportGUITimezone}}
 {{$charges := .Data.Charges}}
 {{$numCharges := .Data.NumCharges}}
 {{$totalCharged := .Data.TotalCharges}}
@@ -42,7 +42,7 @@
 											<th class="charge-amount-column">Amount Charged</th>
 											<th>Invoice</th>
 											<th>User</th>
-											<th>Datetime (24H, EST)</th>
+											<th>Timestamp <small class="text-muted">({{$timezoneGUI}})</small></th>
 											<th class="text-center hidden-print">Receipt</th>
 											<th class="text-center hidden-print">Refund</th>
 										</tr>
@@ -67,7 +67,7 @@
 															{{end}}
 														</td>
 														<td>{{.Timestamp}}</td>
-														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}&timezone={{$timezoneOffset}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														
 														{{ if $canCharge }}
 														<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
@@ -131,7 +131,7 @@
 											<th class="charge-amount-column">Amount Refunded</th>
 											<th>Invoice</th>
 											<th>User</th>
-											<th>Timestamp (UTC)</th>
+											<th>Timestamp </th>
 											<th>Reason</th>
 										</tr>
 									</thead>

@@ -98,5 +98,5 @@ type reportData struct {
 	TotalRefundsLessFees string       `json:"total_refund_less_fees"` //How much money we will actually get back from Stripe.
 	NumCharges           uint16       `json:"num_charges"`            //Number of charges within the report date range
 	NumRefunds           uint16       `json:"num_refunds"`            //Same as above but for refunds
-	TimezoneOffset       int          `json:"timezone_offset"`        //the hours offset from UTC for the user requesting data that uses this struct
+	ReportGUITimezone    string       `json:"reprot_gui_timezone"`    //this is the timezone used to format the timestamps on the report
 }

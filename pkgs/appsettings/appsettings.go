@@ -30,6 +30,7 @@ type Settings struct {
 	RequireCustomerID bool   `json:"require_cust_id"` //is the customer id field required when adding a new card
 	CustomerIDFormat  string `json:"cust_id_format"`  //the format of the customer id from a CRM system.  This shows up in the gui.
 	CustomerIDRegex   string `json:"cust_id_regex"`   //the regex to check the customer id against.
+	ReportTimezone    string `json:"report_timezone"` //the tz database name of the timezone we want to show reports and receipt times in
 	APIKey            string `json:"api_key"`         //the api key to access this app to automatically charge cards
 }
 
@@ -38,8 +39,12 @@ var defaultAppSettings = Settings{
 	RequireCustomerID: false,
 	CustomerIDFormat:  "",
 	CustomerIDRegex:   "",
+	ReportTimezone:    "UTC",
 	APIKey:            "",
 }
+
+//defaultTimezone is the timezone we use when a user hasn't set one in app settings
+var defaultTimezone = "UTC"
 
 //ErrAppSettingsDoNotExist is thrown when no app settings exist yet
 var ErrAppSettingsDoNotExist = errors.New("appsettings: info does not exist")
@@ -82,6 +87,12 @@ func Get(r *http.Request) (Settings, error) {
 		return defaultAppSettings, nil
 	}
 
+	//handle times when timezone is unset
+	//upgrade from older version of this app since user's won't have this value set
+	if result.ReportTimezone == "" {
+		result.ReportTimezone = defaultTimezone
+	}
+
 	//returl data found
 	return result, nil
 }
@@ -92,6 +103,12 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	reqCustID, _ := strconv.ParseBool(r.FormValue("requireCustID"))
 	custIDFormat := strings.TrimSpace(r.FormValue("custIDFormat"))
 	custIDRegex := strings.TrimSpace(r.FormValue("custIDRegex"))
+	guiTimezone := strings.TrimSpace(r.FormValue("guiTimezone"))
+
+	//set defaults
+	if guiTimezone == "" {
+		guiTimezone = defaultTimezone
+	}
 
 	//build entity to save
 	//or update existing entity
@@ -99,6 +116,7 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 	data.RequireCustomerID = reqCustID
 	data.CustomerIDFormat = custIDFormat
 	data.CustomerIDRegex = custIDRegex
+	data.ReportTimezone = guiTimezone
 
 	//get current api key
 	//otherwise nothing will be set since data about has a blank api key
