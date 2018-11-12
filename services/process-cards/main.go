@@ -46,6 +46,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
+	"google.golang.org/appengine"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -105,6 +106,13 @@ var (
 	useDevDatastore            bool
 )
 
+//these are the type of deployments we support
+const (
+	deploymentTypeAppengine    = "appengine"
+	deploymentTypeAppengineDev = "appengine-dev"
+	deploymentTypeSqlite       = "sqlite"
+)
+
 func init() {
 	//use flags to allow for different deployment types
 	//deploymentType: used for changing how this app is deployed:
@@ -134,7 +142,7 @@ func init() {
 
 	//set configuration options based on deployment type
 	switch deploymentType {
-	case "appengine":
+	case deploymentTypeAppengine:
 		//the default deployment type
 		//when this app is run on appengine, the environmental variables in app.yaml file will automatically be provided to the app
 		c := sessionutils.Config
@@ -186,7 +194,7 @@ func init() {
 		parsedAppYaml.EnvVars.CookieDomain = os.Getenv("COOKIE_DOMAIN")
 		useDevDatastore = false
 
-	case "appengine-dev":
+	case deploymentTypeAppengineDev:
 		//check for and parse the app.yaml file
 		yamlData, err := parseAppYaml(pathToAppYaml)
 		if err != nil {
@@ -253,7 +261,7 @@ func init() {
 		//set cache max age
 		cacheDays = yamlData.EnvVars.CacheDays
 
-	case "sqlite":
+	case deploymentTypeSqlite:
 		//a version of this app that can run without appengine and is backed by sqlite
 
 	default:
@@ -387,6 +395,7 @@ func setStaticFileHeaders(h http.Handler) http.Handler {
 
 //diag shows a diagnostic page with info on this app
 func diag(w http.ResponseWriter, r *http.Request) {
+
 	d := map[string]string{
 		"Cookie Domain":                      parsedAppYaml.EnvVars.CookieDomain,
 		"Deployment Type":                    deploymentType,
@@ -398,15 +407,26 @@ func diag(w http.ResponseWriter, r *http.Request) {
 		//appengine specific stuff
 		//when deployement type = appengine, these fields will have values.  otherwise they are blank
 		"Project ID":                 parsedAppYaml.EnvVars.ProjectID,
-		"App Engine Service Name:":   os.Getenv("GAE_SERVICE"),
+		"App Engine Service Name":    os.Getenv("GAE_SERVICE"),
 		"App Engine Service Version": os.Getenv("GAE_VERSION"),
 		"App Engine Instance ID":     os.Getenv("GAE_INSTANCE"),
+		"App Engine Datacener":       "",
+		"App Engine Go Version":      "",
 
 		//appengine-dev or sqlite stuff
 		//when app is installed in a non-appengine environment
 		"Path to Datastore Credentials": pathToDatastoreCredentials,
 		"Path to Static Files":          parsedAppYaml.EnvVars.StaticFilePath,
 		"Path to Templates":             parsedAppYaml.EnvVars.TemplatesPath,
+	}
+
+	//when deployed on app engine
+	//these values are only available when deployed on appengine
+	if deploymentType == deploymentTypeAppengine {
+		c := r.Context()
+
+		d["App Engine Datacener"] = appengine.Datacenter(c)
+		d["App Engine Go Version"] = appengine.ServerSoftware()
 	}
 
 	templates.Load(w, "diagnostics", d)
