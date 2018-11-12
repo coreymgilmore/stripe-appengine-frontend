@@ -1,3 +1,13 @@
+v4.x.0 - future development
+----------
+- support for non-appengine installs.
+    - uses SQLite as the database instead of Google Cloud Datastore.
+    - since appengine gen. 2 uses no appengine-specific code, this became a viable option.
+    - allows for migrating off of appengine (minus data migration) in case appengine becomes too expensive or changes the api heavily (again).
+    - uses app.yaml for configuration so users don't have to set environmental variables.
+        - same config as when deploying on appengine for ease-of-migration.
+    - this required a lot of work with "if appengine else sqlite" for db queries.
+
 v4.0.0
 ----------
 - complete redo of codebase to support appengine generation 2 (standard environment) runtime.
@@ -23,15 +33,6 @@ v4.0.0
 - allow settings of timezone for reports and receipts.
     - setting in app settings.
     - makes reports and receipts use timezone more familiar to users than yyyy-mm-ddThh:mm:ss.000z UTC time
-
-- support for non-appengine installs.
-    - **still working on this but is a work in progress**
-    - uses SQLite as the database instead of Google Cloud Datastore.
-    - since appengine gen. 2 uses no appengine-specific code, this became a viable option.
-    - allows for migrating off of appengine (minus data migration) in case appengine becomes too expensive or changes the api heavily (again).
-    - uses app.yaml for configuration so users don't have to set environmental variables.
-        - same config as when deploying on appengine for ease-of-migration.
-    - this required a lot of work with "if appengine else sqlite" for db queries.
 - redo of some of gui to be more consistent and nicer.
 - lots of other code redo, clean up, etc.
 
