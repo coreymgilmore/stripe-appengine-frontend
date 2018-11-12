@@ -16,10 +16,16 @@ v4.0.0
     - so user's don't have to edit code.
     - ex: stripe public key, used have to set this in .js file.
     - allow using non-cdn static vendor files (bootstrap, jquery, etc.).  useful if serving from a non-appengine environment (see below) or you want to simply serve files from less domains.
+    - session lifetime, cookie domain, etc.
     - a lot more configuration options and easier to set than editing code.
 - use regex to validate customer id when adding a new card
     - makes sure users are typing in correctly formatted id from a crm.
+- allow settings of timezone for reports and receipts.
+    - setting in app settings.
+    - makes reports and receipts use timezone more familiar to users than yyyy-mm-ddThh:mm:ss.000z UTC time
+
 - support for non-appengine installs.
+    - **still working on this but is a work in progress**
     - uses SQLite as the database instead of Google Cloud Datastore.
     - since appengine gen. 2 uses no appengine-specific code, this became a viable option.
     - allows for migrating off of appengine (minus data migration) in case appengine becomes too expensive or changes the api heavily (again).
