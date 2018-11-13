@@ -167,6 +167,7 @@ func Preview(w http.ResponseWriter, r *http.Request) {
 		Amount:              "256.04",
 		Invoice:             "344402",
 		Po:                  "3345",
+		Timezone:            "America/New_York",
 	}
 	templates.Load(w, "receipt", output)
 	return
