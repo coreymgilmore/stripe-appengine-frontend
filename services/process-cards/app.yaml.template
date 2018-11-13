@@ -20,7 +20,7 @@ env_variables:
   #COOKIE_DOMAIN is the domain that the session cookie is served on
   #you should set this to the domain you will access your app on, ex: my-creditcard-app.appspot.com
   #this is a security setting.  default value is "." which is any domain.
-  COOKIE_DOMAIN: "simalfa-creditcard.appspot.com"
+  COOKIE_DOMAIN: "."
   
   #STRIPE_SECRET_KEY & STRIPE_PUBLISHABLE_KEY are used for interacting with Stripe 
   #Ex: adding customers and charging cards.
