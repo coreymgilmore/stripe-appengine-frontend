@@ -86,10 +86,10 @@
 3. Create your users.
 4. Log out of the super-admin and log in as a normal user and start using the app.
 
-###Diagnostics About the App
+### Diagnostics About the App
 1. Log in to the Google Cloud Platform admin console.
 2. Choose the correct project. 
 3. Check the logs.
 
-###Diagnostics About Charges
+### Diagnostics About Charges
 1. Log in to the Stripe Dashboard.

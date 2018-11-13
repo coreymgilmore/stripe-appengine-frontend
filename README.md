@@ -29,7 +29,7 @@ This application is designed to run via:
 - Companies who gather payment information from an AP department but orders from a purchasing department.
 - Companies who saves customers' cards and then processes the card when the customer places an order.
 - Companies who charge cards but want to reduce their IT complexity and/or PCI compliance costs.
-- Companies who are paying more than Stripe's [pricing.](https://stripe.com/us/pricing).
+- Companies who are paying more than Stripe's [pricing.](https://stripe.com/us/pricing)
 
 #### How it works:
 1. You store a new card providing the customer's name and card information.
