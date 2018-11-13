@@ -10,7 +10,7 @@ Version 4 (November 2018) has breaking changes.  See `changelog.txt`.
 
 #### Install:
 This application is designed to run via:
-- [Google App Engine](https://cloud.google.com/appengine/).  Please the the [install docs.](https://github.com/coreymgilmore/stripe-appengine-frontend/blob/master/INSTALL-appengine.md)
+- [Google App Engine](https://cloud.google.com/appengine/).  Please the the [install docs.](INSTALL-appengine.md)
 - *future* Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11. 
 
 #### What can you do with this app?:
