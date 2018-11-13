@@ -6,7 +6,8 @@ This application (webapp) is designed for business that collect credit cards, st
 All processing and storing of credit cards is done via [Stripe](https://stripe.com/).  Using Stripe provides you the benefits of simple and reasonable pricing, a modern administrative interface, and PCI compliance without any work on your side.  You no longer need to worry about storing card information securely, someone hacking your internal systems, or paying for PCI compliance.
 
 #### Changelog:
-Version 4 (November 2018) has breaking changes.  See `changelog.txt`.
+Version 4 (November 2018) is a major change.  See [changelog.txt](changelog.txt).
+If upgrading, you will need to modify `app.yaml`.  Otherwise, simply redeploy the app.
 
 #### Install:
 This application is designed to run via:
