@@ -265,6 +265,7 @@ func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum stri
 
 	//build struct to output a success message to the client
 	out = chargeSuccessful{
+		CustomerName:   custData.CustomerName,
 		Cardholder:     custData.Cardholder,
 		CardExpiration: custData.CardExpiration,
 		CardLast4:      custData.CardLast4,
