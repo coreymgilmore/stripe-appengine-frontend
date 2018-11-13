@@ -1,30 +1,39 @@
-# An App for Collecting and Charging Credit Cards
+# Collect, Store, and Charge Cards for Orders
 
 #### Intro:
+This application (webapp) is designed for business that collect credit cards, store them, and charge them upon receiving orders.  The designed-for use case is a company that collects orders via phone or email, not ecommerce.  Think more manual order entry versus someone picking items on a website.  This provides the "we will keep this card on file" functionality.
+
+All processing and storing of credit cards is done via [Stripe](https://stripe.com/).  Using Stripe provides you the benefits of simple and reasonable pricing, a modern administrative interface, and PCI compliance without any work on your side.  You no longer need to worry about storing card information securely, someone hacking your internal systems, or paying for PCI compliance.
 
 #### Changelog:
 Version 4 (November 2018) has breaking changes.  See `changelog.txt`.
 
+#### Install:
+This application is designed to run via:
+- [Google App Engine](https://cloud.google.com/appengine/).  Please the the [install docs.](https://github.com/coreymgilmore/stripe-appengine-frontend/blob/master/INSTALL-appengine.md)
+- *future* Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11. 
+
 #### What can you do with this app?:
-1. Add credit cards to charge now or in the future.
-2. Remove cards that already exist.
-3. Charge credit cards and refund charges.
-4. View transaction reports (list of charges and refunds).
-5. Add or remove users as needed.
-6. Control users' permissions to add, remove, charge cards, and view reports.
-8. Set your own Statement Descriptor so your customers recognize your charge.
-9. Print receipts.
-10. Make API-style requests to autofill the card, amount, invoice, and purchase order.
+1. Add credit cards.
+2. Charge credit cards and refund charges.
+3. View transaction reports (list of charges and refunds).
+4. Add or remove users of the application as needed.
+5. Control users' permissions to add, remove, charge cards, and view reports.
+6. Set your own Statement Descriptor so your customers recognize your charge on their statements.
+7. Print receipts.
+8. Integrate into your other systems/applications by making API requests to autofill the charge form or automatically charge a card.
 
 #### Who should use this app?:
-- Any company who processes credit cards via a virtual terminal.
-- Any company who processes non-ecommerce style orders.
-- Any company who saves customers' cards and then processes the card when the customer places an order.
-- Best used by companies who still receive orders via phone, email, or fax or where a card may be a corporate card and the purchasing person does not know of it.
+- Companies who use a "virtual terminal" to type in card information.
+- Companies who processes non-ecommerce style orders.
+- Companies who gather payment information from an AP department but orders from a purchasing department.
+- Companies who saves customers' cards and then processes the card when the customer places an order.
+- Companies who charge cards but want to reduce their IT complexity and/or PCI compliance costs.
+- Companies who are paying more than Stripe's [pricing.](https://stripe.com/us/pricing).
 
 #### How it works:
-1. You create a new customer by providing the customer's name and card information.
-2. The card data is saved to Stripe and an ID is saved to the app.
+1. You store a new card providing the customer's name and card information.
+2. The card data is saved to Stripe and an ID is saved to this application.
 3. When you want to charge a card the ID is set to Stripe.
 4. Stripe looks up the credit card's information and processes the charge.
 5. If the charge is successful, a receipt is shown.  If the card was declined, an error is shown.
@@ -34,34 +43,35 @@ Version 4 (November 2018) has breaking changes.  See `changelog.txt`.
 - Currency is currently hardcoded as USD (as is the $ symbol).
 - You can only store one credit card per customer.
 
-#### Install & Setup:
-- Deployment methods:
-    - Google App Engine (tested on Gen. 2, Standard Environment).
-    - Any system with Golang (using SQLite as the database and your choice of web host/proxy).
+***
 
-- Please see `INSTALL.md` for more thorough instructions.
-- As of version 4 (November 2018), this app can be run on Google App Engine or deployed locally.
+#### Technical Stuff & FAQs:
+1. The app.yaml file is used for all configuration and deployment options.  This makes deployment simple: users don't need to understand source code, they just have to change some text in one file.
+2. This app using the "generation 2" runtime on App Engine.  As of the beta (Nov. 2018), this allows for near-identical source code to a non-appengine app and is therefore the reason non-appengine deployments are being developed.
+3. This app uses Google Cloud Datastore as the database when deployed on App Engine.  This also uses Cloud Datastore for development as the locally running Datastore Emulator is a mess and pain to use (unless we need to generate indexes).
+4. Caching using App Engine memcache is not supported as "gen 2" runtime doesn't support it.  Using RedisLabs as explained [here](https://cloud.google.com/appengine/docs/standard/go111/go-differences) has not been implemented due to small benefits of much more complex code.
+5. Upgrading to a new version of this app is simple.  Follow the install docs to download the new source code and deploy.  If using App Engine you can provide a different version to separate the new and old apps.
+6. Why aren't you using go modules or something else.  Because I like the GOPATH.
 
-1. Install Go.
-2. Create a Google Cloud project.
-3. Install the Google Cloud SDK.
-4. Create a Stripe account.
-5. Download this app.
-6. Configure.
-7. Deploy.
-8. Run it!
-
-####This app uses the following:
-- [Boostrap](http://getbootstrap.com/) - Basic layout and html elements.
-- [jQuery](https://jquery.com/) - Javascript library.
-- [Stripe](https://stripe.com/) - Payment processing.
-- [Google App Engine](https://cloud.google.com/appengine/docs) - Hosting platform.
-- [Golang](https://golang.org/) - Backend programming language, web server.
-- [Alice](https://github.com/justinas/alice) - Go middleware handler.
-- [Gorilla Mux](https://github.com/gorilla/mux) - Go http router.
-- [Gorilla Sessions](https://github.com/gorilla/sessions) - Secure sessions.
+#### Integration with Other Applications:
+* Autofill the charge card form:
+    * Build this url `...my-app.appspot.com/main/?customer_id=<>&amount=<>&invoice=<>&po=<>` where...
+    * `my-app.appspot.com` is the url you use to access your version of this app.
+    * `customer_id` is the unique ID you use to identify customers in this app.  It would be smart to match this to an ID in your CRM or other software.
+    * `amount` is the value in cents to charge.
+    * `invoice` and `po` are optional and provide more information on the receipt when a charge is processed.
+* Automatically charge a card:
+    * Make sure you have an API key.  Check the App Settings under Settings within the application.
+    * Build a POST request to `...my-app.appspot.com/card/auto-charge/` where the data sent is...
+    * `customer_id` is the unique ID you use to identify customers in this app.
+    * `amount` is the value in cents to charge.
+    * `invoice` and `po` are optional and provide more information on the receipt when a charge is processed.
+    * `api_key` is the API key as it shows in the app settings.
+    * `auto_charge` is a simple check value that is set to true.  This is set to false when testing integration of this app.
+    * `auto_charge_referrer` is the name of the system/program/application making the request to this app.  This is used for diagnostics/logging/reports.
+    * `auto_charge_reason` is the name of the function within the system/program/application that is making the request to this app.  This is used for diagnostics/logging/reports.
 
 ***
 
-#### Contributing, Issues, New Feature
-Create an issue or a pull request!
+#### Contributing, Issues, New Feature:
+Create an issue or a pull request.
