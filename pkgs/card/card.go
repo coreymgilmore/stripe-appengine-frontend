@@ -34,6 +34,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -116,35 +118,51 @@ func SetConfig(c config) error {
 //This only gets the datastore id and customer name.
 //This is used to build the datalist in the gui of customers who we can process a charge for.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	//connect to datastore
-	c := r.Context()
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		output.Error(err, "Could not connect to datastore", w)
-		return
-	}
-
-	//get list from datastore
-	//only need to get entity keys and customer names which cuts down on datastore usage
+	//placeholder
 	list := []List{}
-	q := datastore.NewQuery(datastoreutils.EntityCards).Order("CustomerName").Project("CustomerName")
-	i := client.Run(c, q)
-	for {
-		one := CustomerDatastore{}
-		key, err := i.Next(&one)
-		if err == iterator.Done {
-			break
-		}
+
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT ID, CustomerName 
+			FROM ` + sqliteutils.TableCards
+		err := c.Select(&list, q)
 		if err != nil {
-			output.Error(err, "Error retrieving list of cards from datastore.", w)
+			output.Error(err, "Error retrieving list of cards from sqlite.", w)
 			return
 		}
 
-		l := List{
-			CustomerName: one.CustomerName,
-			ID:           key.ID,
+	} else {
+		//connect to datastore
+		c := r.Context()
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			output.Error(err, "Could not connect to datastore", w)
+			return
 		}
-		list = append(list, l)
+
+		//get list from datastore
+		//only need to get entity keys and customer names which cuts down on datastore usage
+		q := datastore.NewQuery(datastoreutils.EntityCards).Order("CustomerName").Project("CustomerName")
+		i := client.Run(c, q)
+		for {
+			one := CustomerDatastore{}
+			key, err := i.Next(&one)
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				output.Error(err, "Error retrieving list of cards from datastore.", w)
+				return
+			}
+
+			l := List{
+				CustomerName: one.CustomerName,
+				ID:           key.ID,
+			}
+			list = append(list, l)
+		}
 	}
 
 	//return data to client
@@ -177,19 +195,35 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore, error) {
 	//placeholder
 	data := CustomerDatastore{}
+	var err error
 
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return data, err
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT * 
+			FROM ` + sqliteutils.TableCards + `
+			WHERE ID=?
+		`
+		err = c.Get(&data, q, datastoreID)
+
+	} else {
+		//connect to datastore
+		client, err1 := datastoreutils.Connect(c)
+		if err1 != nil {
+			return data, err1
+		}
+
+		//get complete key
+		key := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, datastoreID)
+
+		//query
+		err1 = client.Get(c, key, &data)
+		err = err1
 	}
 
-	//get complete key
-	key := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, datastoreID)
-
-	//query
-	err = client.Get(c, key, &data)
 	return data, err
+
 }
 
 //FindByCustomerID retrieves a card's information by the unique id from a CRM system
@@ -199,41 +233,54 @@ func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore,
 func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, error) {
 	//placeholder
 	data := CustomerDatastore{}
+	var err error
 
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return data, err
-	}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT * 
+			FROM ` + sqliteutils.TableCards + `
+			WHERE CustomerID=?
+		`
+		err = c.Get(&data, q, customerID)
 
-	//query
-	fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
-	q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
-	i := client.Run(c, q)
-	var numResults int
-	for {
-		var tempCardData CustomerDatastore
-		_, err = i.Next(&tempCardData)
-		if err == iterator.Done {
-			break
-		}
+	} else {
+		//connect to datastore
+		client, err := datastoreutils.Connect(c)
 		if err != nil {
-			log.Println("card.FindByCustomerID-1", err)
 			return data, err
 		}
 
-		//save data to variables outside iterator
-		data = tempCardData
-		numResults++
-	}
+		//query
+		fields := []string{"CustomerName", "Cardholder", "CardLast4", "CardExpiration", "StripeCustomerToken"}
+		q := datastore.NewQuery(datastoreutils.EntityCards).Filter("CustomerId =", customerID).Limit(1).Project(fields...)
+		i := client.Run(c, q)
+		var numResults int
+		for {
+			var tempCardData CustomerDatastore
+			_, err = i.Next(&tempCardData)
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				log.Println("card.FindByCustomerID-1", err)
+				return data, err
+			}
 
-	//check if no results were found
-	if numResults == 0 {
-		return data, errCustomerNotFound
+			//save data to variables outside iterator
+			data = tempCardData
+			numResults++
+		}
+
+		//check if no results were found
+		if numResults == 0 {
+			return data, errCustomerNotFound
+		}
 	}
 
 	//one result was found
-	return data, nil
+	return data, err
 }
 
 //calcTzOffset takes a string value input of the hours from UTC and outputs a timezone offset usable in golang

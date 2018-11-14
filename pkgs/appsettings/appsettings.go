@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -67,34 +69,47 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 func Get(r *http.Request) (Settings, error) {
 	//placeholder
 	result := Settings{}
+	var err error
 
-	//connect to datastore
-	c := r.Context()
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return result, err
-	}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT * 
+			FROM ` + sqliteutils.TableAppSettings + ` 
+			WHERE ID=?
+		`
+		err = c.Get(&result, q, sqliteutils.DefaultAppSettingsID)
+	} else {
 
-	//get the key we are looking up
-	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
+		//connect to datastore
+		c := r.Context()
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			return result, err
+		}
 
-	//get data
-	err = client.Get(c, key, &result)
-	if err == datastore.ErrNoSuchEntity {
-		//no app settings exist yet
-		//return default values
-		log.Println("appsettings.Get", "App settings don't exist yet.  Returning default values.")
-		return defaultAppSettings, nil
-	}
+		//get the key we are looking up
+		key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
 
-	//handle times when timezone is unset
-	//upgrade from older version of this app since user's won't have this value set
-	if result.ReportTimezone == "" {
-		result.ReportTimezone = defaultTimezone
+		//get data
+		err = client.Get(c, key, &result)
+		if err == datastore.ErrNoSuchEntity {
+			//no app settings exist yet
+			//return default values
+			log.Println("appsettings.Get", "App settings don't exist yet.  Returning default values.")
+			return defaultAppSettings, nil
+		}
+
+		//handle times when timezone is unset
+		//upgrade from older version of this app since user's won't have this value set
+		if result.ReportTimezone == "" {
+			result.ReportTimezone = defaultTimezone
+		}
 	}
 
 	//returl data found
-	return result, nil
+	return result, err
 }
 
 //SaveAPI saves new or updates existing company info in the datastore
@@ -142,19 +157,49 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 //save does the actual saving to the datastore
 func save(c context.Context, d Settings) error {
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return err
-	}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			UPDATE ` + sqliteutils.TableAppSettings + ` SET 
+				RequireCustomerID=?,
+				CustomerIDFormat=?,
+				CustomerIDRegex=?,
+				ReportTimezone=?,
+				APIKey=?
+			WHERE ID = ?
+		`
+		stmt, err := c.Prepare(q)
+		if err != nil {
+			return err
+		}
 
-	//get the key we are saving to
-	key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
+		_, err = stmt.Exec(
+			d.RequireCustomerID,
+			d.CustomerIDFormat,
+			d.CustomerIDRegex,
+			d.ReportTimezone,
+			d.APIKey,
+		)
+		if err != nil {
+			return err
+		}
 
-	//save company info
-	_, err = client.Put(c, key, &d)
-	if err != nil {
-		return err
+	} else {
+		//connect to datastore
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			return err
+		}
+
+		//get the key we are saving to
+		key := datastoreutils.GetKeyFromName(datastoreutils.EntityAppSettings, datastoreKeyName)
+
+		//save company info
+		_, err = client.Put(c, key, &d)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -89,28 +91,41 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 func Get(r *http.Request) (Info, error) {
 	//placeholder
 	data := Info{}
+	var err error
 
-	//connect to datastore
-	c := r.Context()
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return data, err
-	}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT *
+			FROM ` + sqliteutils.TableCompanyInfo + ` 
+			WHERE ID=?
+		`
+		err = c.Get(&data, q, sqliteutils.DefaultCompanyInfoID)
 
-	//get from datastore
-	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
+	} else {
+		//connect to datastore
+		c := r.Context()
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			return data, err
+		}
 
-	//get data
-	err = client.Get(c, key, &data)
-	if err == datastore.ErrNoSuchEntity {
-		//no company info exists yet
-		//return default values
-		log.Println("company.Get", "Company info doesn't exist yet.  Returning default values.")
-		return defaultCompanyInfo, nil
+		//get from datastore
+		key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
+
+		//get data
+		err = client.Get(c, key, &data)
+		if err == datastore.ErrNoSuchEntity {
+			//no company info exists yet
+			//return default values
+			log.Println("company.Get", "Company info doesn't exist yet.  Returning default values.")
+			return defaultCompanyInfo, nil
+		}
 	}
 
 	//return data found
-	return data, nil
+	return data, err
 }
 
 //SaveAPI saves new or updates existing company info in the datastore
@@ -170,19 +185,64 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 //save does the actual saving to the datastore
 func save(c context.Context, i Info) error {
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return err
-	}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			UPDATE ` + sqliteutils.TableCompanyInfo + ` SET 
+				CompanyName=?,
+				Street=?,
+				Suite=?,
+				City=?,
+				State=?,
+				PostalCode=?,
+				Country=?,
+				PhoneNum=?,
+				Email=?,
+				PercentFee=?,
+				FixedFee=?,
+				StatementDescriptor=?
+			WHERE ID = ?
+		`
+		stmt, err := c.Prepare(q)
+		if err != nil {
+			return err
+		}
 
-	//get full key
-	key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
+		_, err = stmt.Exec(
+			i.CompanyName,
+			i.Street,
+			i.Suite,
+			i.City,
+			i.State,
+			i.PostalCode,
+			i.Country,
+			i.PhoneNum,
+			i.Email,
+			i.PercentFee,
+			i.FixedFee,
+			i.StatementDescriptor,
+			sqliteutils.DefaultCompanyInfoID,
+		)
+		if err != nil {
+			return err
+		}
 
-	//save company info
-	_, err = client.Put(c, key, &i)
-	if err != nil {
-		return err
+	} else {
+		//connect to datastore
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			return err
+		}
+
+		//get full key
+		key := datastore.NameKey(datastoreutils.EntityCompanyInfo, datastoreKeyName, nil)
+
+		//save company info
+		_, err = client.Put(c, key, &i)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

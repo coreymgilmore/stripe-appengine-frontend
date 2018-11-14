@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
@@ -48,26 +50,77 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//hash the password
 	hashedPwd := pwds.Create(pass1)
 
-	//create the user
-	u := User{
-		Username:      adminUsername,
-		Password:      hashedPwd,
-		AddCards:      true,
-		RemoveCards:   true,
-		ChargeCards:   true,
-		ViewReports:   true,
-		Administrator: true,
-		Active:        true,
-		Created:       timestamps.ISO8601(),
-	}
+	//save to correct database
+	var newUserID int64
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			INSERT INTO ` + sqliteutils.TableUsers + `(
+				Username,
+				Password,
+				AddCards,
+				RemoveCards,
+				ChargeCards,
+				ViewReports,
+				Administrator,
+				Active,
+				Created
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+		stmt, err := c.Prepare(q)
+		if err != nil {
+			log.Println("users.CreateAdmin-1", err)
+			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
+			return
+		}
 
-	//save to datastore
-	c := r.Context()
-	incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
-	completeKey, err := saveUser(c, incompleteKey, u)
-	if err != nil {
-		fmt.Fprint(w, err)
-		return
+		res, err := stmt.Exec(
+			adminUsername,
+			hashedPwd,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			timestamps.ISO8601(),
+		)
+		if err != nil {
+			log.Println("users.CreateAdmin-2", err)
+			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
+			return
+		}
+
+		newUserID, err = res.LastInsertId()
+		if err != nil {
+			log.Println("users.CreateAdmin-3", err)
+			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
+			return
+		}
+	} else {
+		//create the user
+		u := User{
+			Username:      adminUsername,
+			Password:      hashedPwd,
+			AddCards:      true,
+			RemoveCards:   true,
+			ChargeCards:   true,
+			ViewReports:   true,
+			Administrator: true,
+			Active:        true,
+			Created:       timestamps.ISO8601(),
+		}
+
+		//save to datastore
+		ctx := r.Context()
+		incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
+		completeKey, err := saveUser(ctx, incompleteKey, u)
+		if err != nil {
+			fmt.Fprint(w, err)
+			return
+		}
+
+		newUserID = completeKey.ID
 	}
 
 	//save user to session
@@ -77,22 +130,23 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sessionutils.AddValue(session, "username", adminUsername)
-	sessionutils.AddValue(session, "user_id", completeKey.ID)
+	sessionutils.AddValue(session, "user_id", newUserID)
 	sessionutils.Save(session, w, r)
 
 	//save the default company info
 	//ignore errors since app will still work without this data being set
 	//and user will see errors about missing stuff in the app
-	err = company.SaveDefaultInfo(c)
+	ctx := r.Context()
+	err = company.SaveDefaultInfo(ctx)
 	if err != nil {
 		log.Println("users.CreateAdmin", "Could not save default company info.", err)
 		return
 	}
 
 	//save the default app settings
-	err = appsettings.SaveDefaultInfo(c)
+	err = appsettings.SaveDefaultInfo(ctx)
 	if err != nil {
-		log.Println("users.CreateAdmin", "Could not save default company info.", err)
+		log.Println("users.CreateAdmin", "Could not save default app settings.", err)
 		return
 	}
 

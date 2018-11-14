@@ -5,9 +5,12 @@ package users
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
@@ -50,6 +53,9 @@ type User struct {
 	Administrator bool   `json:"is_admin"`         //" "
 	Active        bool   `json:"is_active"`        //is the user able to access the app
 	Created       string `json:"datetime_created"` //datetime of when the user was created
+
+	//fields not used in cloud datastore
+	ID int64 `json:"sqlite_user_id"`
 }
 
 //userList is used to return the list of users when building select elements in the gui
@@ -138,41 +144,60 @@ func getDataByUsername(c context.Context, username string) (int64, User, error) 
 	//placeholder
 	u := User{}
 
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return 0, u, err
-	}
-
-	//query
-	//using GetAll instead of Get because you cannot filter using Get
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username).Limit(1)
-	i := client.Run(c, q)
-	var numResults int
-	var fullKey *datastore.Key
-	for {
-		var tempUserData User
-		tempKey, err := i.Next(&tempUserData)
-		if err == iterator.Done {
-			break
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT *
+			FROM ` + sqliteutils.TableUsers + `
+			WHERE Username = ?
+		`
+		err := c.Get(&u, q, username)
+		if err == sql.ErrNoRows {
+			return 0, u, ErrUserDoesNotExist
+		} else if err != nil {
+			return 0, u, err
 		}
+	} else {
+		//connect to datastore
+		client, err := datastoreutils.Connect(c)
 		if err != nil {
 			return 0, u, err
 		}
 
-		//save key and data to variables outside iterator
-		fullKey = tempKey
-		u = tempUserData
-		numResults++
+		//query
+		//using GetAll instead of Get because you cannot filter using Get
+		q := datastore.NewQuery(datastoreutils.EntityUsers).Filter("Username = ", username).Limit(1)
+		i := client.Run(c, q)
+		var numResults int
+		var fullKey *datastore.Key
+		for {
+			var tempUserData User
+			tempKey, err := i.Next(&tempUserData)
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return 0, u, err
+			}
+
+			//save key and data to variables outside iterator
+			fullKey = tempKey
+			u = tempUserData
+			numResults++
+		}
+
+		//check if no user was found matching this username
+		if numResults == 0 {
+			return 0, u, ErrUserDoesNotExist
+		}
+
+		//user found
+		u.ID = fullKey.ID
 	}
 
-	//check if no user was found matching this username
-	if numResults == 0 {
-		return 0, u, ErrUserDoesNotExist
-	}
-
-	//user found
-	return fullKey.ID, u, nil
+	//done
+	return u.ID, u, nil
 }
 
 //Find gets the data for a given user id
@@ -180,16 +205,29 @@ func getDataByUsername(c context.Context, username string) (int64, User, error) 
 func Find(c context.Context, userID int64) (User, error) {
 	//placeholder
 	u := User{}
+	var err error
 
-	//connect to datastore
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		return u, err
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT * 
+			FROM ` + sqliteutils.TableUsers + `
+			WHERE ID = ?
+		`
+		err = c.Get(&u, q, userID)
+	} else {
+		//connect to datastore
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			return u, err
+		}
+
+		//query
+		key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
+		err = client.Get(c, key, &u)
 	}
 
-	//query
-	key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
-	err = client.Get(c, key, &u)
 	return u, err
 }
 

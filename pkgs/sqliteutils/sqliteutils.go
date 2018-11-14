@@ -21,11 +21,13 @@ var Connection *sqlx.DB
 //this struct is used in SetConfig which is run in package main init()
 type config struct {
 	PathToDatabaseFile string //the full path to the file used as the database, defaults to $GOPATH/src/github.com/coreymgilmore/stripe-appengine-frontend/services/process-cards/sqlite.db
+	UseSQLite          bool   //set to true when we want to use sqlite as the storage engine, so we know to use sqlite versus cloud datastore
 }
 
 //Config is a copy of the config with some defaults set
 var Config = config{
 	PathToDatabaseFile: "",
+	UseSQLite:          false,
 }
 
 //dbType is the type of database we are connecting to
@@ -45,6 +47,7 @@ func SetConfig(c config) {
 	}
 
 	//save the configuration
+	c.UseSQLite = true
 	Config = c
 
 	log.Println("Using SQLite file:", Config.PathToDatabaseFile)

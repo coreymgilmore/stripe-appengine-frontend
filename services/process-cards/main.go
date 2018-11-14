@@ -353,8 +353,7 @@ func main() {
 	r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
 
 	//main app page once user is logged in
-	main := http.HandlerFunc(pages.Main)
-	r.Handle("/main/", a.Then(main))
+	r.Handle("/main/", a.Then(http.HandlerFunc(pages.Main)))
 	r.Handle("/diag/", http.HandlerFunc(diag))
 
 	//API endpoints
