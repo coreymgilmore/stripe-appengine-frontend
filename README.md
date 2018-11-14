@@ -1,3 +1,7 @@
+### *This branch is in development. *
+This branch is a work in progress and will support appengine and sqlite deployments.  Using sqlite removes the last dependency on appengine.  Deployment method will be chosen by flag `--type=sqlite` with the default set to appengine.  As you can imagine, supporting sqlite will require a bit of work.
+*** 
+
 # Collect, Store, and Charge Cards for Orders
 
 #### Intro:
