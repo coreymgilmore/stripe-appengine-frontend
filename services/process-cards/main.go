@@ -42,6 +42,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pages"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/receipt"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
 	"github.com/gorilla/mux"
@@ -80,6 +81,7 @@ type appYaml struct {
 		StaticFilePath       string `yaml:"PATH_TO_STATIC_FILES"`       //the full path to the ./website/static/ directory
 		TemplatesPath        string `yaml:"PATH_TO_TEMPLATES"`          //the full path to the templates directory
 		UseLocalFiles        string `yaml:"USE_LOCAL_FILES"`            //true serves css/js/fonts from local domain versus cdn
+		PathToSqliteFile     string `yaml:"PATH_TO_SQLITE_FILE"`        //the full path to the file used for the sqlite db.  If blank, the default path is used
 	} `yaml:"env_variables"`
 	Handlers []struct {
 		URL       string `yaml:"url"`
@@ -262,6 +264,55 @@ func init() {
 
 	case deploymentTypeSqlite:
 		//a version of this app that can run without appengine and is backed by sqlite
+		//check for and parse the app.yaml file
+		yamlData, err := parseAppYaml(pathToAppYaml)
+		if err != nil {
+			log.Fatalln("Error while parsing app.yaml.", err)
+			return
+		}
+
+		//saved parsed data for use elsewhere
+		parsedAppYaml = yamlData
+
+		//set configuration options using app.yaml
+		//this is how we set the configuration in development
+		c := sessionutils.Config
+		c.SessionAuthKey = yamlData.EnvVars.SessionAuthKey
+		c.SessionEncryptKey = yamlData.EnvVars.SessionEncryptKey
+		c.SessionLifetime = yamlData.EnvVars.SessionLifetime
+		c.CookieDomain = yamlData.EnvVars.CookieDomain
+		err = sessionutils.SetConfig(c)
+		if err != nil {
+			log.Fatalln("Could not set configuration for sessionutils.", err)
+			return
+		}
+
+		cc := card.Config
+		cc.StripeSecretKey = yamlData.EnvVars.StripeSecretKey
+		cc.StripePublishableKey = yamlData.EnvVars.StripePublishableKey
+		err = card.SetConfig(cc)
+		if err != nil {
+			log.Fatalln("Could not set configuration for card.", err)
+			return
+		}
+
+		ccc := sqliteutils.Config
+		ccc.PathToDatabaseFile = yamlData.EnvVars.PathToSqliteFile
+		sqliteutils.SetConfig(ccc)
+		sqliteutils.Connect()
+
+		cccc := templates.Config
+		cccc.PathToTemplates = yamlData.EnvVars.TemplatesPath
+		cccc.Development = true
+		cccc.UseLocalFiles, _ = strconv.ParseBool(yamlData.EnvVars.UseLocalFiles)
+		templates.SetConfig(cccc)
+
+		//set path to static files
+		//default for appengine deployments
+		staticLocalDir = yamlData.EnvVars.StaticFilePath
+
+		//set cache max age
+		cacheDays = yamlData.EnvVars.CacheDays
 
 	default:
 		//when an invalid deployment type is given
