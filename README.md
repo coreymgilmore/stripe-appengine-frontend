@@ -15,7 +15,7 @@ Version 5 (mid-November 2018) is a minor change for user's deploying via App Eng
 This application is designed to run via:
 - [Google App Engine](https://cloud.google.com/appengine/).  
     - [Install docs.](INSTALL-appengine.md)
-- Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11 and SQlite.
+- Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11 and [SQLite](https://sqlite.org/index.html).
     - [Install docs.](INSTALL-sqlite.md)
 
 #### What can you do with this app?:
@@ -51,8 +51,9 @@ This application is designed to run via:
 
 #### Technical Stuff & FAQs:
 1. The app.yaml file is used for all configuration and deployment options.  This makes deployment simple: users don't need to understand source code, they just have to change some text in one file.
-2. This app using the "generation 2" runtime on App Engine.  As of the beta (Nov. 2018), this allows for near-identical source code to a non-appengine app and is therefore the reason non-appengine deployments are being developed.
+2. This app uses the "generation 2" runtime on App Engine.  As of the beta (Nov. 2018), this allows for near-identical source code to a non-appengine app and is therefore the reason non-appengine deployments are now developed (sqlite).
 3. This app uses Google Cloud Datastore as the database when deployed on App Engine.  This also uses Cloud Datastore for development as the locally running Datastore Emulator is a mess and pain to use (unless we need to generate indexes).
+3. If running off of App Engine, SQLite is used as the database.  Why?  Because it is so easy to use and little to no install and/or configuration is required.
 4. Caching using App Engine memcache is not supported as "gen 2" runtime doesn't support it.  Using RedisLabs as explained [here](https://cloud.google.com/appengine/docs/standard/go111/go-differences) has not been implemented due to small benefits of much more complex code.
 5. Upgrading to a new version of this app is simple.  Follow the install docs to download the new source code and deploy.  If using App Engine you can provide a different version to separate the new and old apps.
 6. Why aren't you using go modules or something else.  Because I like the GOPATH.
