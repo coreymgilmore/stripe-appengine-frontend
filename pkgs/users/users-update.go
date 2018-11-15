@@ -4,8 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
@@ -49,7 +50,12 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 	fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userIDInt)
 
 	//save user
-	_, err = saveUser(c, fullKey, userData)
+	if sqliteutils.Config.UseSQLite {
+		err = updateUserSqlite(userIDInt, userData)
+	} else {
+		_, err = saveUserDatastore(c, fullKey, userData)
+	}
+
 	if err != nil {
 		output.Error(err, "Error saving user to database after password change.", w)
 		return
@@ -117,13 +123,50 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userIDInt)
 
 	//save user
-	_, err = saveUser(c, fullKey, userData)
+	if sqliteutils.Config.UseSQLite {
+		err = updateUserSqlite(userIDInt, userData)
+	} else {
+		_, err = saveUserDatastore(c, fullKey, userData)
+	}
+
 	if err != nil {
-		output.Error(err, "Error saving user to database after updating permission.", w)
+		output.Error(err, "Error saving user to database after permissions change.", w)
 		return
 	}
 
 	//done
 	output.Success("userUpdatePermissins", nil, w)
 	return
+}
+
+//updateUserSqlite updates a user in the sqlite db
+func updateUserSqlite(id int64, u User) error {
+	c := sqliteutils.Connection
+	q := `
+		UPDATE ` + sqliteutils.TableUsers + ` SET
+			Username = ?,
+			Password = ?,
+			AddCards = ?,
+			RemoveCards = ?,
+			ViewReports = ?,
+			Administrator = ?,
+			Active = ?
+		WHERE ID = ?
+	`
+	stmt, err := c.Prepare(q)
+	if err != nil {
+		return err
+	}
+
+	_, err = stmt.Exec(
+		u.Username,
+		u.Password,
+		u.AddCards,
+		u.RemoveCards,
+		u.ViewReports,
+		u.Administrator,
+		u.Active,
+		id,
+	)
+	return err
 }

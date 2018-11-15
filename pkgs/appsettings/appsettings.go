@@ -34,6 +34,9 @@ type Settings struct {
 	CustomerIDRegex   string `json:"cust_id_regex"`   //the regex to check the customer id against.
 	ReportTimezone    string `json:"report_timezone"` //the tz database name of the timezone we want to show reports and receipt times in
 	APIKey            string `json:"api_key"`         //the api key to access this app to automatically charge cards
+
+	//fields not used in cloud datastore
+	ID int64 `json:"sqlite_user_id"`
 }
 
 //defaultAppSettings is the base configuration for the app
@@ -180,6 +183,8 @@ func save(c context.Context, d Settings) error {
 			d.CustomerIDRegex,
 			d.ReportTimezone,
 			d.APIKey,
+
+			sqliteutils.DefaultAppSettingsID,
 		)
 		if err != nil {
 			return err

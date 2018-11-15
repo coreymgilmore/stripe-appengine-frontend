@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
+
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
@@ -128,7 +130,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//used for tracking who added a card, just for diagnostics
 	username := sessionutils.GetUsername(r)
 
-	//save customer & card data to datastore
+	//gather data to save to db
 	newCustomer := CustomerDatastore{
 		CustomerID:          customerID,
 		CustomerName:        customerName,
@@ -139,10 +141,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		DatetimeCreated:     timestamps.ISO8601(),
 		AddedByUser:         username,
 	}
-	newCustKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityCards)
-	_, err = save(c, newCustKey, newCustomer)
+
+	//use correct db for saving
+	if sqliteutils.Config.UseSQLite {
+		_, err = saveSqlite(newCustomer)
+	} else {
+		newCustKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityCards)
+		_, err = saveDatatore(c, newCustKey, newCustomer)
+	}
+
 	if err != nil {
-		output.Error(err, "There was an error while saving this customer. Please try again.", w)
+		output.Error(err, "There was an error while saving this customer/card. Please try again.", w)
 		return
 	}
 
@@ -152,9 +161,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//save does the actual saving of a card to the datastore
-//separate function to clean up code
-func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
+//saveDatatore saves a new card to the cloud datastore db
+func saveDatatore(c context.Context, key *datastore.Key, customer CustomerDatastore) (*datastore.Key, error) {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
@@ -169,4 +177,43 @@ func save(c context.Context, key *datastore.Key, customer CustomerDatastore) (*d
 
 	//done
 	return completeKey, nil
+}
+
+//saveSqlite saves a new card to the sqlite db
+func saveSqlite(d CustomerDatastore) (int64, error) {
+	c := sqliteutils.Connection
+	q := `
+		INSERT INTO ` + sqliteutils.TableCards + ` (
+			CustomerID,
+			CustomerName,
+			Cardholder,
+			CardExpiration,
+			CardLast4,
+			StripeCustomerToken,
+			DatetimeCreated,
+			AddedByUser
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	stmt, err := c.Prepare(q)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := stmt.Exec(
+		d.CustomerID,
+		d.CustomerName,
+		d.Cardholder,
+		d.CardExpiration,
+		d.CardLast4,
+		d.StripeCustomerToken,
+		d.DatetimeCreated,
+		d.AddedByUser,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	return id, err
 }

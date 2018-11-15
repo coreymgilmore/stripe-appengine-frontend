@@ -42,17 +42,19 @@ var Config = config{
 //SetConfig saves the configuration options for serving templates/html pages
 func SetConfig(c config) {
 	Config = c
+
+	build()
 	return
 }
 
-//init handles finding the HTML files, parsing them, and building the golang templates.
+//build handles finding the HTML files, parsing them, and building the golang templates.
 //This is done when the program first starts.
 //Templates are cached for use.
 //This func works by checking for files in the templateDir directory, building full paths for each file,
 //parsing the files into golang templates, and storing the templates in a variable for future use.
 //By checking for files in the templateDir directory this stops us from having to list each file separately
 //in template.ParseFiles().
-func init() {
+func build() {
 	//get list of files in the directory we store the templates in
 	files, err := ioutil.ReadDir(Config.PathToTemplates)
 	if err != nil {

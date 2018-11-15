@@ -2,12 +2,9 @@ package users
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
@@ -16,6 +13,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 )
 
@@ -50,77 +48,37 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 	//hash the password
 	hashedPwd := pwds.Create(pass1)
 
+	//gather data
+	u := User{
+		Username:      adminUsername,
+		Password:      hashedPwd,
+		AddCards:      true,
+		RemoveCards:   true,
+		ChargeCards:   true,
+		ViewReports:   true,
+		Administrator: true,
+		Active:        true,
+		Created:       timestamps.ISO8601(),
+	}
+
 	//save to correct database
 	var newUserID int64
+	var outerErr error
 	if sqliteutils.Config.UseSQLite {
-		c := sqliteutils.Connection
-		q := `
-			INSERT INTO ` + sqliteutils.TableUsers + `(
-				Username,
-				Password,
-				AddCards,
-				RemoveCards,
-				ChargeCards,
-				ViewReports,
-				Administrator,
-				Active,
-				Created
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`
-		stmt, err := c.Prepare(q)
-		if err != nil {
-			log.Println("users.CreateAdmin-1", err)
-			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
-			return
-		}
+		newUserID, outerErr = addUserSqlite(u)
 
-		res, err := stmt.Exec(
-			adminUsername,
-			hashedPwd,
-			true,
-			true,
-			true,
-			true,
-			true,
-			true,
-			timestamps.ISO8601(),
-		)
-		if err != nil {
-			log.Println("users.CreateAdmin-2", err)
-			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
-			return
-		}
-
-		newUserID, err = res.LastInsertId()
-		if err != nil {
-			log.Println("users.CreateAdmin-3", err)
-			notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
-			return
-		}
 	} else {
-		//create the user
-		u := User{
-			Username:      adminUsername,
-			Password:      hashedPwd,
-			AddCards:      true,
-			RemoveCards:   true,
-			ChargeCards:   true,
-			ViewReports:   true,
-			Administrator: true,
-			Active:        true,
-			Created:       timestamps.ISO8601(),
-		}
-
 		//save to datastore
 		ctx := r.Context()
 		incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
-		completeKey, err := saveUser(ctx, incompleteKey, u)
-		if err != nil {
-			fmt.Fprint(w, err)
-			return
-		}
-
+		completeKey, err := saveUserDatastore(ctx, incompleteKey, u)
+		outerErr = err
 		newUserID = completeKey.ID
+	}
+
+	if outerErr != nil {
+		notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. "+err.Error(), "btn-default", "/setup/", "Try Again")
+		return
 	}
 
 	//save user to session
@@ -193,7 +151,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//hash the password
 	hashedPwd := pwds.Create(password1)
 
-	//create the user
+	//gather data to save new user
 	u := User{
 		Username:      username,
 		Password:      hashedPwd,
@@ -206,11 +164,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		Created:       timestamps.ISO8601(),
 	}
 
-	//save to datastore
-	incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
-	_, err = saveUser(c, incompleteKey, u)
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		_, err = addUserSqlite(u)
+	} else {
+		incompleteKey := datastoreutils.GetNewIncompleteKey(datastoreutils.EntityUsers)
+		_, err = saveUserDatastore(c, incompleteKey, u)
+	}
+
 	if err != nil {
-		fmt.Fprint(w, err)
+		log.Println("users.Add-could not save user", err)
+		output.Error(err, "Could not save user.", w)
 		return
 	}
 
@@ -219,9 +183,8 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//saveUser does the actual saving of a user to the datastore
-//Separate function to clean up code.
-func saveUser(c context.Context, key *datastore.Key, user User) (*datastore.Key, error) {
+//saveUserDatastore saves a new user to the datastore
+func saveUserDatastore(c context.Context, key *datastore.Key, user User) (*datastore.Key, error) {
 	//connect to datastore
 	client, err := datastoreutils.Connect(c)
 	if err != nil {
@@ -236,4 +199,45 @@ func saveUser(c context.Context, key *datastore.Key, user User) (*datastore.Key,
 
 	//done
 	return completeKey, nil
+}
+
+//addUserSqlite saves a new user to the sqlite db
+func addUserSqlite(user User) (int64, error) {
+	c := sqliteutils.Connection
+	q := `
+			INSERT INTO ` + sqliteutils.TableUsers + ` (
+				Username,
+				Password,
+				AddCards,
+				RemoveCards,
+				ChargeCards,
+				ViewReports,
+				Administrator,
+				Active,
+				Created
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`
+	stmt, err := c.Prepare(q)
+	if err != nil {
+
+		return 0, err
+	}
+
+	res, err := stmt.Exec(
+		user.Username,
+		user.Password,
+		user.AddCards,
+		user.RemoveCards,
+		user.ChargeCards,
+		user.ViewReports,
+		user.Administrator,
+		user.Active,
+		user.Created,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := res.LastInsertId()
+	return id, err
 }

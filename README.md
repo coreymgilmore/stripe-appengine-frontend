@@ -1,8 +1,4 @@
-**This branch is in development.**
-This branch is a work in progress and will support appengine and sqlite deployments.  Using sqlite removes the last dependency on appengine.  Deployment method will be chosen by flag `--type=sqlite` with the default set to appengine.  As you can imagine, supporting sqlite will require a bit of work.
-*** 
-
-# Collect, Store, and Charge Cards for Orders
+# Webapp for Storing and Charging Credit Cards
 
 #### Intro:
 This application (webapp) is designed for business that collect credit cards, store them, and charge them upon receiving orders.  The designed-for use case is a company that collects orders via phone or email, not ecommerce.  Think more manual order entry versus someone picking items on a website.  This provides the "we will keep this card on file" functionality.
@@ -13,10 +9,14 @@ All processing and storing of credit cards is done via [Stripe](https://stripe.c
 Version 4 (November 2018) is a major change.  See [changelog.txt](changelog.txt).
 If upgrading, you will need to modify `app.yaml`.  Otherwise, simply redeploy the app.
 
+Version 5 (mid-November 2018) is a minor change for user's deploying via App Engine.  However, this is a major release as you can now run this app without App Engine.
+
 #### Install:
 This application is designed to run via:
-- [Google App Engine](https://cloud.google.com/appengine/).  Please the the [install docs.](INSTALL-appengine.md)
-- *future* Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11. 
+- [Google App Engine](https://cloud.google.com/appengine/).  
+    - [Install docs.](INSTALL-appengine.md)
+- Any system (computer/server/VM) capable of serving a website and running [golang](https://golang.org/) >=1.11 and SQlite.
+    - [Install docs.](INSTALL-sqlite.md)
 
 #### What can you do with this app?:
 1. Add credit cards.
@@ -29,7 +29,6 @@ This application is designed to run via:
 8. Integrate into your other systems/applications by making API requests to autofill the charge form or automatically charge a card.
 
 #### Who should use this app?:
-- Companies who use a "virtual terminal" to type in card information.
 - Companies who processes non-ecommerce style orders.
 - Companies who gather payment information from an AP department but orders from a purchasing department.
 - Companies who saves customers' cards and then processes the card when the customer places an order.

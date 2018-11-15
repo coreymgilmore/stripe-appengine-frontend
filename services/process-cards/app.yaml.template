@@ -3,8 +3,9 @@ runtime: go111
 #these items need to be edited prior to deployment
 env_variables:
   #PROJECT_ID is used to connect to the Google Cloud Datastore.
-  #This must match your project ID for Google Cloud Appengine.
-  PROJECT_ID: "my-appengine-product-id"
+  #this must match your project ID for Google Cloud Appengine.
+  #no needed for sqlite deployments.
+  PROJECT_ID: "my-appengine-project-id"
   
   #SESSION_AUTH_KEY & SESSION_ENCRYPT_KEY are used for the session cookie.  
   #Auth key must be 64 characters.
@@ -35,14 +36,18 @@ env_variables:
   #this should be a value greater than 0.  0 means don't cache files at all.
   CACHE_DAYS: 7
 
-  #PATH_TO_STATIC_FILES is the full path to the directory (./webstite/static/) that stores the static files (js, css, etc.)
+  #PATH_TO_STATIC_FILES is the full path to the directory (./website/static/) that stores the static files (js, css, etc.).
+  #path must end in a "/".
+  #if running on Windows, make sure you escape the "\" characters or replace them with "/".
   PATH_TO_STATIC_FILES: "./website/static/"
 
-  #PATH_TO_TEMPLATES is the full path to the directory (./website/templates) that html templates are stored in
+  #PATH_TO_TEMPLATES is the full path to the directory (./website/templates) that html templates are stored in.
+  #path must end in a "/".
+  #if running on Windows, make sure you escape the "\" characters or replace them with "/".
   PATH_TO_TEMPLATES: "./website/templates/"
 
-  #USE_LOCAL_FILES serves the vendor css/js/font files from local storage versus cdn
-  #almost everything but stripe is served from local storage versus cdn
+  #USE_LOCAL_FILES serves the vendor css/js/font files from local storage versus cdn.
+  #almost everything but stripe is served from local storage versus cdn.
   USE_LOCAL_FILES: "true"
 
 #static file handlers.

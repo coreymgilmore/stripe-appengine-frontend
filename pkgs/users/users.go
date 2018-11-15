@@ -67,36 +67,52 @@ type userList struct {
 //GetAll retrieves the list of all users in the datastore
 //This is used to populate the select elements in the gui when changing a user's password or access rights.
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	//connect to datastore
-	c := r.Context()
-	client, err := datastoreutils.Connect(c)
-	if err != nil {
-		output.Error(err, "Could not connect to datastore", w)
-		return
-	}
-
-	//get list from datastore
-	//only need to get username and entity key to cut down on datastore usage
+	//placeholder
 	list := []userList{}
-	q := datastore.NewQuery(datastoreutils.EntityUsers).Order("Username").Project("Username")
-	i := client.Run(c, q)
-	for {
-		one := User{}
-		key, err := i.Next(&one)
 
-		if err == iterator.Done {
-			break
-		}
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			SELECT ID, Username
+			FROM ` + sqliteutils.TableUsers
+		err := c.Select(&list, q)
 		if err != nil {
-			output.Error(err, "Error retrieving list of users from datastore.", w)
+			output.Error(err, "Error retreiving list of users from sqlite.", w)
 			return
 		}
 
-		l := userList{
-			Username: one.Username,
-			ID:       key.ID,
+	} else {
+		//connect to datastore
+		c := r.Context()
+		client, err := datastoreutils.Connect(c)
+		if err != nil {
+			output.Error(err, "Could not connect to datastore", w)
+			return
 		}
-		list = append(list, l)
+
+		//get list from datastore
+		//only need to get username and entity key to cut down on datastore usage
+		q := datastore.NewQuery(datastoreutils.EntityUsers).Order("Username").Project("Username")
+		i := client.Run(c, q)
+		for {
+			one := User{}
+			key, err := i.Next(&one)
+
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				output.Error(err, "Error retrieving list of users from datastore.", w)
+				return
+			}
+
+			l := userList{
+				Username: one.Username,
+				ID:       key.ID,
+			}
+			list = append(list, l)
+		}
 	}
 
 	//return data to clinet

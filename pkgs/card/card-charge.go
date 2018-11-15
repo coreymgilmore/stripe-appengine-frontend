@@ -84,7 +84,7 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := Remove(c, strconv.FormatInt(datastoreID, 10))
+		err := remove(c, strconv.FormatInt(datastoreID, 10))
 		if err != nil {
 			log.Println("Error removing card after charge.", err)
 		}

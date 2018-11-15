@@ -1,4 +1,4 @@
-v4.x.0 - future development
+v5.0.0
 ----------
 - support for non-appengine installs.
     - uses SQLite as the database instead of Google Cloud Datastore.
@@ -6,7 +6,11 @@ v4.x.0 - future development
     - allows for migrating off of appengine (minus data migration) in case appengine becomes too expensive or changes the api heavily (again).
     - uses app.yaml for configuration so users don't have to set environmental variables.
         - same config as when deploying on appengine for ease-of-migration.
-    - this required a lot of work with "if appengine else sqlite" for db queries.
+    - a lot of work to support this was already in v4.0.0 minus the actual sqlite db queries.
+        - rewriting to support appengine gen. 2 forced a lot of rewriting anyway
+        - removal of appengine specific code
+- some other minor bug fixes
+- cron tasks function correctly on appengine gen. 2
 
 v4.0.0
 ----------

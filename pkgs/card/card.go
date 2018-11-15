@@ -25,6 +25,7 @@ package card
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -34,11 +35,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
-
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/client"
 	"github.com/stripe/stripe-go/event"
@@ -244,6 +244,9 @@ func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, 
 			WHERE CustomerID=?
 		`
 		err = c.Get(&data, q, customerID)
+		if err == sql.ErrNoRows {
+			return data, errCustomerNotFound
+		}
 
 	} else {
 		//connect to datastore

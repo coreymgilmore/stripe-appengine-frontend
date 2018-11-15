@@ -55,6 +55,9 @@ type Info struct {
 	PercentFee          float64 `json:"percentage_fee"`       //default is 2.90% transaction per Stripe
 	FixedFee            float64 `json:"fixed_fee"`            //default is $0.30 per transaction per Stripe
 	StatementDescriptor string  `json:"statement_descriptor"` //what is displayed on the statement with our charge
+
+	//fields not used in cloud datastore
+	ID int64 `json:"sqlite_user_id"`
 }
 
 //defaultCompanyInfo is the minimal amount of info required

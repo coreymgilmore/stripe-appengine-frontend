@@ -36,7 +36,6 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/card"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/cron"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/middleware"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pages"
@@ -350,7 +349,7 @@ func main() {
 	r.HandleFunc("/logout/", users.Logout)
 
 	//cron tasks
-	r.HandleFunc("/cron/remove-expired-cards/", cron.RemoveExpiredCards)
+	r.HandleFunc("/cron/remove-expired-cards/", http.HandlerFunc(card.RemoveExpiredCards))
 
 	//main app page once user is logged in
 	r.Handle("/main/", a.Then(http.HandlerFunc(pages.Main)))
@@ -415,6 +414,11 @@ func parseAppYaml(path string) (yamlData appYaml, err error) {
 		return appYaml{}, errors.New("no path was given for the app.yaml file")
 	}
 
+	//check if file exists at the given path
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return appYaml{}, err
+	}
+
 	fileData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return
@@ -465,6 +469,8 @@ func diag(w http.ResponseWriter, r *http.Request) {
 		"Path to Datastore Credentials": pathToDatastoreCredentials,
 		"Path to Static Files":          parsedAppYaml.EnvVars.StaticFilePath,
 		"Path to Templates":             parsedAppYaml.EnvVars.TemplatesPath,
+		"Path to app.yaml":              pathToAppYaml,
+		"Path to SQLite db file:":       sqliteutils.Config.PathToDatabaseFile,
 	}
 
 	templates.Load(w, "diagnostics", d)
