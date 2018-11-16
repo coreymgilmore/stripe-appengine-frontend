@@ -50,32 +50,49 @@
 									<tbody id="report-rows">
 										{{if $charges}}
 											{{range $charges}}
-												{{/*ONLY SHOW ROWS WHERE CHARGES WERE CAPTURED*/}}
-												{{if eq .Captured true}}
-													<tr>
-														<td>{{.Customer}}</td>
-														<td>{{.LastFour}}</td>
-														<td class="amount-dollars charge-amount-column"><span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span></td>
-														<td>{{.Invoice}}</td>
-														<td>
-															{{if .AutoCharge}}
-																{{.User}} - {{.AutoChargeReason}}
-															{{else if eq .User "api"}}
-																{{.User}} - {{.AutoChargeReason}}
-															{{else}}
-																{{.User}}
-															{{end}}
-														</td>
-														<td>{{.Timestamp}}</td>
-														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
-														
-														{{ if $canCharge }}
-														<td class="text-center hidden-print"><a class="refund" id="open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+												<tr {{if eq .Captured false}}class="not-captured warning"{{end}} data-charge-id="{{.ID}}">
+													<td>{{.Customer}}</td>
+													<td>{{.LastFour}}</td>
+													<td class="amount-dollars charge-amount-column">
+														{{if .Captured}}
+															<span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span><span>{{if ne .AuthorizedDatetime ""}}*{{end}}</span>
+														{{else }}
+															<a class="link-to-capture" data-toggle="modal" data-target="#modal-capture" data-chgid="{{.ID}}">
+																<span class="currency-symbol">$</span>
+																<span class="amount format-number-commas">{{.AmountDollars}}</span>
+																<span>(auth only)</span>
+															</a>
+														{{end}}
+													</td>
+													<td>{{.Invoice}}</td>
+													<td>
+														{{/* {{- and -}} are used to remove extra whitespace */}}
+														{{- if .AutoCharge}}
+															{{.User}} - {{.AutoChargeReason}}
+														{{else if eq .User "api"}}
+															{{.User}} - {{.AutoChargeReason}}
+														{{else}}
+															{{- .User -}}
+														{{end -}}
+													</td>
+													<td>{{.Timestamp}}</td>
+													
+													{{if .Captured}}
+													<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
+													{{else}}
+													<td></td>
+													{{end}}
+
+													{{ if $canCharge  }}
+														{{if .Captured}}
+														<td class="text-center hidden-print"><a class="refund open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
 														{{else}}
 														<td></td>
 														{{end}}
-													</tr>
-												{{end}}
+													{{else}}
+													<td></td>
+													{{end}}
+												</tr>
 											{{end}}
 										{{else}}
 											<tr>
@@ -108,7 +125,9 @@
 									</tfoot>
 									{{end}}
 								</table>
-								<i class="text-muted">*There might be a few cents difference between the "Total Less Fees" and the amount you will see on the Stripe Dashboard.  This is due to rounding.</i>
+								<i class="text-muted">Note: There might be a few cents difference between the "Total Less Fees" and the amount you will see on the Stripe Dashboard.  This is due to rounding.</i>
+								<br>
+								<i class="text-muted">*: These are charges that were authorized and then captured.</i>
 							</div>
 						</div>
 					</div>
@@ -228,6 +247,28 @@
 				</div>
 			</div>
 		</div>
+
+		<div class="modal fade" id="modal-capture">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+							<h4 class="modal-title">Capturing Charge</h4>
+						</div>
+						<div class="modal-body">
+							<input id="capture-charge-id" type="hidden">
+							<div class="msg">
+								<div class="alert alert-info">Capturing...</div>
+							</div>
+						</div>
+						<div class="modal-footer">
+							<div class="btn-group">
+								<button class="btn btn-default" type="button" data-dismiss="modal">Close</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		{{end}}
 
 		{{template "html_scripts" .}}

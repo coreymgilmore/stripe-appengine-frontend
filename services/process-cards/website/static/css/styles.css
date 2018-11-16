@@ -359,3 +359,12 @@ footer a:hover{
 .panel-body .msg .alert {
 	margin-bottom: 0;
 }
+
+/*REPORT STYLING FOR NOT CAPTURED ROWS (CHARGES JUST AUTHED*/
+.not-captured td {
+	font-style: italic;
+}
+
+.link-to-capture {
+	cursor: pointer;
+}

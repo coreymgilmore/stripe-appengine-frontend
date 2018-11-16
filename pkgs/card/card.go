@@ -376,13 +376,6 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 	captured := chg.Captured
 	capturedStr := strconv.FormatBool(captured)
 
-	//skip the rest of this if captured is false
-	//this means the charge was not processed
-	//for example: the card was declined
-	if captured == false {
-		return
-	}
-
 	//metadata
 	meta := chg.Metadata
 	customerName := meta["customer_name"]
@@ -394,6 +387,9 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 	autoCharge, _ := strconv.ParseBool(meta["auto_charge"])
 	autoChargeReferrer := meta["auto_charge_referrer"]
 	autoChargeReason := meta["auto_charge_reason"]
+	authorizedByUser := meta["authorized_by"]
+	authorizedDate := meta["authorized_date"]
+	processedDate := meta["processed_date"]
 
 	//customer info
 	customer := chg.Customer
@@ -445,6 +441,10 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 		AutoCharge:         autoCharge,
 		AutoChargeReferrer: autoChargeReferrer,
 		AutoChargeReason:   autoChargeReason,
+
+		AuthorizedByUser:   authorizedByUser,
+		AuthorizedDatetime: authorizedDate,
+		ProcessedDatetime:  processedDate,
 	}
 
 	return

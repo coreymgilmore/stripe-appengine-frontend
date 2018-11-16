@@ -100,7 +100,10 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	}
 
 	originalTimeTime, err := time.ParseInLocation("2006-01-02T15:04:05.000Z", d.Timestamp, utcLoc)
-	if err != nil {
+	if d.Timestamp == "" {
+		//when charge is authorized only, not capture
+		d.Timestamp = "*not captured yet*"
+	} else if err != nil {
 		log.Println("receipt.Show: time reformat error", err)
 	} else {
 		d.Timestamp = originalTimeTime.In(guiLoc).Format("2006-01-02 @ 3:04:05PM")

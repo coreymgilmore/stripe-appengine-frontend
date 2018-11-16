@@ -1,3 +1,8 @@
+v5.1.0
+----------
+- support for authorized transaction
+    - "holds" on card; charge is authorized, but not captured.
+
 v5.0.0
 ----------
 - support for non-appengine installs.

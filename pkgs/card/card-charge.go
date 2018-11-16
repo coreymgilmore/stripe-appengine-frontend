@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
@@ -24,10 +25,8 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	amount := r.FormValue("amount")                                        //in dollars
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
-
-	//above inputs are the same for manual or auto charges
-	//below are for manual charges only
 	chargeAndRemove, _ := strconv.ParseBool(r.FormValue("chargeAndRemove")) //true if card should be removed after charging
+	authorizeOnly, _ := strconv.ParseBool(r.FormValue("authorizeOnly"))     //true if we don't want to capture the card, just check if funds are available
 
 	//validation
 	if datastoreID == 0 {
@@ -74,7 +73,19 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, username, "", "")
+	inputs := processChargeInputs{
+		context:              c,
+		amountCents:          amountCents,
+		invoiceNum:           invoice,
+		poNum:                poNum,
+		companyData:          companyInfo,
+		customerData:         custData,
+		userProcessingCharge: username,
+		autoChargeReferrer:   "",
+		autoChargeReason:     "",
+		authorizeOnly:        authorizeOnly,
+	}
+	out, errMsg, err := processCharge(inputs)
 	if err != nil {
 		output.Error(err, errMsg, w)
 		return
@@ -177,7 +188,19 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, errMsg, err := processCharge(c, amountCents, invoice, poNum, companyInfo, custData, "api", referrer, reason)
+	inputs := processChargeInputs{
+		context:              c,
+		amountCents:          amountCents,
+		invoiceNum:           invoice,
+		poNum:                poNum,
+		companyData:          companyInfo,
+		customerData:         custData,
+		userProcessingCharge: "api",
+		autoChargeReferrer:   referrer,
+		autoChargeReason:     reason,
+		authorizeOnly:        false,
+	}
+	out, errMsg, err := processCharge(inputs)
 	if err != nil {
 		output.Error(err, errMsg, w)
 		return
@@ -198,6 +221,21 @@ func isBelowMinCharge(amount uint64) (string, error) {
 	return "", nil
 }
 
+//processChargeInputs is the data used in the processCharge func
+//this is used instead of having to each of these variables one by one into the func which is ugly
+type processChargeInputs struct {
+	context              context.Context
+	amountCents          uint64
+	invoiceNum           string
+	poNum                string
+	companyData          company.Info
+	customerData         CustomerDatastore
+	userProcessingCharge string
+	autoChargeReferrer   string
+	autoChargeReason     string
+	authorizeOnly        bool
+}
+
 //processCharge peforms most of the actions required to actually charge a card
 //this func removes a lot of retyping between ManualCharge and AutoCharge
 //c: used for stripe client
@@ -207,39 +245,51 @@ func isBelowMinCharge(amount uint64) (string, error) {
 //custData: data about the customer who this charge is for
 //user: either the logged in user or "api" when charged automatically
 //referrer & reason: only given when charge is automatically processed
-func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum string, companyInfo company.Info, custData CustomerDatastore, user, referrer, reason string) (out chargeSuccessful, errMsg string, err error) {
+func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg string, err error) {
 	//get stripe client
-	sc := CreateStripeClient(c)
+	sc := CreateStripeClient(input.context)
 
 	//check if invoice or po number are blank
 	//so that the description on stripe's dashboard makes sense if values are missing
-	if len(invoiceNum) == 0 {
-		invoiceNum = "*not provided*"
+	if len(input.invoiceNum) == 0 {
+		input.invoiceNum = "*not provided*"
 	}
-	if len(poNum) == 0 {
-		poNum = "*not provided*"
+	if len(input.poNum) == 0 {
+		input.poNum = "*not provided*"
 	}
+
+	//capture is the opposite of authorize
+	capture := !input.authorizeOnly
 
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
-		Customer:            stripe.String(custData.StripeCustomerToken),
-		Amount:              stripe.Int64(int64(amountCents)),
+		Customer:            stripe.String(input.customerData.StripeCustomerToken),
+		Amount:              stripe.Int64(int64(input.amountCents)),
 		Currency:            stripe.String(currency),
-		Description:         stripe.String("Charge for invoice: " + invoiceNum + ", purchase order: " + poNum + "."),
-		StatementDescriptor: stripe.String(companyInfo.StatementDescriptor),
+		Description:         stripe.String("Charge for invoice: " + input.invoiceNum + ", purchase order: " + input.poNum + "."),
+		StatementDescriptor: stripe.String(input.companyData.StatementDescriptor),
+		Capture:             stripe.Bool(capture),
 	}
 
-	//add metadata
-	chargeParams.AddMetadata("customer_name", custData.CustomerName)
-	chargeParams.AddMetadata("customer_id", custData.CustomerID)
-	chargeParams.AddMetadata("invoice_num", invoiceNum)
-	chargeParams.AddMetadata("po_num", poNum)
-	chargeParams.AddMetadata("processed_by", user)
+	log.Println("Capture:", capture)
 
-	if user == "api" {
+	//add metadata
+	chargeParams.AddMetadata("customer_name", input.customerData.CustomerName)
+	chargeParams.AddMetadata("customer_id", input.customerData.CustomerID)
+	chargeParams.AddMetadata("invoice_num", input.invoiceNum)
+	chargeParams.AddMetadata("po_num", input.poNum)
+
+	if input.authorizeOnly {
+		chargeParams.AddMetadata("authorized_by", input.userProcessingCharge)
+		chargeParams.AddMetadata("authorized_date", timestamps.ISO8601())
+	} else {
+		chargeParams.AddMetadata("processed_by", input.userProcessingCharge)
+	}
+
+	if input.userProcessingCharge == "api" {
 		chargeParams.AddMetadata("auto_charge", "true")
-		chargeParams.AddMetadata("auto_charge_referrer", referrer)
-		chargeParams.AddMetadata("auto_charge_reason", reason)
+		chargeParams.AddMetadata("auto_charge_referrer", input.autoChargeReferrer)
+		chargeParams.AddMetadata("auto_charge_reason", input.autoChargeReason)
 	}
 
 	//process the charge
@@ -265,15 +315,50 @@ func processCharge(c context.Context, amountCents uint64, invoiceNum, poNum stri
 
 	//build struct to output a success message to the client
 	out = chargeSuccessful{
-		CustomerName:   custData.CustomerName,
-		Cardholder:     custData.Cardholder,
-		CardExpiration: custData.CardExpiration,
-		CardLast4:      custData.CardLast4,
-		Amount:         strconv.Itoa(int(amountCents) / 100),
-		Invoice:        invoiceNum,
-		Po:             poNum,
+		CustomerName:   input.customerData.CustomerName,
+		Cardholder:     input.customerData.Cardholder,
+		CardExpiration: input.customerData.CardExpiration,
+		CardLast4:      input.customerData.CardLast4,
+		Amount:         strconv.Itoa(int(input.amountCents) / 100),
+		Invoice:        input.invoiceNum,
+		Po:             input.poNum,
 		Datetime:       timestamps.ISO8601(),
 		ChargeID:       chg.ID,
+		AuthorizedOnly: input.authorizeOnly,
 	}
+	return
+}
+
+//Capture captures a previous authorized charge
+func Capture(w http.ResponseWriter, r *http.Request) {
+	//get input
+	chargeID := strings.TrimSpace(r.FormValue("chargeID"))
+
+	//get stripe client
+	sc := CreateStripeClient(r.Context())
+
+	//get username of logged in user
+	//we record this data so we can see who processed a charge in the reports
+	username := sessionutils.GetUsername(r)
+
+	//update the charge with some notes
+	params := &stripe.ChargeParams{}
+	params.AddMetadata("processed_by", username)
+	params.AddMetadata("processed_date", timestamps.ISO8601())
+	_, err := sc.Charges.Update(chargeID, params)
+	if err != nil {
+		log.Println("card.Capture: error updating charge", err)
+		//we don't return here since if we can't update the charge it isn't the worse thing in the world
+	}
+
+	//capture the charge
+	//this actual charges the card
+	_, err = sc.Charges.Capture(chargeID, nil)
+	if err != nil {
+		output.Error(err, "Could not capture charge.", w)
+		return
+	}
+
+	output.Success("cardCharged", nil, w)
 	return
 }

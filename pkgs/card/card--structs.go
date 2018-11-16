@@ -33,11 +33,12 @@ type chargeSuccessful struct {
 	Cardholder     string `json:"cardholder_name"`
 	CardExpiration string `json:"card_expiration"`
 	CardLast4      string `json:"card_last4"`
-	Amount         string `json:"amount"`    //the amount of the charge as a dollar amount string
-	Invoice        string `json:"invoice"`   //the invoice number to reference for this charge
-	Po             string `json:"po"`        //the po number to reference for this charge
-	Datetime       string `json:"datetime"`  //when the charge was processed
-	ChargeID       string `json:"charge_id"` //the unique id returned by stripe for this charge, used to show a receipt if needed or process a refund
+	Amount         string `json:"amount"`          //the amount of the charge as a dollar amount string
+	Invoice        string `json:"invoice"`         //the invoice number to reference for this charge
+	Po             string `json:"po"`              //the po number to reference for this charge
+	Datetime       string `json:"datetime"`        //when the charge was processed
+	ChargeID       string `json:"charge_id"`       //the unique id returned by stripe for this charge, used to show a receipt if needed or process a refund
+	AuthorizedOnly bool   `json:"authorized_only"` //true if charge was authorized but not charged
 }
 
 //List is used to return the list of cards available to be charged to build the gui
@@ -71,6 +72,11 @@ type ChargeData struct {
 	AutoCharge         bool   `json:"auto_charge,omitempty"`          //true if we made this charge automatically through api request
 	AutoChargeReferrer string `json:"auto_charge_referrer,omitempty"` //the name of the app that requested the charge
 	AutoChargeReason   string `json:"auto_charge_reason,omitempty"`   //if one app/referrer will place charges for many reasons, detail that reason here; so we know what process/func caused the charge
+
+	//data about an authed & captured charge
+	AuthorizedByUser   string `json:"authorized_by_user"`
+	AuthorizedDatetime string `json:"authorized_datetime"`
+	ProcessedDatetime  string `json:"processed_datetime"`
 }
 
 //RefundData is the data from a refund that we use the build the gui

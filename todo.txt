@@ -1,23 +1,21 @@
+auth charge instead of capturing
+    - to make sure a card has funds but we don't want to charge the card yet
+    - make this a drop down option in the charge card panel
+    - display the charge as "pending" in charge report.  don't add it to the total charged or # of charges
+        - don't show receipt button
+        - don't show refund button
+        - show a "capture" button that will result in the charge being captured.
+            - not sure if this results in a charge being captured for the day it was authed on or the day it was captured on
+    - set metadata about "pending charge captured", "authed date", "charged date", "authed by", and "charged by"
+
 set use of redis as memcache in environmental variable
     - maybe?
     - would require a lot of if/else for checking cache and setting stuff
     - would this add latency since we would be making HTTP requests to look up stuff in cache?  probably.
 
-better step-by-step document of how to install/set up
-
 rename project to "stripe-frontend"
     - since we offer a non-appengine install
     - more descriptive by not including appengine
     - need to fix import paths for golang
-
-sqlite/local install instead of appengine
-    - allow using sqlite instead of appengine datastore
-    - use flag to set this (--deploymentType=sqlite) which then looks up path to sqlite.db from app.yaml
-        - reuse app.yaml to get environmental variables instead of having to create a separate .conf (config) file
-    - have to switch between sqlite/datastore as needed in code
-    - try to keep sample table structure in sqlite the same as datastore
-    - redo and functionize any "get" or "set" db related queries so they are more easily maintained.
-    - need to and "ID" field to structs
-        - make sure this doesn't overlap with datastore key ids
 
 rewrite using typescript and vue?

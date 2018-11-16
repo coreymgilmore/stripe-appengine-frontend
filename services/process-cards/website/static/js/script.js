@@ -981,7 +981,7 @@ $('#charge-card').on('change', '.customer-name', function() {
 	msg.html('');
 	
 	//check if no valid customer was selected
-	if (custId === "") {
+	if (custId === "" || custId === 0) {
 		showPanelMessage("The customer name you provided is not a real customer. Please choose a customer from the list.", "danger", msg);
 		return;
 	}
@@ -1039,6 +1039,7 @@ $('#charge-card').submit(function (e) {
 	var btn = 				$('#charge-card-submit');
 	var dropdownBtn = 		btn.siblings('.dropdown-toggle');
 	var chargeAndRemove = 	btn.data("chargeandremove") || false;
+	var authorizeOnly = 	btn.data("authorizeonly") || false;
 
 	//stop form submission
 	e.preventDefault();
@@ -1064,7 +1065,8 @@ $('#charge-card').submit(function (e) {
 			amount: 			amount,
 			invoice: 			invoice, 
 			po: 				po,
-			chargeAndRemove: 	chargeAndRemove
+			chargeAndRemove: 	chargeAndRemove,
+			authorizeOnly: 		authorizeOnly,
 		},
 		beforeSend: function() {
 			//disabled the inputs
@@ -1076,7 +1078,12 @@ $('#charge-card').submit(function (e) {
 			dropdownBtn.prop('disabled', true);
 
 			//show working message
-			showPanelMessage("Charging card...", 'info', msg);
+			if (authorizeOnly) {
+				showPanelMessage("Authorizing charge...", 'info', msg);
+			}
+			else {
+				showPanelMessage("Charging card...", 'info', msg);
+			}
 			
 			//clear success panel in case it has old data
 			resetChargeSuccessPanel();
@@ -1090,23 +1097,35 @@ $('#charge-card').submit(function (e) {
 			return;
 		},
 		success: function (j) {
+			var successPanel = $('#panel-charge-success');
+			
 			//load data into the success panel
 			var data = j['data'];
-			$('#panel-charge-success .customer-name').text(data['customer_name']);
-			$('#panel-charge-success .cardholder').text(data['cardholder_name']);
-			$('#panel-charge-success .card-last4').text(data['card_last4']);
-			$('#panel-charge-success .card-exp').text(data['card_expiration']);
-			$('#panel-charge-success .amount').text("$" + parseFloat(data['amount']).toFixed(2));
-			$('#panel-charge-success .invoice').text(data['invoice']);
-			$('#panel-charge-success .po').text(data['po']);
+			successPanel.find('.customer-name').text(data['customer_name']);
+			successPanel.find('.cardholder').text(data['cardholder_name']);
+			successPanel.find('.card-last4').text(data['card_last4']);
+			successPanel.find('.card-exp').text(data['card_expiration']);
+			successPanel.find('.amount').text("$" + parseFloat(data['amount']).toFixed(2));
+			successPanel.find('.invoice').text(data['invoice']);
+			successPanel.find('.po').text(data['po']);
 
 			var href = "/card/receipt/?chg_id=" + data['charge_id'];
 			$('#show-receipt').attr('href', href);
 
+			//set correct panel data
+			if (data['authorized_only'] === true) {
+				successPanel.find('.panel-title').text("Authorization Successful!");
+				successPanel.find('.panel-body .info.info-authorize').show();
+				$('#show-receipt').attr('disabled', true);
+			}
+			else {
+				successPanel.find('.panel-title').text("Charge Successful!");
+				successPanel.find('.panel-body .info.info-authorize').hide();
+				$('#show-receipt').attr('disabled', false);
+			}
+
 			//show success panel
-			var containerWidth = 	$('#action-panels-container').outerWidth()
 			var chargeCardPanel = 	$('#panel-charge-card');
-			var successPanel = 		$('#panel-charge-success');
 			var allBtns = 			$('.action-btn');
 			allBtns.attr("disabled", true).children("input").attr("disabled", true);
 			chargeCardPanel.fadeOut(200, function() {
@@ -1152,6 +1171,20 @@ $('.dropdown-menu.charge-card-options').on('click', '#charge-and-remove-card', f
 	return;
 });
 
+//AUTHORIZE A CHARGE, BUT DON'T CHARGE THE CARD
+//allows us to see if a card can be charged for a given amount and holds the amount as pending for 7 days
+//we can then capture the amount at a later date.
+//used for making sure a card has funds available for us if we know we will be charging it in the near future.
+//this just sets a data attribute and forces the submit of the form from an <a> link in the dropdown menu
+$('.dropdown-menu.charge-card-options').on('click', '#auth-charge-only', function() {
+	//set data attribute so we know to remove this card
+	$('#charge-card-submit').data("authorizeonly", true);
+
+	//submit the form
+	$('#charge-card').submit();
+	return;
+});
+
 //RESET THE CHARGE CARD PANEL TO DEFAULTS
 //in: msgRemove: bool, Should the status message be removed
 function resetChargeCardPanel(msgRemove) {
@@ -1168,6 +1201,9 @@ function resetChargeCardPanel(msgRemove) {
 
 	//disable inputs
 	$('#charge-card .charge-amount, #charge-card .charge-invoice, #charge-card .charge-po').prop('disabled', true);
+
+	//remove any modifiers to charging card
+	$('#charge-card-submit').removeData();
 
 	//remove status message if needed
 	if (msgRemove) {
@@ -1336,6 +1372,49 @@ $('#form-refund').submit(function (e) {
 	})
 
 	return false;
+});
+
+//AUTOFILL THE CHARGE MODAL
+$('#report-rows').on('click', '.link-to-capture', function() {
+	//get charge id and save into modal
+	var chargeID = $(this).parents('tr').data("charge-id");
+	$('#capture-charge-id').val(chargeID);
+	return;
+});
+
+//CAPTURE A PENDING CHARGE
+$('#modal-capture').on('show.bs.modal', function() {
+	//get charge id to charge
+	var chargeID = $('#capture-charge-id').val();
+
+	var msg = $('#modal-capture .msg');
+
+	//make ajax request to charge the card
+	$.ajax({
+		type: 	"POST",
+		url: 	"/card/capture/",
+		data: {
+			chargeID: 	chargeID,
+		},
+		beforeSend: function () {
+			//show working message
+			showModalMessage("Capturing...", "info", msg);
+			return;
+		},
+		error: function (r) {
+			var j = JSON.parse(r['responseText']);
+			if (j['ok'] === false) {
+				showModalMessage(j['data']['error_msg'], 'danger', msg);
+			}
+			return;
+		},
+		success: function (j) {
+			showModalMessage("Capture successful!", "success", msg);
+			return;
+		}
+	});
+
+	return;
 });
 
 //*******************************************************************************

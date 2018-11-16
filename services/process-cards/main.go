@@ -374,6 +374,7 @@ func main() {
 	c.Handle("/receipt/", a.Then(http.HandlerFunc(receipt.Show))).Methods("GET")
 	c.Handle("/report/", reports.Then(http.HandlerFunc(card.Report))).Methods("GET")
 	c.Handle("/refund/", charge.Then(http.HandlerFunc(card.Refund))).Methods("POST")
+	c.Handle("/capture/", charge.Then(http.HandlerFunc(card.Capture))).Methods("POST")
 
 	c.Handle("/auto-charge/", http.HandlerFunc(card.AutoCharge)).Methods("POST")
 

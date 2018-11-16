@@ -187,17 +187,13 @@ func getListOfCharges(c context.Context, sc *client.API, r *http.Request, datast
 		chg := charges.Charge()
 		d := ExtractDataFromCharge(chg)
 
-		//make sure this charge was captured
-		//do not count charges that failed
-		if d.Captured == false {
-			continue
+		//only total up amount and number of charges for charges that were captured
+		if d.Captured {
+			amountTotal += d.AmountCents
+			numCharges++
 		}
 
 		data = append(data, d)
-
-		//increment totals
-		amountTotal += d.AmountCents
-		numCharges++
 	}
 
 	//calculate fees

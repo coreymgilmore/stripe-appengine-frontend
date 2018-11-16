@@ -294,6 +294,7 @@
 										</button>
 										<ul class="dropdown-menu charge-card-options">
 											<li><a id="charge-and-remove-card" href="#" form="charge-card" type="submit">Charge & Remove</a></li>
+											<li><a id="auth-charge-only" href="#" form="charge-card" type="submit">Authorize Only</a></li>
 										</ul>
 									</div>								
 									<button class="btn btn-default clear-form-btn" type="button">Clear</button>
@@ -306,6 +307,12 @@
 							<h3 class="panel-title">Charge Successful!</h3>
 						</div>
 						<div class="panel-body">
+							<div class="info info-authorize">
+								<blockquote>
+									<i>This charge was only authorized, it was not capture.  You have 7 days to capture this charge from the Reports.</i>
+								</blockquote>
+							</div>
+
 							<dl class="dl-horizontal" id="charge-success-info">
 								<dt>Customer:</dt>
 								<dd class="customer-name"></dd>
