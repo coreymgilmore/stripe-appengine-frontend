@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -307,8 +308,15 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 			errMsg = "Charging this card timed out. The charge may have succeeded anyway. Please check the Report to see if this charge was successful."
 			return
 		case *stripe.Error:
+			//err returned form sc.Charges.New is a struct/json.
+			//extract the actual error message for err.  prepend with "stripe:" so we know where this error came from
+			//use the textual error message for errMsg but add some text for context in other apps
 			stripeErr := err.(*stripe.Error)
-			errMsg = stripeErr.Msg
+			err = errors.New("stripe: " + string(stripeErr.Type))
+			errMsg = "Stripe returned an error: " + stripeErr.Msg + " (" + string(stripeErr.Code) + ")"
+
+			log.Println("card.charge: stripe.Error")
+			log.Printf("%+v", stripeErr)
 			return
 		}
 	}

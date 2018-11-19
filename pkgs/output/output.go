@@ -78,7 +78,8 @@ func Error(title error, msg string, w http.ResponseWriter) {
 	}
 
 	//log errors into appengine log
-	log.Println("output.Error:", d)
+	log.Println("output.Error:")
+	log.Printf("%+v", d)
 
 	//send message to client
 	returnData(false, "error", d, http.StatusBadRequest, w)

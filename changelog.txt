@@ -1,3 +1,7 @@
+v5.1.1
+----------
+- improved error messages for failed charges
+
 v5.1.0
 ----------
 - support for authorized transaction
