@@ -50,49 +50,52 @@
 									<tbody id="report-rows">
 										{{if $charges}}
 											{{range $charges}}
-												<tr {{if eq .Captured false}}class="not-captured warning"{{end}} data-charge-id="{{.ID}}">
-													<td>{{.Customer}}</td>
-													<td>{{.LastFour}}</td>
-													<td class="amount-dollars charge-amount-column">
+												{{/*only show non-failed charges & successful authorizations*/}}
+												{{if eq .FailureCode ""}}
+													<tr {{if eq .Captured false}}class="not-captured warning"{{end}} data-charge-id="{{.ID}}">
+														<td>{{.Customer}}</td>
+														<td>{{.LastFour}}</td>
+														<td class="amount-dollars charge-amount-column">
+															{{if .Captured}}
+																<span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span><span>{{if ne .AuthorizedDatetime ""}}*{{end}}</span>
+															{{else }}
+																<a class="link-to-capture" data-toggle="modal" data-target="#modal-capture" data-chgid="{{.ID}}">
+																	<span class="currency-symbol">$</span>
+																	<span class="amount format-number-commas">{{.AmountDollars}}</span>
+																	<span>(auth only)</span>
+																</a>
+															{{end}}
+														</td>
+														<td>{{.Invoice}}</td>
+														<td>
+															{{/* {{- and -}} are used to remove extra whitespace */}}
+															{{- if .AutoCharge}}
+																{{.User}} - {{.AutoChargeReason}}
+															{{else if eq .User "api"}}
+																{{.User}} - {{.AutoChargeReason}}
+															{{else}}
+																{{- .User -}}
+															{{end -}}
+														</td>
+														<td>{{.Timestamp}}</td>
+														
 														{{if .Captured}}
-															<span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span><span>{{if ne .AuthorizedDatetime ""}}*{{end}}</span>
-														{{else }}
-															<a class="link-to-capture" data-toggle="modal" data-target="#modal-capture" data-chgid="{{.ID}}">
-																<span class="currency-symbol">$</span>
-																<span class="amount format-number-commas">{{.AmountDollars}}</span>
-																<span>(auth only)</span>
-															</a>
-														{{end}}
-													</td>
-													<td>{{.Invoice}}</td>
-													<td>
-														{{/* {{- and -}} are used to remove extra whitespace */}}
-														{{- if .AutoCharge}}
-															{{.User}} - {{.AutoChargeReason}}
-														{{else if eq .User "api"}}
-															{{.User}} - {{.AutoChargeReason}}
-														{{else}}
-															{{- .User -}}
-														{{end -}}
-													</td>
-													<td>{{.Timestamp}}</td>
-													
-													{{if .Captured}}
-													<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
-													{{else}}
-													<td></td>
-													{{end}}
-
-													{{ if $canCharge  }}
-														{{if .Captured}}
-														<td class="text-center hidden-print"><a class="refund open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+														<td class="text-center hidden-print"><a class="receipt" href="/card/receipt/?chg_id={{.ID}}" target="_blank"><span class="glyphicon glyphicon-briefcase"></span></a></td>
 														{{else}}
 														<td></td>
 														{{end}}
-													{{else}}
-													<td></td>
-													{{end}}
-												</tr>
+
+														{{ if $canCharge  }}
+															{{if .Captured}}
+															<td class="text-center hidden-print"><a class="refund open-modal-refund" data-toggle="modal" data-target="#modal-refund" data-chgid="{{.ID}}"><span class="glyphicon glyphicon-remove-circle"></span></a></td>
+															{{else}}
+															<td></td>
+															{{end}}
+														{{else}}
+														<td></td>
+														{{end}}
+													</tr>
+												{{end}}
 											{{end}}
 										{{else}}
 											<tr>

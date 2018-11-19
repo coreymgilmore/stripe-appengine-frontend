@@ -1,6 +1,10 @@
+v5.1.2
+----------
+- fix bug where failed charges were showing up in list of charges.
+
 v5.1.1
 ----------
-- improved error messages for failed charges
+- improved error messages for failed charges.
 
 v5.1.0
 ----------

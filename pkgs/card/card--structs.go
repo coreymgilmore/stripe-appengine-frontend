@@ -77,6 +77,11 @@ type ChargeData struct {
 	AuthorizedByUser   string `json:"authorized_by_user"`
 	AuthorizedDatetime string `json:"authorized_datetime"`
 	ProcessedDatetime  string `json:"processed_datetime"`
+
+	//data used to differentiate between a not captured and failed charge and a non captured but authorized charge
+	//null if charge is successful or charge was authorized, if charged failed there will be some info
+	FailureCode    string
+	FailureMessage string
 }
 
 //RefundData is the data from a refund that we use the build the gui

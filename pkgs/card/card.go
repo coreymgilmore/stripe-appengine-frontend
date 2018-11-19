@@ -445,6 +445,9 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 		AuthorizedByUser:   authorizedByUser,
 		AuthorizedDatetime: authorizedDate,
 		ProcessedDatetime:  processedDate,
+
+		FailureCode:    chg.FailureCode,
+		FailureMessage: chg.FailureMessage,
 	}
 
 	return
