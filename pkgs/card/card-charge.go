@@ -272,8 +272,6 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 		Capture:             stripe.Bool(capture),
 	}
 
-	log.Println("Capture:", capture)
-
 	//add metadata
 	chargeParams.AddMetadata("customer_name", input.customerData.CustomerName)
 	chargeParams.AddMetadata("customer_id", input.customerData.CustomerID)
