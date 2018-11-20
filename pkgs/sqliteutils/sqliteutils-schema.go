@@ -8,6 +8,7 @@ data, ex: card.CustomerDatastore.
 package sqliteutils
 
 import (
+	"database/sql"
 	"errors"
 	"log"
 	"strconv"
@@ -224,7 +225,7 @@ func AddColumnLastUsedTimestamp(c *sqlx.DB) error {
 	`
 	var rowValue int64
 	err := c.Get(&rowValue, q)
-	if err == nil {
+	if err == nil || err == sql.ErrNoRows {
 		//column exists, do nothing
 		return nil
 	} else if err.Error() == errNoSuchColumn.Error()+": "+column {
