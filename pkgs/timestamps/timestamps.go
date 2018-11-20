@@ -10,10 +10,10 @@ package timestamps
 import "time"
 
 //Unix returns the number of seconds as an integer since epoch
-func Unix() int {
+func Unix() int64 {
 	t := time.Now()
 	s := t.Unix()
-	return int(s)
+	return s
 }
 
 //ISO8601 returns a datetime with the format YY-MM-DDTHH:MM:SS.mmmZ

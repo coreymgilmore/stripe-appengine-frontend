@@ -141,11 +141,21 @@ func Show(w http.ResponseWriter, r *http.Request) {
 //this is used to show the receipt when saving the company info.
 func Preview(w http.ResponseWriter, r *http.Request) {
 	//get company info
-	companyInfo, _ := company.Get(r)
+	companyInfo, err := company.Get(r)
+	if err != nil {
+		log.Println("receipt.Preview - Could not get company info", err)
+	}
 	if len(companyInfo.CompanyName) == 0 {
 		companyInfo.CompanyName = "**Company info has not been set yet.**"
 		companyInfo.Street = "**Please contact an administrator to fix this.**"
 		log.Println("receipt.Preview", "Cannot preview receipt because company info hasn't been set yet.")
+	}
+
+	//get app settings (timezone)
+	appInfo, err := appsettings.Get(r)
+	if err != nil {
+		log.Println("receipt.Preview - Could not get app settings", err)
+		appInfo.ReportTimezone = "EST (just for preview)"
 	}
 
 	//display receipt
@@ -170,7 +180,7 @@ func Preview(w http.ResponseWriter, r *http.Request) {
 		Amount:              "256.04",
 		Invoice:             "344402",
 		Po:                  "3345",
-		Timezone:            "America/New_York",
+		Timezone:            appInfo.ReportTimezone,
 	}
 	templates.Load(w, "receipt", output)
 	return

@@ -12,8 +12,10 @@ import (
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/appsettings"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/company"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
 )
@@ -70,7 +72,7 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "Could not get statement descriptor from company info.", w)
 		return
 	} else if len(companyInfo.StatementDescriptor) == 0 {
-		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
+		output.Error(errMissingStatementDescriptor, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
 		return
 	}
 
@@ -96,7 +98,7 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	//check if we need to remove this card
 	//remove it if necessary
 	if chargeAndRemove {
-		err := remove(c, strconv.FormatInt(datastoreID, 10))
+		err := remove(c, datastoreID)
 		if err != nil {
 			log.Println("Error removing card after charge.", err)
 		}
@@ -185,7 +187,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		output.Error(err, "Could not get statement descriptor from company info.", w)
 		return
 	} else if len(companyInfo.StatementDescriptor) == 0 {
-		output.Error(nil, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
+		output.Error(errMissingStatementDescriptor, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
 		return
 	}
 
@@ -239,13 +241,6 @@ type processChargeInputs struct {
 
 //processCharge peforms most of the actions required to actually charge a card
 //this func removes a lot of retyping between ManualCharge and AutoCharge
-//c: used for stripe client
-//amountCents: amount to charge
-//invoiceNum & poNum: details about the order charge is for
-//companyInfo: statement descriptor
-//custData: data about the customer who this charge is for
-//user: either the logged in user or "api" when charged automatically
-//referrer & reason: only given when charge is automatically processed
 func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg string, err error) {
 	//get stripe client
 	sc := CreateStripeClient(input.context)
@@ -319,6 +314,13 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 		}
 	}
 
+	//update the last charge/used timestamp
+	//don't return on an error since this isn't a huge issue if it doesn't work
+	err = updateCardLastUsed(input.context, input.customerData.ID)
+	if err != nil {
+		log.Println("card.processCharge - could not update card last used", err)
+	}
+
 	//build struct to output a success message to the client
 	out = chargeSuccessful{
 		CustomerName:   input.customerData.CustomerName,
@@ -341,7 +343,8 @@ func Capture(w http.ResponseWriter, r *http.Request) {
 	chargeID := strings.TrimSpace(r.FormValue("chargeID"))
 
 	//get stripe client
-	sc := CreateStripeClient(r.Context())
+	ctx := r.Context()
+	sc := CreateStripeClient(ctx)
 
 	//get username of logged in user
 	//we record this data so we can see who processed a charge in the reports
@@ -367,4 +370,46 @@ func Capture(w http.ResponseWriter, r *http.Request) {
 
 	output.Success("cardCharged", nil, w)
 	return
+}
+
+//updateCardLastUsed updates the LastUsedTimestamp of a card
+func updateCardLastUsed(ctx context.Context, customerID int64) error {
+	//use correct db
+	if sqliteutils.Config.UseSQLite {
+		c := sqliteutils.Connection
+		q := `
+			UPDATE ` + sqliteutils.TableCards + `
+			SET LastUsedTimestamp=?
+			WHERE ID=?
+		`
+		stmt, err := c.Prepare(q)
+		if err != nil {
+			return err
+		}
+
+		_, err = stmt.Exec(
+			timestamps.Unix(),
+			customerID,
+		)
+
+	} else {
+		fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, customerID)
+		client, err := datastoreutils.Connect(ctx)
+		if err != nil {
+			return err
+		}
+
+		//look up card info first since datastore can't do updates
+		cardData := CustomerDatastore{}
+		err = client.Get(ctx, fullKey, &cardData)
+		if err != nil {
+			return err
+		}
+
+		//update timestamp
+		cardData.LastUsedTimestamp = timestamps.Unix()
+		_, err = client.Put(ctx, fullKey, &cardData)
+	}
+
+	return nil
 }

@@ -21,6 +21,7 @@ type CustomerDatastore struct {
 	StripeCustomerToken string `json:"-"`                                  //the id returned when a card is saved via Stripe, this id uniquely identifies this card for this customer
 	DatetimeCreated     string `json:"-"`                                  //when was this card added to the app
 	AddedByUser         string `json:"added_by"`                           //which user of the app saved the card
+	LastUsedTimestamp   int64  `json:"-"`                                  //the unix timestamp of the time the card was last charged, used to remove cards we don't use anymore (lost customer)
 
 	//fields not used in cloud datastore
 	ID int64 `json:"sqlite_user_id"`

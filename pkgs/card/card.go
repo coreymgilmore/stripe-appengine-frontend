@@ -74,8 +74,9 @@ const (
 
 //configuration errors
 var (
-	errSecretKeyInvalid      = errors.New("card: the stripe secret key in app.yaml is invalid")
-	errPublishableKeyInvalid = errors.New("card: the stripe publishable key in app.yaml is invalid")
+	errSecretKeyInvalid           = errors.New("card: the stripe secret key in app.yaml is invalid")
+	errPublishableKeyInvalid      = errors.New("card: the stripe publishable key in app.yaml is invalid")
+	errMissingStatementDescriptor = errors.New("company: missing statement descriptor")
 )
 
 //other errors
@@ -220,6 +221,10 @@ func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore,
 		//query
 		err1 = client.Get(c, key, &data)
 		err = err1
+
+		//save the datastore id into the return value so we can use it elsewhere
+		//cloud datastore doesn't have an "ID" field like a SQL table so this value isn't returned upon a query
+		data.ID = datastoreID
 	}
 
 	return data, err

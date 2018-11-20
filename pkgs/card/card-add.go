@@ -140,6 +140,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		StripeCustomerToken: cust.ID,
 		DatetimeCreated:     timestamps.ISO8601(),
 		AddedByUser:         username,
+		LastUsedTimestamp:   timestamps.Unix(),
 	}
 
 	//use correct db for saving
@@ -191,8 +192,9 @@ func saveSqlite(d CustomerDatastore) (int64, error) {
 			CardLast4,
 			StripeCustomerToken,
 			DatetimeCreated,
-			AddedByUser
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			AddedByUser,
+			LastUsedTimestamp
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	stmt, err := c.Prepare(q)
@@ -209,6 +211,7 @@ func saveSqlite(d CustomerDatastore) (int64, error) {
 		d.StripeCustomerToken,
 		d.DatetimeCreated,
 		d.AddedByUser,
+		d.LastUsedTimestamp,
 	)
 	if err != nil {
 		return 0, err

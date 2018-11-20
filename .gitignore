@@ -3,3 +3,5 @@ datastore-service-account.json
 set_vars.cmd
 sqlite.db
 dos.yaml
+WEB-INF/
+env.yaml

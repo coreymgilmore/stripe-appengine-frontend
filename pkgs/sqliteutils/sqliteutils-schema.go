@@ -8,8 +8,11 @@ data, ex: card.CustomerDatastore.
 package sqliteutils
 
 import (
+	"errors"
 	"log"
+	"strconv"
 
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -27,6 +30,11 @@ const (
 const (
 	DefaultCompanyInfoID = 1
 	DefaultAppSettingsID = 1
+)
+
+//deployment or alter schema errors
+var (
+	errNoSuchColumn = errors.New("no such column") //this is the exact text that is returned from a SELECT query where a column doesn't exist in the table
 )
 
 //CreateTableUsers creates the users table
@@ -63,7 +71,8 @@ func CreateTableCard(c *sqlx.DB) error {
 			CardLast4 TEXT NOT NULL,
 			StripeCustomerToken TEXT NOT NULL,
 			DatetimeCreated TEXT NOT NULL,
-			AddedByUser TEXT NOT NULL
+			AddedByUser TEXT NOT NULL,
+			LastUsedTimestamp INTEGER NOT NULL
 		)
 	`
 
@@ -198,5 +207,41 @@ func CreateTableAppSettings(c *sqlx.DB) error {
 	}
 
 	log.Println("sqliteutils.CreateTableAppSettings...done")
+	return err
+}
+
+//AddColumnLastUsedTimestamp adds the LastUsedTimestamp column card table if it doesn't already exist
+func AddColumnLastUsedTimestamp(c *sqlx.DB) error {
+	//column to add
+	column := "LastUsedTimestamp"
+
+	//check if column already exists
+	q := `
+		SELECT ` + column + ` 
+		FROM ` + TableCards + `
+		WHERE ID > 0
+		LIMIT 1
+	`
+	var rowValue int64
+	err := c.Get(&rowValue, q)
+	if err == nil {
+		//column exists, do nothing
+		return nil
+	} else if err.Error() == errNoSuchColumn.Error()+": "+column {
+		//column doesn't exist add it
+		log.Println("sqliteutils.AddColumnLastUsedTimestamp - column doesn't exist, will be added")
+	} else if err != nil {
+		//another error occured
+		log.Println("sqliteutils.AddColumnLastUsedTimestamp", err)
+		return err
+	}
+
+	//add the new column
+	//set the current unix timestamp as a default value so we can check existing cards for age in
+	q = `
+		ALTER TABLE ` + TableCards + ` 
+		ADD COLUMN ` + column + ` INTEGER DEFAULT ` + strconv.FormatInt(timestamps.Unix(), 10)
+	_, err = c.Exec(q)
+	log.Println("sqliteutils.AddColumnLastUsedTimestamp...done")
 	return err
 }

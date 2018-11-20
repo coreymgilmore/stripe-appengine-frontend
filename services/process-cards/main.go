@@ -350,6 +350,7 @@ func main() {
 
 	//cron tasks
 	r.HandleFunc("/cron/remove-expired-cards/", http.HandlerFunc(card.RemoveExpiredCards))
+	r.HandleFunc("/cron/remove-unused-cards/", http.HandlerFunc(card.RemoveUnusedCards))
 
 	//main app page once user is logged in
 	r.Handle("/main/", a.Then(http.HandlerFunc(pages.Main)))
@@ -375,7 +376,6 @@ func main() {
 	c.Handle("/report/", reports.Then(http.HandlerFunc(card.Report))).Methods("GET")
 	c.Handle("/refund/", charge.Then(http.HandlerFunc(card.Refund))).Methods("POST")
 	c.Handle("/capture/", charge.Then(http.HandlerFunc(card.Capture))).Methods("POST")
-
 	c.Handle("/auto-charge/", http.HandlerFunc(card.AutoCharge)).Methods("POST")
 
 	//company info

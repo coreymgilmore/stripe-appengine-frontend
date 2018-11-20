@@ -101,6 +101,13 @@ func Connect() {
 	//save connection to global var so we can reuse it
 	Connection = c
 
+	//make sure schema is correct
+	err = AddColumnLastUsedTimestamp(c)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+
 	log.Println("sqliteutils.Connect: Connecting...done")
 	return
 }

@@ -2,3 +2,8 @@ cron:
 - description: remove expired cards
   url: /cron/remove-expired-cards/
   schedule: 1 of jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec 03:00
+
+cron:
+- description: remove unused cards
+  url: /cron/remove-unused-cards/
+  schedule: 2 of jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec 04:00

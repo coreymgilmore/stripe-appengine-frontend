@@ -1,3 +1,24 @@
+v5.2.0
+----------
+- redo removal of expired cards
+    - general code cleanup
+    - better splitting into functions
+    - reuse functions elsewhere in code for better code clarity
+- remove unused cards
+    - each card now has a field in the database that tracks when it was last used
+        - sqlite
+            - update schema to support this
+            - set a default value when the schema is updated so no cards have a zero value
+        - cloud datastore
+            - doesn't matter if field is missing, it will just return zero
+            - set a default value upon the first run of this task so no cards have a zero value
+        - if 
+    - check for cards that haven't been used within last year and remove them
+    - run via a cron task monthly
+    - cards are updated each time they are used so we know which cards are active
+- update previewed receipt to show timezone as it is set in app settings
+- fix typo in gui for removing cards
+
 v5.1.2
 ----------
 - fix bug where failed charges were showing up in list of charges.
