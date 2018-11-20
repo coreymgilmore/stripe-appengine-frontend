@@ -1,4 +1,4 @@
-//v5.1.0
+//v5.2.0
 
 //*******************************************************************************
 //CONSTANTS
@@ -1046,10 +1046,13 @@ $('#charge-card').submit(function (e) {
 	//stop form submission
 	e.preventDefault();
 
+	console.log("charging...", amount, MIN_CHARGE)
+
+
 	//validate
-	if (amount < MIN_CHARGE) {
+	if (amount < MIN_CHARGE || isNaN(amount)) {
 		e.preventDefault();
-		showPanelMessage("You must provide an amount to charge greater than the minimum charge (" + MIN_CHARGE + ").", "danger", msg);
+		showPanelMessage("You must provide an amount to charge greater than the minimum charge ($" + MIN_CHARGE + ").", "danger", msg);
 		return;
 	}
 
