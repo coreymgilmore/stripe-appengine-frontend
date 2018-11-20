@@ -74,6 +74,7 @@
     * Add `--version [YOUR_VERSION_ID]` if you want to give this version of the app your own version number.  Otherwise you will be assigned a version number based on the current datetime.
     * You will see a confirmation prompt.  Click 'y'.
 4. Run `gcloud app deploy index.yaml` to upload the indexes needed for the database to work properly.
+    * If upgrading from an old version, you may want to run `gcloud datastore indexes cleanup index.yaml` to remove any unused indexes. 
 5. When the deployment is complete you will be able to use the app on the `https://[YOUR-PROJECT-ID].appspot.com`.
 
 ### Initial Log In & In App Settings
