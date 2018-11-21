@@ -319,6 +319,7 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 	err = updateCardLastUsed(input.context, input.customerData.ID)
 	if err != nil {
 		log.Println("card.processCharge - could not update card last used", err)
+		err = nil
 	}
 
 	//build struct to output a success message to the client

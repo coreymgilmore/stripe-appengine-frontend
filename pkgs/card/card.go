@@ -223,7 +223,8 @@ func findByDatastoreID(c context.Context, datastoreID int64) (CustomerDatastore,
 		err = err1
 
 		//save the datastore id into the return value so we can use it elsewhere
-		//cloud datastore doesn't have an "ID" field like a SQL table so this value isn't returned upon a query
+		//cloud datastore doesn't have an "ID" field like a SQL table so this value isn't returned in a query
+		//we use this value when running card.updateCardLastUsed() called when running a manual charge
 		data.ID = datastoreID
 	}
 
@@ -267,7 +268,7 @@ func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, 
 		var numResults int
 		for {
 			var tempCardData CustomerDatastore
-			_, err = i.Next(&tempCardData)
+			key, err := i.Next(&tempCardData)
 			if err == iterator.Done {
 				break
 			}
@@ -279,6 +280,11 @@ func FindByCustomerID(c context.Context, customerID string) (CustomerDatastore, 
 			//save data to variables outside iterator
 			data = tempCardData
 			numResults++
+
+			//save the datastore id into the return value so we can use it elsewhere
+			//cloud datastore doesn't have an "ID" field like a SQL table so this value isn't returned in query
+			//we use this value when running card.updateCardLastUsed() called when running an automated charged
+			data.ID = key.ID
 		}
 
 		//check if no results were found
