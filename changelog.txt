@@ -1,3 +1,7 @@
+v5.2.1
+----------
+- fix bug when trying to update the last time a card was used.
+
 v5.2.0
 ----------
 - redo removal of expired cards
