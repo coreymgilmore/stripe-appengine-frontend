@@ -76,6 +76,8 @@
 4. Run `gcloud app deploy index.yaml` to upload the indexes needed for the database to work properly.
     * If upgrading from an old version, you may want to run `gcloud datastore indexes cleanup index.yaml` to remove any unused indexes. 
 5. When the deployment is complete you will be able to use the app on the `https://[YOUR-PROJECT-ID].appspot.com`.
+6. Deploy the `cron.yaml` file to enable scheduled clean up of expired and unused cards.
+    * Run `gcloud app deploy cron.yaml`.
 
 ### Initial Log In & In App Settings
 1. Upon first browsing to the app, you will need to create the super-admin password.
