@@ -2,6 +2,7 @@ package card
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -19,6 +20,45 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/stripe/stripe-go"
 )
+
+//processChargeInputs is the data used in the processCharge func
+//this is used instead of having to each of these variables one by one into the func which is ugly
+type processChargeInputs struct {
+	context              context.Context
+	amountCents          uint64
+	invoiceNum           string
+	poNum                string
+	companyData          company.Info
+	customerData         CustomerDatastore
+	userProcessingCharge string
+	autoChargeReferrer   string
+	autoChargeReason     string
+	authorizeOnly        bool
+	level3Params         chargeLevel3ParamsJSON
+	level3Provided       bool
+}
+
+//chargeLevel3ParamsJSON is the set of parameters that can be used for the Level III data.
+//**Need to copy these to get unmarshalling to work properly since Stripe use `form` struct tags.
+type chargeLevel3ParamsJSON struct {
+	CustomerReference  string                            `json:"customer_reference"`
+	LineItems          []chargeLevel3LineItemsParamsJSON `json:"line_items"`
+	MerchantReference  string                            `json:"merchant_reference"`
+	ShippingAddressZip string                            `json:"shipping_address_zip"`
+	ShippingFromZip    string                            `json:"shipping_from_zip"`
+	ShippingAmount     int64                             `json:"shipping_amount"`
+}
+
+//chargeLevel3LineItemsParamsJSON is the set of parameters that represent a line item on level III data.
+//**Need to copy these to get unmarshalling to work properly since Stripe use `form` struct tags.
+type chargeLevel3LineItemsParamsJSON struct {
+	DiscountAmount     int64  `json:"discount_amount"`
+	ProductCode        string `json:"product_code"`
+	ProductDescription string `json:"product_description"`
+	Quantity           int64  `json:"quantity"`
+	TaxAmount          int64  `json:"tax_amount"`
+	UnitCost           int64  `json:"unit_cost"`
+}
 
 //ManualCharge processes a charge on a credit card
 //this is used when a user clicks the charge button in the gui
@@ -120,9 +160,11 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	//above inputs are the same for manual or auto charges
 	//below are for auto charges only
 	apiKey := r.FormValue("api_key")
-	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge")) //true if we should actually charge the card, false for testing
-	referrer := r.FormValue("auto_charge_referrer")                //the name or other identifier for the app making this request to charge the card
-	reason := r.FormValue("auto_charge_reason")                    //the action or other identifier within the app making this request (if the referrer has many actions to charge a card, this lets you figure out which action charged the card)
+	autoCharge, _ := strconv.ParseBool(r.FormValue("auto_charge"))         //true if we should actually charge the card, false for testing
+	referrer := r.FormValue("auto_charge_referrer")                        //the name or other identifier for the app making this request to charge the card
+	reason := r.FormValue("auto_charge_reason")                            //the action or other identifier within the app making this request (if the referrer has many actions to charge a card, this lets you figure out which action charged the card)
+	level3Params := r.FormValue("level3_params")                           //level3 card processing details in json format, only provided if level3Provided is true
+	level3Provided, _ := strconv.ParseBool(r.FormValue("level3_provided")) //level3 card details were provided
 
 	//validation
 	if customerID == "" {
@@ -191,6 +233,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//build charge request data
 	inputs := processChargeInputs{
 		context:              c,
 		amountCents:          amountCents,
@@ -203,6 +246,21 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		autoChargeReason:     reason,
 		authorizeOnly:        false,
 	}
+
+	//check if level3 data was provided
+	//parse level3 data into struct and add it to charge data
+	if level3Provided {
+		var l3Params chargeLevel3ParamsJSON
+		err := json.Unmarshal([]byte(level3Params), &l3Params)
+		if err != nil {
+			log.Println("could not unmarshal level 3 params, continuing without them", err)
+		} else {
+			inputs.level3Params = l3Params
+			inputs.level3Provided = true
+		}
+	}
+
+	//process the charge
 	out, errMsg, err := processCharge(inputs)
 	if err != nil {
 		output.Error(err, errMsg, w)
@@ -222,21 +280,6 @@ func isBelowMinCharge(amount uint64) (string, error) {
 	}
 
 	return "", nil
-}
-
-//processChargeInputs is the data used in the processCharge func
-//this is used instead of having to each of these variables one by one into the func which is ugly
-type processChargeInputs struct {
-	context              context.Context
-	amountCents          uint64
-	invoiceNum           string
-	poNum                string
-	companyData          company.Info
-	customerData         CustomerDatastore
-	userProcessingCharge string
-	autoChargeReferrer   string
-	autoChargeReason     string
-	authorizeOnly        bool
 }
 
 //processCharge peforms most of the actions required to actually charge a card
@@ -272,6 +315,53 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 	chargeParams.AddMetadata("customer_id", input.customerData.CustomerID)
 	chargeParams.AddMetadata("invoice_num", input.invoiceNum)
 	chargeParams.AddMetadata("po_num", input.poNum)
+
+	//add level 3 data if needed
+	//We have to repackage all the data in a Stripe format since stripe uses *string instead of
+	//string and uses `form` struct tags instead of `json` which causes some issues.
+	//Have to chop inputs to correct length per https://stripe.com/docs/level3.
+	if input.level3Provided {
+		chargeParams.AddMetadata("level3_provided", "true")
+
+		if len(input.level3Params.CustomerReference) > 17 {
+			input.level3Params.CustomerReference = input.level3Params.CustomerReference[:17]
+		}
+		if len(input.level3Params.MerchantReference) > 25 {
+			input.level3Params.MerchantReference = input.level3Params.MerchantReference[:25]
+		}
+
+		l3 := stripe.ChargeLevel3Params{
+			CustomerReference:  stripe.String(input.level3Params.CustomerReference),
+			MerchantReference:  stripe.String(input.level3Params.MerchantReference),
+			ShippingAddressZip: stripe.String(input.level3Params.ShippingAddressZip),
+			ShippingFromZip:    stripe.String(input.level3Params.ShippingFromZip),
+			ShippingAmount:     stripe.Int64(input.level3Params.ShippingAmount),
+		}
+
+		l3Items := []*stripe.ChargeLevel3LineItemsParams{}
+		for _, v := range input.level3Params.LineItems {
+			if len(v.ProductCode) > 12 {
+				v.ProductCode = v.ProductCode[:12]
+			}
+			if len(v.ProductDescription) > 26 {
+				v.ProductDescription = v.ProductDescription[:26]
+			}
+
+			item := stripe.ChargeLevel3LineItemsParams{
+				DiscountAmount:     stripe.Int64(v.DiscountAmount),
+				Quantity:           stripe.Int64(v.Quantity),
+				TaxAmount:          stripe.Int64(v.TaxAmount),
+				UnitCost:           stripe.Int64(v.UnitCost),
+				ProductCode:        stripe.String(v.ProductCode),
+				ProductDescription: stripe.String(v.ProductDescription),
+			}
+
+			l3Items = append(l3Items, &item)
+		}
+
+		l3.LineItems = l3Items
+		chargeParams.Level3 = &l3
+	}
 
 	if input.authorizeOnly {
 		chargeParams.AddMetadata("authorized_by", input.userProcessingCharge)

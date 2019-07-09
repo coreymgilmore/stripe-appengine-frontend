@@ -1,3 +1,7 @@
+v5.3.0
+----------
+- allow automatic charges to provide level3 card data.  This should allow for lower Stripe transaction costs.
+
 v5.2.1
 ----------
 - fix bug when trying to update the last time a card was used.
