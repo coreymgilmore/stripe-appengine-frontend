@@ -106,22 +106,11 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//get statement descriptor from company info
-	companyInfo, err := company.Get(r)
-	if err != nil {
-		output.Error(err, "Could not get statement descriptor from company info.", w)
-		return
-	} else if len(companyInfo.StatementDescriptor) == 0 {
-		output.Error(errMissingStatementDescriptor, "Your company does not have a statement descriptor set.  Please ask an admin to set one.", w)
-		return
-	}
-
 	inputs := processChargeInputs{
 		context:              c,
 		amountCents:          amountCents,
 		invoiceNum:           invoice,
 		poNum:                poNum,
-		companyData:          companyInfo,
 		customerData:         custData,
 		userProcessingCharge: username,
 		autoChargeReferrer:   "",
@@ -302,12 +291,11 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 
 	//build charge object
 	chargeParams := &stripe.ChargeParams{
-		Customer:            stripe.String(input.customerData.StripeCustomerToken),
-		Amount:              stripe.Int64(int64(input.amountCents)),
-		Currency:            stripe.String(currency),
-		Description:         stripe.String("Charge for invoice: " + input.invoiceNum + ", purchase order: " + input.poNum + "."),
-		StatementDescriptor: stripe.String(input.companyData.StatementDescriptor),
-		Capture:             stripe.Bool(capture),
+		Customer:    stripe.String(input.customerData.StripeCustomerToken),
+		Amount:      stripe.Int64(int64(input.amountCents)),
+		Currency:    stripe.String(currency),
+		Description: stripe.String("Charge for invoice: " + input.invoiceNum + ", purchase order: " + input.poNum + "."),
+		Capture:     stripe.Bool(capture),
 	}
 
 	//add metadata

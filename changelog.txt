@@ -1,6 +1,9 @@
 v5.3.0
 ----------
 - allow automatic charges to provide level3 card data.  This should allow for lower Stripe transaction costs.
+- remove setting statement descriptor for each charge since stripe will use descriptor set for account anyway
+    - had to remove this since stripe now allows dynamic statement descriptors.
+    - dynamic descriptors "chopped" the account descriptor and the one we used to set per charge to fit length requirements
 
 v5.2.1
 ----------
