@@ -1,6 +1,7 @@
 package users
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/pwds"
@@ -58,7 +59,9 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	//destroy session
 	sessionutils.Destroy(w, r)
 
+	log.Println("Performing logout via users.Logout.")
+
 	//redirect to root page
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/?ref=logout", http.StatusFound)
 	return
 }

@@ -60,6 +60,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//check if user was redirected here via logout
+	//make sure the sure is logged out
+	if r.FormValue("ref") == "logout" {
+		sessionutils.Destroy(w, r)
+		log.Println("Performing logout via pages.Login.")
+		templates.Load(w, "login", nil)
+		return
+	}
+
 	//check if user is already signed in
 	//if user is already logged in, redirect to /main/ page
 	session := sessionutils.Get(r)
