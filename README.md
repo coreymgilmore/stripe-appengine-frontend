@@ -74,6 +74,8 @@ This application is designed to run via:
     * `auto_charge` is a simple check value that is set to true.  This is set to false when testing integration of this app.
     * `auto_charge_referrer` is the name of the system/program/application making the request to this app.  This is used for diagnostics/logging/reports.
     * `auto_charge_reason` is the name of the function within the system/program/application that is making the request to this app.  This is used for diagnostics/logging/reports.
+    * `level3_provided` (optional) is set to true if level 3 charge data is provided in level3_params.
+    * `level3_params` (optional) is set to the level 3 data for a charge.  This is an object with data about the charge plus an array with data for each line item on an order.  See [here](https://stripe.com/docs/level3) for details although this link will only work if you have been invited to try the private beta of level 3 charges (contact Stripe support).
 
 ***
 

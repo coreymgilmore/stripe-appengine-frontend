@@ -1,3 +1,8 @@
+v5.3.2
+----------
+- show in report whether each charge was processed using level 3 data.  just for diagnostics.
+- update readme to show info on how to provide level 3 data in a charge.
+
 v5.3.0
 ----------
 - allow automatic charges to provide level3 card data.  This should allow for lower Stripe transaction costs.

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
+	"github.com/stripe/stripe-go"
 )
 
 //CustomerDatastore is the data stored in the db (Google Cloud Datatore) about a customer.
@@ -52,22 +53,24 @@ type List struct {
 //ChargeData is the data from a charge that we use to build the gui
 //Stripe's charge struct (stripe.Charge) returns a lot more info than we need so we don't use it.
 type ChargeData struct {
-	ID            string `json:"charge_id,omitempty"`          //the stripe charge id
-	AmountCents   int64  `json:"amount_cents,omitempty"`       //the amount of the charge in cents
-	AmountDollars string `json:"amount_dollars,omitempty"`     //amount of the charge in dollars (without $ symbol)
-	Captured      bool   `json:"captured,omitempty"`           //determines if the charge was successfully placed on a real credit card
-	CapturedStr   string `json:"captured_string,omitempty"`    //see above
-	Timestamp     string `json:"timestamp,omitempty"`          //unix timestamp of the time that stripe charged the card
-	Invoice       string `json:"invoice_num,omitempty"`        //some extra info that was provided when the user processed the charge
-	Po            string `json:"po_num,omitempty"`             // " " " "
-	StripeCustID  string `json:"stripe_customer_id,omitempty"` //this is the id given to the customer by stripe and is used to charge the card
-	Customer      string `json:"customer_name,omitempty"`      //name of the customer from the app engine datastore, the name of the company a card belongs to
-	CustomerID    string `json:"customer_id,omitempty"`        //the unique id you gave the customer when you saved the card, from a CRM
-	User          string `json:"username,omitempty"`           //username of the user who charged the card
-	Cardholder    string `json:"cardholder,omitempty"`         //name on the card
-	LastFour      string `json:"last4,omitempty"`              //used to identify the card when looking at the receipt or in a report
-	Expiration    string `json:"expiration,omitempty"`         // " " " "
-	CardBrand     string `json:"card_brand,omitempty"`         // " " " "
+	ID                 string              `json:"charge_id,omitempty"`          //the stripe charge id
+	AmountCents        int64               `json:"amount_cents,omitempty"`       //the amount of the charge in cents
+	AmountDollars      string              `json:"amount_dollars,omitempty"`     //amount of the charge in dollars (without $ symbol)
+	Captured           bool                `json:"captured,omitempty"`           //determines if the charge was successfully placed on a real credit card
+	CapturedStr        string              `json:"captured_string,omitempty"`    //see above
+	Timestamp          string              `json:"timestamp,omitempty"`          //unix timestamp of the time that stripe charged the card
+	Invoice            string              `json:"invoice_num,omitempty"`        //some extra info that was provided when the user processed the charge
+	Po                 string              `json:"po_num,omitempty"`             // " " " "
+	StripeCustID       string              `json:"stripe_customer_id,omitempty"` //this is the id given to the customer by stripe and is used to charge the card
+	Customer           string              `json:"customer_name,omitempty"`      //name of the customer from the app engine datastore, the name of the company a card belongs to
+	CustomerID         string              `json:"customer_id,omitempty"`        //the unique id you gave the customer when you saved the card, from a CRM
+	User               string              `json:"username,omitempty"`           //username of the user who charged the card
+	Cardholder         string              `json:"cardholder,omitempty"`         //name on the card
+	LastFour           string              `json:"last4,omitempty"`              //used to identify the card when looking at the receipt or in a report
+	Expiration         string              `json:"expiration,omitempty"`         // " " " "
+	CardBrand          string              `json:"card_brand,omitempty"`         // " " " "
+	Level3DataProvided bool                `json:"level3_provided"`              //metadata from charge on if we provided level3 data
+	Level3             stripe.ChargeLevel3 `json:"level3"`                       //any level 3 charge data
 
 	//data for automatically completed charges (api request charges)
 	AutoCharge         bool   `json:"auto_charge,omitempty"`          //true if we made this charge automatically through api request

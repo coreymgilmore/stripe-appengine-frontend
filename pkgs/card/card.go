@@ -402,6 +402,8 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 	authorizedDate := meta["authorized_date"]
 	processedDate := meta["processed_date"]
 
+	level3DataProvided, _ := strconv.ParseBool(meta["level3_provided"])
+
 	//customer info
 	customer := chg.Customer
 	j, _ := json.Marshal(customer)
@@ -432,22 +434,24 @@ func ExtractDataFromCharge(chg *stripe.Charge) (data ChargeData) {
 
 	//build data struct to return
 	data = ChargeData{
-		ID:            id,
-		AmountCents:   amountInt,
-		AmountDollars: amountDollars,
-		Captured:      captured,
-		CapturedStr:   capturedStr,
-		Timestamp:     datetime,
-		Invoice:       invoice,
-		Po:            po,
-		StripeCustID:  stripeCustID,
-		Customer:      customerName,
-		CustomerID:    customerID,
-		User:          username,
-		Cardholder:    cardholder,
-		LastFour:      last4,
-		Expiration:    exp,
-		CardBrand:     cardBrand,
+		ID:                 id,
+		AmountCents:        amountInt,
+		AmountDollars:      amountDollars,
+		Captured:           captured,
+		CapturedStr:        capturedStr,
+		Timestamp:          datetime,
+		Invoice:            invoice,
+		Po:                 po,
+		StripeCustID:       stripeCustID,
+		Customer:           customerName,
+		CustomerID:         customerID,
+		User:               username,
+		Cardholder:         cardholder,
+		LastFour:           last4,
+		Expiration:         exp,
+		CardBrand:          cardBrand,
+		Level3DataProvided: level3DataProvided,
+		Level3:             chg.Level3,
 
 		AutoCharge:         autoCharge,
 		AutoChargeReferrer: autoChargeReferrer,

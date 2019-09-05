@@ -54,7 +54,7 @@
 												{{if eq .FailureCode ""}}
 													<tr {{if eq .Captured false}}class="not-captured warning"{{end}} data-charge-id="{{.ID}}">
 														<td>{{.Customer}}</td>
-														<td>{{.LastFour}}</td>
+														<td>{{.LastFour}}{{if .Level3DataProvided}}<sup title="Level 3 charge data was provided." style="cursor: pointer;">3</sup>{{end}}</span></td>
 														<td class="amount-dollars charge-amount-column">
 															{{if .Captured}}
 																<span class="currency-symbol">$</span><span class="amount format-number-commas">{{.AmountDollars}}</span><span>{{if ne .AuthorizedDatetime ""}}*{{end}}</span>
@@ -131,6 +131,8 @@
 								<i class="text-muted">Note: There might be a few cents difference between the "Total Less Fees" and the amount you will see on the Stripe Dashboard.  This is due to rounding.</i>
 								<br>
 								<i class="text-muted">*: These are charges that were authorized and then captured.</i>
+								<br>
+								<i class="text-muted"><sup>3</sup>: Level 3 charge data was provided.  Please see <a href="https://www.cardfellow.com/blog/level-3-credit-card-processing/" target="_blank">this</a> and/or <a href="https://stripe.com/docs/level3" target="_blank">this</a> (invite only via Stripe support) for more info.</i>
 							</div>
 						</div>
 					</div>
