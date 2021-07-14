@@ -174,14 +174,14 @@ func init() {
 		}
 
 		cccc := templates.Config
-		cccc.PathToTemplates = "./website/templates/"
+		cccc.PathToTemplates = "./services/process-cards/website/templates/"
 		cccc.Development = false
 		cccc.UseLocalFiles, _ = strconv.ParseBool(os.Getenv("USE_LOCAL_FILES"))
 		templates.SetConfig(cccc)
 
 		//set path to static files
 		//default for appengine deployments
-		staticLocalDir = "./website/static/"
+		staticLocalDir = "./services/process-cards/website/static/"
 
 		//set cache max age
 		cacheDays, _ = strconv.Atoi(os.Getenv("CACHE_DAYS"))

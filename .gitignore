@@ -5,3 +5,4 @@ sqlite.db
 dos.yaml
 WEB-INF/
 env.yaml
+services/process-cards/process-cards.exe
