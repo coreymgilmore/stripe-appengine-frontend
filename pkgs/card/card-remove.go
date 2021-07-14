@@ -13,7 +13,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
 	"github.com/jmoiron/sqlx"
-	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/v72"
 	"google.golang.org/api/iterator"
 )
 
@@ -40,7 +40,6 @@ func RemoveAPI(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("removeCustomer", nil, w)
-	return
 }
 
 //remove does the actual removal of the card
@@ -218,7 +217,6 @@ func RemoveExpiredCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("card.RemoveExpiredCards...done")
-	return
 }
 
 //RemoveUnusedCards removes card that we haven't charged in over 1 year
@@ -332,5 +330,4 @@ func RemoveUnusedCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("card.RemoveUnusedCards...done")
-	return
 }

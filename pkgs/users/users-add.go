@@ -83,7 +83,7 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//save user to session
 	session := sessionutils.Get(r)
-	if session.IsNew == false {
+	if !session.IsNew {
 		notificationPage(w, "panel-danger", "Error", "An error occured while saving the admin user. Please clear your cookies and restart your browser.", "btn-default", "/setup/", "Try Again")
 		return
 	}
@@ -110,7 +110,6 @@ func CreateAdmin(w http.ResponseWriter, r *http.Request) {
 
 	//show user main page
 	http.Redirect(w, r, "/main/", http.StatusFound)
-	return
 }
 
 //Add saves a new user to the app
@@ -180,7 +179,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 	//respond to client with success message
 	output.Success("addNewUser", nil, w)
-	return
 }
 
 //saveUserDatastore saves a new user to the datastore

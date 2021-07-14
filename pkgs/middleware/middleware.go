@@ -61,7 +61,7 @@ func Auth(next http.Handler) http.Handler {
 
 		//check if user is allowed access to the app
 		//this is a setting the app's administrators can toggle for each user
-		if data.Active == false {
+		if !data.Active {
 			sessionutils.Destroy(w, r)
 			log.Println("middleware.Auth", "User not allowed access.")
 			http.Redirect(w, r, "/", http.StatusFound)
@@ -74,7 +74,6 @@ func Auth(next http.Handler) http.Handler {
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -92,14 +91,13 @@ func AddCards(next http.Handler) http.Handler {
 		}
 
 		//check if user can add cards
-		if data.AddCards == false {
+		if !data.AddCards {
 			output.Error(errNotAuthorized, "You do not have permission to add new cards.", w)
 			return
 		}
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -117,14 +115,13 @@ func RemoveCards(next http.Handler) http.Handler {
 		}
 
 		//check if user can add cards
-		if data.RemoveCards == false {
+		if !data.RemoveCards {
 			output.Error(errNotAuthorized, "You do not have permission to remove cards.", w)
 			return
 		}
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -142,14 +139,13 @@ func ChargeCards(next http.Handler) http.Handler {
 		}
 
 		//check if user can add cards
-		if data.ChargeCards == false {
+		if !data.ChargeCards {
 			output.Error(errNotAuthorized, "You do not have permission to charge or refund cards.", w)
 			return
 		}
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -167,14 +163,13 @@ func ViewReports(next http.Handler) http.Handler {
 		}
 
 		//check if user can add cards
-		if data.ViewReports == false {
+		if !data.ViewReports {
 			output.Error(errNotAuthorized, "You do not have permission to view reports.", w)
 			return
 		}
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -194,14 +189,13 @@ func Administrator(next http.Handler) http.Handler {
 		}
 
 		//check if user can add cards
-		if data.Administrator == false {
+		if !data.Administrator {
 			output.Error(errNotAuthorized, "You are not an administrator therefore you cannot access this page.", w)
 			return
 		}
 
 		//move to next middleware or handler
 		next.ServeHTTP(w, r)
-		return
 	})
 }
 
@@ -221,5 +215,4 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 		BtnText:    btnText,
 	}
 	templates.Load(w, "notifications", data)
-	return
 }

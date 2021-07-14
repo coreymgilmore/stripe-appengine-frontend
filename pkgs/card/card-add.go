@@ -8,14 +8,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
-
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
-	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/v72"
 )
 
 //Add saves a new card the the datastore
@@ -100,7 +99,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 		default:
 			errorErr = errors.New("unknown error while adding card")
 			errorMsg = "There was an error adding this card.  Please contact the administrator."
-			break
 
 		case *stripe.Error:
 			stripeError := err.(*stripe.Error)
@@ -110,7 +108,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 			errorErr = stripeErrorErr
 			errorMsg = stripeErrorMsg
-			break
 
 		case *url.Error:
 			urlError := err.(*url.Error)
@@ -119,7 +116,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 			errorErr = urlErrorErr
 			errorMsg = "A url error occured (" + urlError.Error() + "). Contact the administrator to diagnose this issue."
-			break
 		}
 
 		output.Error(errorErr, errorMsg, w)
@@ -159,7 +155,6 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	//customer saved
 	//return to client
 	output.Success("createCustomer", nil, w)
-	return
 }
 
 //saveDatatore saves a new card to the cloud datastore db

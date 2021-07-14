@@ -31,12 +31,12 @@ const (
 
 //errors
 var (
-	ErrAdminDoesNotExist      = errors.New("users: admin user does not exist")
-	ErrUserDoesNotExist       = errors.New("users: user does not exist")
-	errUserAlreadyExists      = errors.New("users: user already exists")
-	errPasswordsDoNotMatch    = errors.New("users: passwords do not match")
-	errPasswordTooShort       = errors.New("users: password too short")
-	errNotAdmin               = errors.New("users: user is not an admin")
+	ErrAdminDoesNotExist   = errors.New("users: admin user does not exist")
+	ErrUserDoesNotExist    = errors.New("users: user does not exist")
+	errUserAlreadyExists   = errors.New("users: user already exists")
+	errPasswordsDoNotMatch = errors.New("users: passwords do not match")
+	errPasswordTooShort    = errors.New("users: password too short")
+	// errNotAdmin               = errors.New("users: user is not an admin")
 	errSessionMismatch        = errors.New("users: session mismatch")
 	errCannotUpdateSelf       = errors.New("users: cannot update yourself")
 	errCannotUpdateSuperAdmin = errors.New("users: cannot update super admin")
@@ -117,7 +117,6 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//return data to clinet
 	output.Success("userList", list, w)
-	return
 }
 
 //GetOne retrieves the full data for one user
@@ -136,7 +135,6 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 
 	//return user data
 	output.Success("findUser", data, w)
-	return
 }
 
 //DoesAdminExist checks if the super-admin has already been created
@@ -218,10 +216,7 @@ func getDataByUsername(c context.Context, username string) (int64, User, error) 
 
 //Find gets the data for a given user id
 //This returns all the info on a user.
-func Find(c context.Context, userID int64) (User, error) {
-	//placeholder
-	u := User{}
-	var err error
+func Find(c context.Context, userID int64) (u User, err error) {
 
 	//use correct db
 	if sqliteutils.Config.UseSQLite {
@@ -234,17 +229,21 @@ func Find(c context.Context, userID int64) (User, error) {
 		err = c.Get(&u, q, userID)
 	} else {
 		//connect to datastore
-		client, err := datastoreutils.Connect(c)
-		if err != nil {
-			return u, err
+		client, innerErr := datastoreutils.Connect(c)
+		if innerErr != nil {
+			err = innerErr
+			return
 		}
 
 		//query
 		key := datastoreutils.GetKeyFromID(datastoreutils.EntityUsers, userID)
-		err = client.Get(c, key, &u)
+		innerErr = client.Get(c, key, &u)
+		if innerErr != nil {
+			err = innerErr
+		}
 	}
 
-	return u, err
+	return
 }
 
 //notificationPage is used to show html page for errors
@@ -260,5 +259,4 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 	}
 
 	templates.Load(w, "notifications", data)
-	return
 }

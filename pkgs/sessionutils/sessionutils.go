@@ -42,8 +42,10 @@ const (
 
 //configuration errors
 var (
-	errAuthKeyWrongSize       = errors.New("session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long")
-	errEncyptKeyWrongSize     = errors.New("session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long")
+	errAuthKeyWrongSize   = errors.New("session: Auth key is invalid. Provide an auth key in app.yaml that is exactly 64 bytes long")
+	errEncyptKeyWrongSize = errors.New("session: Encrypt key is invalid. Provide an encrypt key in app.yaml that is exactly 32 bytes long")
+
+	//lint:ignore U1000 this is used, linter is wrong
 	errInvalidSessionLifetime = errors.New("session: Lifetime must be an integer greater than 0")
 )
 
@@ -122,14 +124,12 @@ func Get(r *http.Request) *sessions.Session {
 //this doesn't save automatically in case you are adding lots of new values to a session...b/c saving after every add would be pointless instead of just saving once
 func AddValue(session *sessions.Session, key string, value interface{}) {
 	session.Values[key] = value
-	return
 }
 
 //Save saves any new session data to an existing session
 //write the new values to it (after using AddValue)
 func Save(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
 	session.Save(r, w)
-	return
 }
 
 //Destroy deletes a session for a request
@@ -144,7 +144,6 @@ func Destroy(w http.ResponseWriter, r *http.Request) {
 		Secure:   false,
 	}
 	s.Save(r, w)
-	return
 }
 
 //ExtendExpiration pushes out the expiration of the session cookie to a further time
@@ -152,7 +151,6 @@ func Destroy(w http.ResponseWriter, r *http.Request) {
 func ExtendExpiration(session *sessions.Session, w http.ResponseWriter, r *http.Request) {
 	session.Options = options
 	session.Save(r, w)
-	return
 }
 
 //GetUsername gets the username we have stored in a session

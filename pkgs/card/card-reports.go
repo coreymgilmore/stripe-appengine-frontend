@@ -14,8 +14,8 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/templates"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/client"
+	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/client"
 )
 
 //Report gets the data for charges and refunds by the defined filters (date range and customer) and builds the reports page
@@ -149,7 +149,6 @@ func Report(w http.ResponseWriter, r *http.Request) {
 	//build template to display report
 	//separate page in gui
 	templates.Load(w, "report", result)
-	return
 }
 
 //getListOfCharges gets the list of charges and returns data about them

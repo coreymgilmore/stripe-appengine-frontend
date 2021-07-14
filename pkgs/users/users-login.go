@@ -25,7 +25,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//is user allowed access
-	if data.Active == false {
+	if !data.Active {
 		notificationPage(w, "panel-danger", "Cannot Log In", "Your user account is inactive. Please contact an administrator.", "btn-default", "/", "Go Back")
 		return
 	}
@@ -40,7 +40,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//user validated
 	//save session data
 	session := sessionutils.Get(r)
-	if session.IsNew == false {
+	if !session.IsNew {
 		sessionutils.Destroy(w, r)
 		session = sessionutils.Get(r)
 	}
@@ -50,7 +50,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	//show user main page
 	http.Redirect(w, r, "/main/", http.StatusFound)
-	return
 }
 
 //Logout handles logging out of the app
@@ -63,5 +62,4 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	//redirect to root page
 	http.Redirect(w, r, "/?ref=logout", http.StatusFound)
-	return
 }

@@ -1,3 +1,6 @@
+/*
+Package datastoreutils handles interacting with the google cloud datastore.
+*/
 package datastoreutils
 
 import (

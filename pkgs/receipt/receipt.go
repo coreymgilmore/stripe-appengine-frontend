@@ -134,7 +134,6 @@ func Show(w http.ResponseWriter, r *http.Request) {
 		Timezone:            appData.ReportTimezone,
 	}
 	templates.Load(w, "receipt", output)
-	return
 }
 
 //Preview shows a demo receipt with the company info and fake transaction data
@@ -183,5 +182,4 @@ func Preview(w http.ResponseWriter, r *http.Request) {
 		Timezone:            appInfo.ReportTimezone,
 	}
 	templates.Load(w, "receipt", output)
-	return
 }

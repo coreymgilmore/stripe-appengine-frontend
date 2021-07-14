@@ -72,7 +72,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//check if user is already signed in
 	//if user is already logged in, redirect to /main/ page
 	session := sessionutils.Get(r)
-	if session.IsNew == false {
+	if !session.IsNew {
 		userID := sessionutils.GetUserID(r)
 		c := r.Context()
 		u, err := users.Find(c, userID)
@@ -84,7 +84,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 		//user data was found
 		//check if user is allowed access
-		if u.Active == false {
+		if !u.Active {
 			sessionutils.Destroy(w, r)
 			notificationPage(w, "panel-danger", "Login Error", "You are not allowed access.  Your user account is inactive. Please contact an administrator.", "btn-default", "/", "Go Back")
 		}
@@ -97,13 +97,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	//load the login page
 	templates.Load(w, "login", nil)
-	return
 }
 
 //NotFound is run when a user browses to a pages that does not exists
 func NotFound(w http.ResponseWriter, r *http.Request) {
 	notificationPage(w, "panel-danger", "Page Not Found", "This page does not exist. Please try logging in.", "btn-default", "/", "Log In")
-	return
 }
 
 //Main loads the main UI of the app
@@ -124,7 +122,7 @@ func Main(w http.ResponseWriter, r *http.Request) {
 	//catch instances where session is not working and redirect user to log in page
 	//use the user's data to show/hide certain parts of the ui per the users access rights
 	session := sessionutils.Get(r)
-	if session.IsNew == true {
+	if session.IsNew {
 		notificationPage(w, "panel-danger", "Cannot Load Page", "Your session has expired or there is an error.  Please try logging in again or contact an administrator.", "btn-default", "/", "Log In")
 		return
 	}
@@ -210,7 +208,6 @@ func Main(w http.ResponseWriter, r *http.Request) {
 
 	//load the page
 	templates.Load(w, "main", templateData)
-	return
 }
 
 //CreateAdminShow loads the page used to create the initial admin user
@@ -225,7 +222,6 @@ func CreateAdminShow(w http.ResponseWriter, r *http.Request) {
 	}
 
 	templates.Load(w, "create-admin", nil)
-	return
 }
 
 //notificationPage is a helper func to show notification page
@@ -244,5 +240,4 @@ func notificationPage(w http.ResponseWriter, panelType, title string, err interf
 	}
 
 	templates.Load(w, "notifications", data)
-	return
 }

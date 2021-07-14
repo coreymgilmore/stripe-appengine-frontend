@@ -39,9 +39,9 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/client"
-	"github.com/stripe/stripe-go/event"
+	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/client"
+	"github.com/stripe/stripe-go/v72/event"
 	"google.golang.org/api/iterator"
 )
 
@@ -69,30 +69,30 @@ const (
 	//minCharge is the lowest charge the app will allow
 	//Stripe takes $0.30 + 2.9% of transactions so it is not worth collecting a charge that will cost us more then we will make
 	//this is in cents
-	minCharge = 50
+	// minCharge = 50
 )
 
 //configuration errors
 var (
-	errSecretKeyInvalid           = errors.New("card: the stripe secret key in app.yaml is invalid")
-	errPublishableKeyInvalid      = errors.New("card: the stripe publishable key in app.yaml is invalid")
+	errSecretKeyInvalid = errors.New("card: the stripe secret key in app.yaml is invalid")
+	// errPublishableKeyInvalid      = errors.New("card: the stripe publishable key in app.yaml is invalid")
 	errMissingStatementDescriptor = errors.New("company: missing statement descriptor")
 )
 
 //other errors
 var (
-	errMissingCustomerName  = errors.New("card: missing customer name")
-	errMissingCardholerName = errors.New("card: missing cardholder name")
-	errMissingCardToken     = errors.New("card: missing card token")
-	errMissingExpiration    = errors.New("card: missing rxpiration")
-	errMissingLast4         = errors.New("card: missing last4 card digits")
-	errStripe               = errors.New("card: stripe error")
-	errMissingInput         = errors.New("card: missing input")
-	errMissingAPIKey        = errors.New("card: missing api key")
-	errInvalidAPIKey        = errors.New("card: invalid api key")
-	errChargeAmountTooLow   = errors.New("card: amount less than min charge")
-	errCustomerNotFound     = errors.New("card: customer not found")
-	errCustIDAlreadyExists  = errors.New("card: customer id already exists")
+	errMissingCustomerName = errors.New("card: missing customer name")
+	// errMissingCardholderName = errors.New("card: missing cardholder name")
+	errMissingCardToken  = errors.New("card: missing card token")
+	errMissingExpiration = errors.New("card: missing rxpiration")
+	errMissingLast4      = errors.New("card: missing last4 card digits")
+	errStripe            = errors.New("card: stripe error")
+	errMissingInput      = errors.New("card: missing input")
+	errMissingAPIKey     = errors.New("card: missing api key")
+	errInvalidAPIKey     = errors.New("card: invalid api key")
+	// errChargeAmountTooLow   = errors.New("card: amount less than min charge")
+	errCustomerNotFound    = errors.New("card: customer not found")
+	errCustIDAlreadyExists = errors.New("card: customer id already exists")
 )
 
 //SetConfig saves the configuration options for charging cards
@@ -168,7 +168,6 @@ func GetAll(w http.ResponseWriter, r *http.Request) {
 
 	//return data to client
 	output.Success("cardList-datastore", list, w)
-	return
 }
 
 //GetOne retrieves the full data for one card from the datastore
@@ -188,7 +187,6 @@ func GetOne(w http.ResponseWriter, r *http.Request) {
 
 	//return data to client
 	output.Success("cardFound", data, w)
-	return
 }
 
 //findByDatastoreID retrieves a card's information by its datastore id

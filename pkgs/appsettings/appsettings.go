@@ -16,11 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
-
 	"cloud.google.com/go/datastore"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/datastoreutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
+	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 )
 
 //datastoreKeyName is the name of the the entity we save the app settings under
@@ -64,7 +63,6 @@ func GetAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("dataFound", info, w)
-	return
 }
 
 //Get actually retrienves the information from the datastore
@@ -155,7 +153,6 @@ func SaveAPI(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("dataSaved", data, w)
-	return
 }
 
 //save does the actual saving to the datastore
@@ -246,5 +243,4 @@ func GenerateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("generateAPIKey", apiKey, w)
-	return
 }

@@ -44,7 +44,6 @@ func SetConfig(c config) {
 	Config = c
 
 	build()
-	return
 }
 
 //build handles finding the HTML files, parsing them, and building the golang templates.
@@ -78,7 +77,6 @@ func build() {
 
 	//parse files into templates
 	htmlTemplates = template.Must(template.ParseFiles(paths...))
-	return
 }
 
 //Load shows a template to the client, show the GUI
@@ -98,6 +96,4 @@ func Load(w http.ResponseWriter, templateName string, data interface{}) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	return
 }

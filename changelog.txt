@@ -1,3 +1,12 @@
+v5.4.0
+----------
+- Upgrade to newest Stripe library (v72).
+- Run go-staticcheck on all code and fix (most) issues.
+- Implement idempotency keys for charges sent to Stripe to prevent duplicate charges.
+- Long term maintenance:
+    - This app/code/project is still in use, just very lightly maintained.
+    - The code is a bit of a mess, could use a heavy clean up and rewriting, but this won't be attempted.  A replacement project is, slowly, in development.
+
 v5.3.2
 ----------
 - show in report whether each charge was processed using level 3 data.  just for diagnostics.

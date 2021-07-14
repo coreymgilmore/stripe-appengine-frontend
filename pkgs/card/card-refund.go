@@ -5,7 +5,7 @@ import (
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/output"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
-	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/v72"
 )
 
 //Refund handles refunding a charge on a card
@@ -73,5 +73,4 @@ func Refund(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("refund-done", nil, w)
-	return
 }

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/users"
-	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/v72"
 )
 
 //CustomerDatastore is the data stored in the db (Google Cloud Datatore) about a customer.

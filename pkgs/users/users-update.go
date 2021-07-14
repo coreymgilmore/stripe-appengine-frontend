@@ -63,7 +63,6 @@ func ChangePwd(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("userChangePassword", nil, w)
-	return
 }
 
 //UpdatePermissions is used to save changes to a user's permissions (access rights)
@@ -136,7 +135,6 @@ func UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 
 	//done
 	output.Success("userUpdatePermissins", nil, w)
-	return
 }
 
 //updateUserSqlite updates a user in the sqlite db

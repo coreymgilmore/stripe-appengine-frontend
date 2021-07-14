@@ -18,7 +18,7 @@ import (
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sessionutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/sqliteutils"
 	"github.com/coreymgilmore/stripe-appengine-frontend/pkgs/timestamps"
-	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/v72"
 )
 
 //processChargeInputs is the data used in the processCharge func
@@ -36,6 +36,7 @@ type processChargeInputs struct {
 	authorizeOnly        bool
 	level3Params         chargeLevel3ParamsJSON
 	level3Provided       bool
+	idempotencyKey       string
 }
 
 //chargeLevel3ParamsJSON is the set of parameters that can be used for the Level III data.
@@ -134,7 +135,6 @@ func ManualCharge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("cardCharged", out, w)
-	return
 }
 
 //AutoCharge processes a charge on a credit card automatically
@@ -145,6 +145,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	amount := r.FormValue("amount")          //in cents
 	invoice := r.FormValue("invoice")
 	poNum := r.FormValue("po")
+	idempotencyKey := strings.TrimSpace(r.FormValue("idempotecy_key"))
 
 	//above inputs are the same for manual or auto charges
 	//below are for auto charges only
@@ -164,7 +165,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		output.Error(errMissingInput, "No amount was provided.", w)
 		return
 	}
-	if autoCharge == false {
+	if !autoCharge {
 		output.Error(errMissingInput, "The 'auto_charge' value was not provided. This is required when trying to automatically process a charge.", w)
 		return
 	}
@@ -234,6 +235,7 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 		autoChargeReferrer:   referrer,
 		autoChargeReason:     reason,
 		authorizeOnly:        false,
+		idempotencyKey:       idempotencyKey,
 	}
 
 	//check if level3 data was provided
@@ -257,19 +259,18 @@ func AutoCharge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("cardCharged", out, w)
-	return
 }
 
 //isBelowMinCharge checks if an amount to charge is too low and returns an error message
 //min charge may be greater than 0 because of transactions costs
 //for example, stripe takes 30 cents...it does not make sense to charge a card for < 30 cents
-func isBelowMinCharge(amount uint64) (string, error) {
-	if amount < minCharge {
-		return "You must charge at least " + strconv.FormatInt(minCharge, 10) + " cents.", errChargeAmountTooLow
-	}
+// func isBelowMinCharge(amount uint64) (string, error) {
+// 	if amount < minCharge {
+// 		return "You must charge at least " + strconv.FormatInt(minCharge, 10) + " cents.", errChargeAmountTooLow
+// 	}
 
-	return "", nil
-}
+// 	return "", nil
+// }
 
 //processCharge peforms most of the actions required to actually charge a card
 //this func removes a lot of retyping between ManualCharge and AutoCharge
@@ -296,6 +297,19 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 		Currency:    stripe.String(currency),
 		Description: stripe.String("Charge for invoice: " + input.invoiceNum + ", purchase order: " + input.poNum + "."),
 		Capture:     stripe.Bool(capture),
+	}
+
+	//set idempotency key
+	//This prevents duplicate charges from occuring.
+	//A value for this key may have been provided via api auto-charge, if it was
+	//use it. Otherwise, create it. Create it from provided charge data so that
+	//if a duplicate charge is attempted we can catch it.
+	if input.idempotencyKey != "" {
+		chargeParams.SetIdempotencyKey(input.idempotencyKey)
+		chargeParams.AddMetadata("idenpotency_set", "via provided value")
+	} else {
+		chargeParams.SetIdempotencyKey(input.customerData.StripeCustomerToken + "--" + input.invoiceNum + "--" + input.poNum + "--" + strconv.FormatUint(input.amountCents, 10))
+		chargeParams.AddMetadata("idenpotency_set", "app generated")
 	}
 
 	//add metadata
@@ -392,6 +406,9 @@ func processCharge(input processChargeInputs) (out chargeSuccessful, errMsg stri
 		}
 	}
 
+	log.Printf("%+v", chg.APIResource)
+	log.Println("ERR", err)
+
 	//update the last charge/used timestamp
 	//don't return on an error since this isn't a huge issue if it doesn't work
 	err = updateCardLastUsed(input.context, input.customerData.ID)
@@ -448,7 +465,6 @@ func Capture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	output.Success("cardCharged", nil, w)
-	return
 }
 
 //updateCardLastUsed updates the LastUsedTimestamp of a card
@@ -470,6 +486,9 @@ func updateCardLastUsed(ctx context.Context, customerID int64) error {
 			timestamps.Unix(),
 			customerID,
 		)
+		if err != nil {
+			return err
+		}
 
 	} else {
 		fullKey := datastoreutils.GetKeyFromID(datastoreutils.EntityCards, customerID)
@@ -488,6 +507,9 @@ func updateCardLastUsed(ctx context.Context, customerID int64) error {
 		//update timestamp
 		cardData.LastUsedTimestamp = timestamps.Unix()
 		_, err = client.Put(ctx, fullKey, &cardData)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

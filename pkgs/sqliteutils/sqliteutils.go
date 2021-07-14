@@ -51,7 +51,6 @@ func SetConfig(c config) {
 	Config = c
 
 	log.Println("Using SQLite file:", Config.PathToDatabaseFile)
-	return
 }
 
 func init() {
@@ -61,7 +60,6 @@ func init() {
 		CreateTableCompanyInfo,
 		CreateTableAppSettings,
 	)
-	return
 }
 
 //Bindvars is used to hold the SQL query parameters
@@ -109,7 +107,6 @@ func Connect() {
 	}
 
 	log.Println("sqliteutils.Connect: Connecting...done")
-	return
 }
 
 //deployDB deploys the db
@@ -132,13 +129,11 @@ func deployDB() {
 	}
 
 	log.Println("sqliteutils.deployDB: Deploying db...done")
-	return
 }
 
 //Close closes the connection to the database.
 func Close() {
 	Connection.Close()
-	return
 }
 
 //deployFunc is the signature for a function that is used to deploy the schema of the db.
@@ -159,5 +154,4 @@ var deployFuncs []deployFunc
 //of this package.
 func RegisterDeployFunc(f ...deployFunc) {
 	deployFuncs = append(deployFuncs, f...)
-	return
 }

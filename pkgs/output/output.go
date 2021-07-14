@@ -59,7 +59,6 @@ func returnData(ok bool, msgType string, msgData interface{}, resCode int, w htt
 	//return json to client
 	output, _ := json.Marshal(o)
 	w.Write(output)
-	return
 }
 
 //Error is used when an error occured within the app and we could not continue with the task
@@ -83,7 +82,6 @@ func Error(title error, msg string, w http.ResponseWriter) {
 
 	//send message to client
 	returnData(false, "error", d, http.StatusBadRequest, w)
-	return
 }
 
 //Success is used when no errors occured and we want to send data back to the client
@@ -92,5 +90,4 @@ func Error(title error, msg string, w http.ResponseWriter) {
 //Sometimes no data is returned on purpose.
 func Success(msgType string, msgData interface{}, w http.ResponseWriter) {
 	returnData(true, msgType, msgData, http.StatusOK, w)
-	return
 }
